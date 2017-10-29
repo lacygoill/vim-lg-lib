@@ -174,6 +174,60 @@ endfu
 " argument, no wrapping inside a 3rd dictionary, or anything. Just this dictionary.
 "}}}
 
+fu! my_lib#matrix_transposition(...) abort "{{{2
+    " This function expects several lists as arguments, with all the same length.
+    " We could imagine the lists piled up, forming a matrix.
+    " The function should return a single list of lists, whose items are the
+    " columns of this table.
+    " This is similar to what is called, in math, a transposition:
+    "
+    "         https://en.wikipedia.org/wiki/Transpose
+    "
+    " That is, reading the  lines in a transposed matrix is  the same as reading
+    " the columns in the original one.
+
+
+    " Make sure at least 2 lists were given as an argument.
+    if a:0 < 2
+        return -1
+    endif
+
+    " Check that all the arguments are lists and have the same length
+    let length = len(a:1)
+    for list in a:000
+        if type(list) != type([]) || len(list) != length
+            return -1
+        endif
+    endfor
+
+    " Initialize a list of empty lists (whose number is length).
+    " We can't use repeat() (repeat([[]], length) doesn't work as expected),
+    " so we create a list of numbers with the same size (range(length)),
+    " and then converts each number into [].
+    let listofcol = map(range(length), '[]')
+
+    " Inside our table, we first iterate over lines (there're a:0 lines),
+    " then over columns (there're length columns).
+    " With this double nested for loop, we can reach all cells in the table:
+    "
+    "         a:000[i][j]    is the cell of coords [i,j]
+    "
+    " Imagine the upper-left corner is the origin of a coordinate system,
+    "
+    "         x axis goes down     = lines
+    "         y axis goes right    = columns
+    "
+    " A cell must be added to a list of listofcol. Which one?
+    " A cell is in the j-th column / list of columns, so:    j
+    for i in range(a:0)
+        for j in range(length)
+            call add(listofcol[j], a:000[i][j])
+        endfor
+    endfor
+
+    return listofcol
+endfu
+
 fu! my_lib#reg_save(names) abort "{{{2
     for name in a:names
         let prefix          = get(s:reg_translations, name, name)
