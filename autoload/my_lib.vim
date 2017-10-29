@@ -52,7 +52,7 @@ fu! my_lib#map_save(keys, mode, global) abort "{{{2
             "         • the mode (normal, visual, …)
             "
             " The `'unmapped'` key is not necessary. I just find it can make
-            " the code a little more readable inside `tmp_mappings#restore()`.
+            " the code a little more readable inside `my_lib#map_restore()`.
             " Indeed, one can write:
 
             "     if has_key(mapping, 'unmapped') && !empty(mapping)
@@ -62,7 +62,7 @@ fu! my_lib#map_save(keys, mode, global) abort "{{{2
 "}}}
 
             " restore the local one
-            call tmp_mappings#restore({l:key : buf_local_map})
+            call my_lib#map_restore({l:key : buf_local_map})
         endfor
 
     " TRY to return info local mappings.
@@ -125,7 +125,7 @@ fu! my_lib#map_restore(mappings) abort "{{{2
     " In such cases, it's convenient to use `get()` and default to an empty
     " list:
     "
-    "     call tmp_mappings#restore(get(g:, 'unsure_variable', []))
+    "     call my_lib#map_restore(get(g:, 'unsure_variable', []))
     "
     " To support this use case, we need to immediately return when we receive
     " an empty list, since there's nothing to restore.
@@ -170,7 +170,7 @@ endfu
 " Its keys are the keys used in the mappings.
 " Its values are the info about those mappings stored in sub-dictionaries.
 "
-" There's nothing special to pass to `tmp_mappings#restore()`, no other
+" There's nothing special to pass to `my_lib#map_restore()`, no other
 " argument, no wrapping inside a 3rd dictionary, or anything. Just this dictionary.
 "}}}
 
