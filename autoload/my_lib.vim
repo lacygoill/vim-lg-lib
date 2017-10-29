@@ -4,6 +4,113 @@ endif
 let g:autoloaded_my_lib = 1
 
 " Functions {{{1
+fu! my_lib#is_prime(n) abort "{{{2
+    let n = a:n
+    if type(n) !=# type(0) || n < 0
+        echo 'Not a positive number'
+        return ''
+    endif
+
+    " 1, 2 and 3 are special cases.
+    " 2 and 3 are prime, 1 is not prime.
+
+    if n == 2 || n == 3
+        return 1
+    elseif n == 1 || n % 2 == 0 || n % 3 == 0
+        return 0
+
+    " Why do we test whether `n` is divisible by 2 or 3?{{{
+    "
+    " `n` is not a prime    ⇒    its prime factor decomposition
+    "                            includes a prime number
+    "
+    " All prime numbers follow the form `6k - 1` or `6k + 1`.
+    " EXCEPT 2 and 3.
+    "
+    " Indeed, any number can be written in one of the following form:
+    "
+    "       • 6k        divisible by 6    not prime
+    "       • 6k + 1                      could be prime
+    "       • 6k + 2    "            2    not prime
+    "       • 6k + 3    "            3    not prime
+    "       • 6k + 4    "            2    not prime
+    "       • 6k + 5                      could be prime
+    "
+    " So, for a number to be prime, it has to follow the form `6k ± 1`.
+    " Any other form would mean it's divisible by 2 or 3.
+    "
+    " So, `n` is NOT a prime    ⇒    its prime factor decomposition
+    "                                includes a `6k ± 1` number
+    "                                OR 2 OR 3
+    "
+    " Therefore, we have to test 2 and 3 manually.
+    " Later we'll test all the `6k ± 1` numbers.
+"}}}
+    endif
+
+    " We'll begin testing if `n` is divisible by 5 (first `6k ± 1` number).
+    let divisor = 5
+
+    " `inc` is the increment we'll add to `divisor` at the end of each
+    " iteration of the while loop.
+    " The next divisor to test is 7, so, initially, the increment needs to be 2:
+    "         7 = 5 + 2
+
+    let inc = 2
+
+    let sqrt = sqrt(n)
+    while divisor <= sqrt
+
+    " We could also write:     while i * i <= n{{{
+    "
+    " But then, each iteration of the loop would calculate `i*i`.
+    " It's faster to just calculate the square root of `n` once and only
+    " once, before the loop.
+    "
+    " Why do we stop testing after `sqrt`?
+    " Suppose that `n` is not prime.
+    " If all the factors in its prime factor decomposition are greater than
+    " `√n` then their product is greater than `n` (which is of course
+    " impossible).
+    " Indeed, there's at least 2 factors in the decomposition of a non prime
+    " number.
+    " Therefore, if `n` is not prime, then its prime factor decomposition must
+    " include at least one factor lower than `√n`:
+    "
+    "          n not prime             ⇒    n has a factor < √n
+    "     ⇔    n has no factor < √n    ⇒    n is prime
+"}}}
+        if n % divisor == 0
+            return 0
+        endif
+
+        let divisor += inc
+
+        " The `6k ± 1` numbers are:
+        "
+        "         5, 7, 11, 13, 17, 19 …
+        "
+        " To generate them, we begin with 5, then add 2, then add 4, then add
+        " 2, then add 4…
+        " In other words, we have to increment `i` by 2 or 4, at the end of
+        " every iteration of the while loop.
+        "
+        " How to code that?
+        " Here's one way; the sum of 2 consecutive increments will always be
+        " 6 (2+4 or 4+2):
+        "
+        "         inc_current + inc_next = 6
+        "
+        " Therefore:
+        "
+        "         inc_next = 6 - inc_current
+
+        let inc = 6 - inc
+    endwhile
+
+    return 1
+endfu
+
 fu! my_lib#map_save(keys, mode, global) abort "{{{2
     let mappings = {}
 
