@@ -335,6 +335,33 @@ fu! my_lib#matrix_transposition(...) abort "{{{2
     return listofcol
 endfu
 
+fu! my_lib#max(numbers) abort "{{{2
+    " reimplement `max()` and `min()` because the builtins don't handle floats
+    if !len(a:numbers)
+        return 0
+    endif
+    let max = a:numbers[0]
+    for n in a:numbers[1:]
+        if n > max
+            let max = n
+        endif
+    endfor
+    return max
+endfu
+
+fu! my_lib#min(numbers) abort "{{{2
+    if !len(a:numbers)
+        return 0
+    endif
+    let min = a:numbers[0]
+    for n in a:numbers[1:]
+        if n < min
+            let min = n
+        endif
+    endfor
+    return min
+endfu
+
 fu! my_lib#reg_save(names) abort "{{{2
     for name in a:names
         let prefix          = get(s:reg_translations, name, name)
