@@ -308,14 +308,18 @@ fu! my_lib#matrix_transposition(...) abort "{{{2
     endfor
 
     " Initialize a list of empty lists (whose number is length).
-    " We can't use repeat() (repeat([[]], length) doesn't work as expected),
-    " so we create a list of numbers with the same size (range(length)),
+    " We can't use `repeat()`:
+    "
+    "         repeat([[]], length)
+    "
+    " … doesn't work as expected.
+    " So we create a list of numbers with the same size (`range(length)`),
     " and then converts each number into [].
-    let listofcol = map(range(length), '[]')
+    let transposed = map(range(length), '[]')
 
-    " Inside our table, we first iterate over lines (there're a:0 lines),
-    " then over columns (there're length columns).
-    " With this double nested for loop, we can reach all cells in the table:
+    " Inside our table, we first iterate over lines (there're `a:0` lines),
+    " then over columns (there're `length` columns).
+    " With these nested for loops, we can reach all cells in the table:
     "
     "         a:000[i][j]    is the cell of coords [i,j]
     "
@@ -324,15 +328,15 @@ fu! my_lib#matrix_transposition(...) abort "{{{2
     "         x axis goes down     = lines
     "         y axis goes right    = columns
     "
-    " A cell must be added to a list of listofcol. Which one?
+    " A cell must be added to a list of `transposed`. Which one?
     " A cell is in the j-th column / list of columns, so:    j
     for i in range(a:0)
         for j in range(length)
-            call add(listofcol[j], a:000[i][j])
+            call add(transposed[j], a:000[i][j])
         endfor
     endfor
 
-    return listofcol
+    return transposed
 endfu
 
 fu! my_lib#max(numbers) abort "{{{2
@@ -416,6 +420,7 @@ fu! my_lib#reg_restore(names) abort "{{{2
         call setreg(name, contents, type)
     endfor
 endfu
+
 " Variables "{{{1
 
 let s:reg_translations = {
