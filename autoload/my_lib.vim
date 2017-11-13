@@ -378,32 +378,6 @@ fu! my_lib#quit() abort "{{{2
         return ''
     endif
 
-    " We've changed the `$EDITOR` environment variable in ~/.shrc like this:
-    "
-    "     export EDITOR=vim
-    "     export EDITOR='env not_called_by_me=1 vim'
-    "
-    " This way, any external program which invokes Vim (`vipe`, …), does it by
-    " creating the variable `$not_called_by_me` and adding it in the environment
-    " of the `vim` process.
-    "
-    " It works because most of the programs which call an editor look at the
-    " value of `$EDITOR`.
-    "
-    " We use `$not_called_by_me` to check whether Vim was called by manually
-    " by me, or automatically by some other process.
-    " If it was called by another process, I would like my `quit()` function
-    " to quit and produce an error, so that the shell doesn't execute the
-    " command which was bound to be processed after closing the editor.
-
-    " if $not_called_by_me == 1
-    "     cquit
-    "
-    " TODO:
-    " Temporarily commented out because I find it annoying. For example, when
-    " using `qmv`. If I don't find a way to use `:cquit` (and
-    " `$not_called_by_me`), remove them definitively.
-
     if tabpagenr('$') == 1 && winnr('$') == 1
         " If there's only one tab page and only one window, we want to close
         " the session.
@@ -608,7 +582,6 @@ fu! my_lib#restore_closed_window(cnt) abort "{{{2
     endtry
     return ''
 endfu
-
 
 " Variables "{{{1
 
