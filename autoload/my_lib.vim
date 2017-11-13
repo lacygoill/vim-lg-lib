@@ -366,6 +366,118 @@ fu! my_lib#min(numbers) abort "{{{2
     return min
 endfu
 
+fu! my_lib#quit() abort "{{{2
+    " If we are in the command-line window, we want to close the latter,
+    " and return without doing anything else (save session).
+    "
+    "         ┌─ return ':' in a command-line window,
+    "         │  nothing in a regular buffer
+    "         │
+    if !empty(getcmdwintype())
+        close
+        return ''
+    endif
+
+    " We've changed the `$EDITOR` environment variable in ~/.shrc like this:
+    "
+    "     export EDITOR=vim
+    "     export EDITOR='env not_called_by_me=1 vim'
+    "
+    " This way, any external program which invokes Vim (`vipe`, …), does it by
+    " creating the variable `$not_called_by_me` and adding it in the environment
+    " of the `vim` process.
+    "
+    " It works because most of the programs which call an editor look at the
+    " value of `$EDITOR`.
+    "
+    " We use `$not_called_by_me` to check whether Vim was called by manually
+    " by me, or automatically by some other process.
+    " If it was called by another process, I would like my `quit()` function
+    " to quit and produce an error, so that the shell doesn't execute the
+    " command which was bound to be processed after closing the editor.
+
+    " if $not_called_by_me == 1
+    "     cquit
+    "
+    " TODO:
+    " Temporarily commented out because I find it annoying. For example, when
+    " using `qmv`. If I don't find a way to use `:cquit` (and
+    " `$not_called_by_me`), remove them definitively.
+
+    if tabpagenr('$') == 1 && winnr('$') == 1
+        " If there's only one tab page and only one window, we want to close
+        " the session.
+        qall
+
+    " In neovim, we could also test the existence of `b:terminal_job_pid`.
+    elseif &buftype == 'terminal'
+        bw!
+
+    else
+        " if a location window is associated with the window we're closing,
+        " close it too
+        sil! lclose
+
+        " same thing for preview window, but only in a help buffer outside of
+        " preview winwow
+        if &ft ==# 'help' && !&previewwindow
+            pclose
+        endif
+
+        " create a new temporary file for the session we're going to save
+        let g:my_undo_sessions = get(g:, 'my_undo_sessions', []) + [ tempname() ]
+
+        try
+            let session_save = v:this_session
+
+            " don't save cwd
+            let ssop_save = &ssop
+            set ssop-=curdir
+
+            exe 'mksession! '.g:my_undo_sessions[-1]
+        catch
+            return 'echoerr '.string(v:exception)
+        finally
+            " if no session has been loaded so far, we don't want to see
+            " `[S]` in the statusline;
+            " and if a session was being tracked, we don't want to see `[S]`
+            " but `[∞]`
+            let v:this_session = session_save
+            let &ssop = ssop_save
+        endtry
+
+        " We could also install an autocmd in our vimrc:
+        "         au QuitPre * nested if &ft != 'qf' | sil! lclose | endif
+        "
+        " Inspiration:
+        " https://github.com/romainl/vim-qf/blob/5f971f3ed7f59ff11610c00b8a1e343e2dbae510/plugin/qf.vim#L64-L65
+        "
+        " But in this case, we couldn't close the window with `:close`.
+        " We would have to use `:q`, because `:close` doesn't emit `QuitPre`.
+        " For the moment, I prefer to use `:close` because it doesn't close
+        " a window if it's the last one.
+
+        try
+            " NOTE: Why :close instead of :quit ?{{{
+            "
+            "     Launch Vim with no file arguments:    $ vim
+            "     Open a help buffer:                   :h autocmd
+            "     Give focus to the unnamed buffer:     C-w w
+            "     Quit the unnamed buffer:              :q
+            "
+            " Vim quits entirely instead of only closing the window.
+            " It considers help buffers as unimportant.
+            "
+            " :close doesn't close a window if it's the last one.
+            "}}}
+            close
+        catch
+            return 'echoerr '.string(v:exception)
+        endtry
+    endif
+    return ''
+endfu
+
 fu! my_lib#reg_save(names) abort "{{{2
     for name in a:names
         let prefix          = get(s:reg_translations, name, name)
@@ -420,6 +532,83 @@ fu! my_lib#reg_restore(names) abort "{{{2
         call setreg(name, contents, type)
     endfor
 endfu
+
+fu! my_lib#restore_closed_window(cnt) abort "{{{2
+    if !exists('g:my_undo_sessions') || empty(g:my_undo_sessions)
+        return ''
+    endif
+
+    sil! tabdo tabclose
+    sil! windo close
+
+    try
+        let session_save = v:this_session
+        "                                     ┌─ handle the case where we hit a too big number
+        "                                     │
+        let session_file = g:my_undo_sessions[max([ -a:cnt, -len(g:my_undo_sessions) ])]
+
+        if !has('nvim')
+            " Eliminate terminal buffers, to avoid E947.{{{
+            "
+            " In Vim,  a terminal buffer is  considered modified as long  as the
+            " job is running.
+            "
+            " This is only the case in Vim, not Neovim.
+            " Which means you can restore a session containing a terminal buffer
+            " in Neovim (without its contents) but not in Vim.
+            "
+            " You can reproduce this kind of error, this way:
+            "
+            "         • open a terminal buffer
+            "         • save the session (`:mksession file.vim`)
+            "         • from the terminal buffer, restore the session (`:so file.vim`)
+            "
+            " Or:
+            "         • open a terminal buffer
+            "         • from the latter, execute:
+            "                 :badd \!/bin/zsh
+            "
+            " FIXME:
+            " Why does  the error  only occur  when `:badd`  is executed  from a
+            " terminal buffer?
+"}}}
+            call writefile(filter(readfile(session_file),
+            \                     'v:val !~# ''\v^badd \+\d+ \\!/bin/%(bash|zsh)'''
+            \                    ),
+            \              session_file)
+        endif
+
+        exe 'so '.session_file
+
+        " if we gave a count to restore several windows, we probably    ┐
+        " want to reset the stack of sessions, otherwise the next time  │
+        " we would hit `{number} leader u`, if `{number}` is too big    │
+        " we would end up in a weird old session we don't remember      │
+        "                                                               │
+        " I'm still not sure it's the right thing to do, because        │
+        " it prevents us from hitting `leader u` once again if          │
+        " `{number}` was too small; time will tell                      │
+        let g:my_undo_sessions = a:cnt == 1 ? g:my_undo_sessions[:-2] : []
+
+        " Idea:
+        " We could add a 2nd stack which wouldn't be reset when we give a count, and
+        " implement a 2nd mapping `leader U`, which could access this 2nd stack.
+        " It could be useful if we hit `{number} leader u`, but `{number}` wasn't
+        " big enough.
+    catch
+        return 'echoerr '.string(v:exception)
+    finally
+        " When we undo the closing of a window, we don't want the statusline to
+        " tell us we've restored a session with the indicator [S].
+        " It's a detail of implementation we're not interested in.
+        "
+        " Besides, if a session is being tracked, it would temporarily replace
+        " `[∞]` with `[S]`, which would be a wrong indication.
+        let v:this_session = session_save
+    endtry
+    return ''
+endfu
+
 
 " Variables "{{{1
 
