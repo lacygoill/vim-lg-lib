@@ -421,7 +421,7 @@ fu! my_lib#quit() abort "{{{2
         endtry
 
         " We could also install an autocmd in our vimrc:
-        "         au QuitPre * nested if &ft != 'qf' | sil! lclose | endif
+        "         au QuitPre * nested if &l:buftype != 'quickfix' | sil! lclose | endif
         "
         " Inspiration:
         " https://github.com/romainl/vim-qf/blob/5f971f3ed7f59ff11610c00b8a1e343e2dbae510/plugin/qf.vim#L64-L65
