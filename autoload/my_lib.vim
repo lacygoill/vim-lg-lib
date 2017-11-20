@@ -384,13 +384,20 @@ fu! my_lib#quit() abort "{{{2
         qall
 
     " In neovim, we could also test the existence of `b:terminal_job_pid`.
-    elseif &buftype == 'terminal'
+    elseif &l:buftype == 'terminal'
         bw!
 
     else
-        " if a location window is associated with the window we're closing,
-        " close it too
+        let was_loclist = get(b:, 'qf_is_loclist', 0)
+        " if the window we're closing is associated to a ll window,
+        " close the latter too
         sil! lclose
+
+        " if we were already in a loclist window, then `:lclose` has closed it,
+        " and there's nothing left to close
+        if was_loclist
+            return ''
+        endif
 
         " same thing for preview window, but only in a help buffer outside of
         " preview winwow
@@ -432,7 +439,7 @@ fu! my_lib#quit() abort "{{{2
         " a window if it's the last one.
 
         try
-            " NOTE: Why :close instead of :quit ?{{{
+            " Why :close instead of :quit ?{{{
             "
             "     Launch Vim with no file arguments:    $ vim
             "     Open a help buffer:                   :h autocmd
