@@ -394,7 +394,7 @@ fu! my_lib#quit() abort "{{{2
 
         " same thing for preview window, but only in a help buffer outside of
         " preview winwow
-        if &ft ==# 'help' && !&previewwindow
+        if &l:buftype ==# 'help' && !&previewwindow
             pclose
         endif
 
