@@ -592,7 +592,7 @@ fu! my_lib#restore_closed_window(cnt) abort "{{{2
             " terminal buffer?
 "}}}
             call writefile(filter(readfile(session_file),
-            \                     { k,v -> v !~# '\v^badd \+\d+ \!/bin/%(bash|zsh)' }
+            \                     { i,v -> v !~# '\v^badd \+\d+ \!/bin/%(bash|zsh)' }
             \                    ),
             \              session_file)
         endif
