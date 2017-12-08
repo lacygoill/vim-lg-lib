@@ -163,6 +163,11 @@ fu! my_lib#man_k(pgm) abort "{{{2
             " don't raise any exception. Maybe we could use `:throw`, although
             " I don't know how it works exactly. But then we would have errors
             " when we execute `:Man garbage_word` manually.
+            "
+            " Edit:
+            " This whole code seems dubious. We  may silently ignore other valid
+            " errors, because of these 2 nested try conditionals.
+            " We should rethink this code.
         endtry
     endtry
 endfu
@@ -473,7 +478,7 @@ fu! my_lib#quit() abort "{{{2
 
             exe 'mksession! '.g:my_undo_sessions[-1]
         catch
-            return 'echoerr '.string(v:exception)
+            call my_lib#catch_error()
         finally
             " if no session has been loaded so far, we don't want to see
             " `[S]` in the statusline;
@@ -509,10 +514,9 @@ fu! my_lib#quit() abort "{{{2
             "}}}
             close
         catch
-            return 'echoerr '.string(v:exception)
+            call my_lib#catch_error()
         endtry
     endif
-    return ''
 endfu
 
 fu! my_lib#reg_save(names) abort "{{{2
@@ -633,7 +637,7 @@ fu! my_lib#restore_closed_window(cnt) abort "{{{2
         " It could be useful if we hit `{number} leader u`, but `{number}` wasn't
         " big enough.
     catch
-        return 'echoerr '.string(v:exception)
+        call my_lib#catch_error()
     finally
         " When we undo the closing of a window, we don't want the statusline to
         " tell us we've restored a session with the indicator [S].
@@ -643,7 +647,6 @@ fu! my_lib#restore_closed_window(cnt) abort "{{{2
         " `[∞]` with `[S]`, which would be a wrong indication.
         let v:this_session = session_save
     endtry
-    return ''
 endfu
 
 " Variables "{{{1
