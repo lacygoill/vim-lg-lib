@@ -132,7 +132,6 @@ endfu
 
 fu! my_lib#man_k(pgm) abort "{{{2
     let cur_word = expand('<cword>')
-    let g:cur_word = deepcopy(cur_word)
     exe 'Man '.a:pgm
 
     try
