@@ -436,7 +436,7 @@ fu! my_lib#quit() abort "{{{2
     "         │
     if !empty(getcmdwintype())
         close
-        return ''
+        return
     endif
 
     if tabpagenr('$') == 1 && winnr('$') == 1
@@ -457,7 +457,7 @@ fu! my_lib#quit() abort "{{{2
         " if we were already in a loclist window, then `:lclose` has closed it,
         " and there's nothing left to close
         if was_loclist
-            return ''
+            return
         endif
 
         " same thing for preview window, but only in a help buffer outside of
@@ -478,7 +478,7 @@ fu! my_lib#quit() abort "{{{2
 
             exe 'mksession! '.g:my_undo_sessions[-1]
         catch
-            call my_lib#catch_error()
+            return my_lib#catch_error()
         finally
             " if no session has been loaded so far, we don't want to see
             " `[S]` in the statusline;
@@ -514,7 +514,7 @@ fu! my_lib#quit() abort "{{{2
             "}}}
             close
         catch
-            call my_lib#catch_error()
+            return my_lib#catch_error()
         endtry
     endif
 endfu
