@@ -9,7 +9,7 @@ fu! my_lib#catch_error_in_op_function(type) abort "{{{2
         return 'echoerr '.string(v:exception.'    @@@ '.v:throwpoint)
     elseif index(['char', 'line', 'block'], a:type) >= 0
         echohl ErrorMsg
-        echom v:exception.' | '.v:throwpoint
+        echom v:exception.'    @@@ '.v:throwpoint
         echohl NONE
     else
         return 'return '.string('echoerr '.string(v:exception))
