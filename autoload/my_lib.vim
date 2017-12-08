@@ -4,17 +4,6 @@ endif
 let g:autoloaded_my_lib = 1
 
 " Functions {{{1
-fu! my_lib#catch_error_in_op_function() abort "{{{2
-    if get(g:, 'my_verbose_errors', 0)
-        return 'echoerr '.string(v:exception.'    @@@ '.v:throwpoint)
-    else
-        echohl ErrorMsg
-        echom v:exception
-        echohl NONE
-    endif
-    return ''
-endfu
-
 fu! my_lib#is_prime(n) abort "{{{2
     let n = a:n
     if type(n) !=# type(0) || n < 0
