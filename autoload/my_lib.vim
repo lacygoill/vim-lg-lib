@@ -11,7 +11,7 @@ fu! my_lib#catch_error_in_op_function(type) abort "{{{2
         echohl NONE
     else
         return get(g:, 'my_verbose_errors', 0)
-        \?      'echoerr '.string(v:exception)
+        \?      'echoerr '.string(v:exception.'    @@@ '.v:throwpoint)
         \:      'return '.string('echoerr '.string(v:exception))
     endif
     return ''
