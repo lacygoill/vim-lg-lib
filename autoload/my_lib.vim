@@ -5,16 +5,15 @@ let g:autoloaded_my_lib = 1
 
 " Functions {{{1
 fu! my_lib#catch_error_in_op_function(type) abort "{{{2
-    if index(['char', 'line', 'block'], a:type) >= 0
+    if get(g:, 'my_verbose_errors', 0)
+        return 'echoerr '.string(v:exception.'    @@@ '.v:throwpoint)
+    elseif index(['char', 'line', 'block'], a:type) >= 0
         echohl ErrorMsg
         echom v:exception.' | '.v:throwpoint
         echohl NONE
     else
-        return get(g:, 'my_verbose_errors', 0)
-        \?      'echoerr '.string(v:exception.'    @@@ '.v:throwpoint)
-        \:      'return '.string('echoerr '.string(v:exception))
+        return 'return '.string('echoerr '.string(v:exception))
     endif
-    return ''
 endfu
 
 fu! my_lib#is_prime(n) abort "{{{2
