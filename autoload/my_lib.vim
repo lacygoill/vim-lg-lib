@@ -21,6 +21,7 @@ fu! my_lib#catch_error() abort "{{{2
         echom v:exception
         echohl NONE
     endif
+    return ''
 endfu
 
 fu! my_lib#is_prime(n) abort "{{{2
@@ -576,7 +577,7 @@ endfu
 
 fu! my_lib#restore_closed_window(cnt) abort "{{{2
     if !exists('g:my_undo_sessions') || empty(g:my_undo_sessions)
-        return ''
+        return
     endif
 
     sil! tabdo tabclose
@@ -637,7 +638,7 @@ fu! my_lib#restore_closed_window(cnt) abort "{{{2
         " It could be useful if we hit `{number} leader u`, but `{number}` wasn't
         " big enough.
     catch
-        call my_lib#catch_error()
+        return my_lib#catch_error()
     finally
         " When we undo the closing of a window, we don't want the statusline to
         " tell us we've restored a session with the indicator [S].
