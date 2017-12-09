@@ -21,6 +21,9 @@ fu! my_lib#catch_error() abort "{{{2
         echom v:exception
         echohl NONE
     endif
+    " It's important  to return  an empty string. Because  often, the  output of
+    " this function will be executed or inserted. Check `vim-interactive-lists`,
+    " and `vim-readline`.
     return ''
 endfu
 
