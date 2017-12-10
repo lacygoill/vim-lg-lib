@@ -139,10 +139,7 @@ fu! my_lib#man_k(pgm) abort "{{{2
         " set its title
         call setloclist(0, [], 'a', { 'title': cur_word })
 
-        " Hit `[L` and then `[l`, so that we can move across the matches with
-        " `;` and `,`.
-        sil! norm [L
-        sil! norm [l
+        let g:motion_to_repeat = ']l'
     catch
         try
             sil exe 'Man '.cur_word
