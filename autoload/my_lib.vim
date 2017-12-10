@@ -1,8 +1,3 @@
-if exists('g:autoloaded_my_lib')
-    finish
-endif
-let g:autoloaded_my_lib = 1
-
 " Functions {{{1
 fu! my_lib#catch_error() abort "{{{2
     if get(g:, 'my_verbose_errors', 0)
