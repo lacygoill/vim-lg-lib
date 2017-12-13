@@ -1,11 +1,11 @@
 " Functions {{{1
 fu! my_lib#catch_error() abort "{{{2
     if get(g:, 'my_verbose_errors', 0)
-        let function = matchstr(v:throwpoint, 'function \zs.\{-}\ze,')
+        let func_name = matchstr(v:throwpoint, 'function \zs.\{-}\ze,')
         let line = matchstr(v:throwpoint, 'function .\{-}, \zsline \d\+')
 
         echohl ErrorMsg
-        echom 'Error detected while processing function '.function.':'
+        echom 'Error detected while processing function '.func_name.':'
         echohl LineNr
         echom line.':'
         echohl ErrorMsg
