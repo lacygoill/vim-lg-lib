@@ -351,9 +351,9 @@ fu! my_lib#matrix_transposition(...) abort "{{{2
     " the columns in the original one.
 
 
-    " Make sure at least 2 lists were given as an argument.
-    if a:0 < 2
-        return -1
+    " handle special case where only 1 list was received (instead of 2)
+    if a:0 == 1
+        return map(range(len(a:1)), {i,v -> [a:1[i]]})
     endif
 
     " Check that all the arguments are lists and have the same length
