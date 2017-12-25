@@ -441,7 +441,7 @@ fu! my_lib#quit() abort "{{{2
         qall
 
     " In neovim, we could also test the existence of `b:terminal_job_pid`.
-    elseif &l:buftype == 'terminal'
+    elseif &bt == 'terminal'
         bw!
 
     else
@@ -458,7 +458,7 @@ fu! my_lib#quit() abort "{{{2
 
         " same thing for preview window, but only in a help buffer outside of
         " preview winwow
-        if &l:buftype ==# 'help' && !&previewwindow
+        if &bt ==# 'help' && !&previewwindow
             pclose
         endif
 
@@ -485,7 +485,7 @@ fu! my_lib#quit() abort "{{{2
         endtry
 
         " We could also install an autocmd in our vimrc:
-        "         au QuitPre * nested if &l:buftype != 'quickfix' | sil! lclose | endif
+        "         au QuitPre * nested if &bt != 'quickfix' | sil! lclose | endif
         "
         " Inspiration:
         " https://github.com/romainl/vim-qf/blob/5f971f3ed7f59ff11610c00b8a1e343e2dbae510/plugin/qf.vim#L64-L65
