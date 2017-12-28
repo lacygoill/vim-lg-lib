@@ -8,18 +8,16 @@ fu! my_lib#catch_error() abort "{{{2
         echom 'Error detected while processing function '.func_name.':'
         echohl LineNr
         echom line.':'
-        echohl ErrorMsg
-        " Even if you set “my_verbose_errors”, only the last message will
-        " be visible (i.e. v:exception).
-        " But it doesn't matter. All the messages have been written in Vim's
-        " log. So, `:WTF` will be able to show us where the error comes from.
-        echom v:exception
-        echohl NONE
-    else
-        echohl ErrorMsg
-        echom v:exception
-        echohl NONE
     endif
+
+    echohl ErrorMsg
+    " Even if you set “my_verbose_errors”, only the last message will
+    " be visible (i.e. v:exception).
+    " But it doesn't matter. All the messages have been written in Vim's
+    " log. So, `:WTF` will be able to show us where the error comes from.
+    echom v:exception
+    echohl NONE
+
     " It's important  to return  an empty string. Because  often, the  output of
     " this function will be executed or inserted. Check `vim-interactive-lists`,
     " and `vim-readline`.
