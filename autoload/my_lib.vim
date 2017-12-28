@@ -9,6 +9,10 @@ fu! my_lib#catch_error() abort "{{{2
         echohl LineNr
         echom line.':'
         echohl ErrorMsg
+        " Even if you set “my_verbose_errors”, only the last message will
+        " be visible (i.e. v:exception).
+        " But it doesn't matter. All the messages have been written in Vim's
+        " log. So, `:WTF` will be able to show us where the error comes from.
         echom v:exception
         echohl NONE
     else
