@@ -11,9 +11,10 @@ fu! my_lib#catch_error() abort "{{{2
     endif
 
     echohl ErrorMsg
-    " Even if you set “my_verbose_errors”, only the last message will
+    " Even if you set “my_verbose_errors”, when this function will be called
+    " from a function implementing an operator  (g@), only the last message will
     " be visible (i.e. v:exception).
-    " But it doesn't matter. All the messages have been written in Vim's
+    " But  it  doesn't matter. All  the  messages  have  been written  in  Vim's
     " log. So, `:WTF` will be able to show us where the error comes from.
     echom v:exception
     echohl NONE
