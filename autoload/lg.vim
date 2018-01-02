@@ -1,5 +1,5 @@
 " Functions {{{1
-fu! my_lib#catch_error() abort "{{{2
+fu! lg#catch_error() abort "{{{2
     if get(g:, 'my_verbose_errors', 0)
         let func_name = matchstr(v:throwpoint, 'function \zs.\{-}\ze,')
         let line = matchstr(v:throwpoint, 'function .\{-}, \zsline \d\+')
@@ -25,114 +25,7 @@ fu! my_lib#catch_error() abort "{{{2
     return ''
 endfu
 
-fu! my_lib#is_prime(n) abort "{{{2
-    let n = a:n
-    if type(n) !=# type(0) || n < 0
-        echo 'Not a positive number'
-        return ''
-    endif
-
-    " 1, 2 and 3 are special cases.
-    " 2 and 3 are prime, 1 is not prime.
-
-    if n == 2 || n == 3
-        return 1
-    elseif n == 1 || n % 2 == 0 || n % 3 == 0
-        return 0
-
-    " Why do we test whether `n` is divisible by 2 or 3?{{{
-    "
-    " `n` is not a prime    ⇒    its prime factor decomposition
-    "                            includes a prime number
-    "
-    " All prime numbers follow the form `6k - 1` or `6k + 1`.
-    " EXCEPT 2 and 3.
-    "
-    " Indeed, any number can be written in one of the following form:
-    "
-    "       • 6k        divisible by 6    not prime
-    "       • 6k + 1                      could be prime
-    "       • 6k + 2    "            2    not prime
-    "       • 6k + 3    "            3    not prime
-    "       • 6k + 4    "            2    not prime
-    "       • 6k + 5                      could be prime
-    "
-    " So, for a number to be prime, it has to follow the form `6k ± 1`.
-    " Any other form would mean it's divisible by 2 or 3.
-    "
-    " So, `n` is NOT a prime    ⇒    its prime factor decomposition
-    "                                includes a `6k ± 1` number
-    "                                OR 2 OR 3
-    "
-    " Therefore, we have to test 2 and 3 manually.
-    " Later we'll test all the `6k ± 1` numbers.
-"}}}
-    endif
-
-    " We'll begin testing if `n` is divisible by 5 (first `6k ± 1` number).
-    let divisor = 5
-
-    " `inc` is the increment we'll add to `divisor` at the end of each
-    " iteration of the while loop.
-    " The next divisor to test is 7, so, initially, the increment needs to be 2:
-    "         7 = 5 + 2
-
-    let inc = 2
-
-    let sqrt = sqrt(n)
-    while divisor <= sqrt
-
-    " We could also write:     while i * i <= n{{{
-    "
-    " But then, each iteration of the loop would calculate `i*i`.
-    " It's faster to just calculate the square root of `n` once and only
-    " once, before the loop.
-    "
-    " Why do we stop testing after `sqrt`?
-    " Suppose that `n` is not prime.
-    " If all the factors in its prime factor decomposition are greater than
-    " `√n` then their product is greater than `n` (which is of course
-    " impossible).
-    " Indeed, there's at least 2 factors in the decomposition of a non prime
-    " number.
-    " Therefore, if `n` is not prime, then its prime factor decomposition must
-    " include at least one factor lower than `√n`:
-    "
-    "          n not prime             ⇒    n has a factor < √n
-    "     ⇔    n has no factor < √n    ⇒    n is prime
-"}}}
-        if n % divisor == 0
-            return 0
-        endif
-
-        let divisor += inc
-
-        " The `6k ± 1` numbers are:
-        "
-        "         5, 7, 11, 13, 17, 19 …
-        "
-        " To generate them, we begin with 5, then add 2, then add 4, then add
-        " 2, then add 4…
-        " In other words, we have to increment `i` by 2 or 4, at the end of
-        " every iteration of the while loop.
-        "
-        " How to code that?
-        " Here's one way; the sum of 2 consecutive increments will always be
-        " 6 (2+4 or 4+2):
-        "
-        "         inc_current + inc_next = 6
-        "
-        " Therefore:
-        "
-        "         inc_next = 6 - inc_current
-
-        let inc = 6 - inc
-    endwhile
-
-    return 1
-endfu
-
-fu! my_lib#man_k(pgm) abort "{{{2
+fu! lg#man_k(pgm) abort "{{{2
     let cur_word = expand('<cword>')
     exe 'Man '.a:pgm
 
@@ -171,7 +64,7 @@ fu! my_lib#man_k(pgm) abort "{{{2
     endtry
 endfu
 
-fu! my_lib#map_save(keys, mode, global) abort "{{{2
+fu! lg#map_save(keys, mode, global) abort "{{{2
     let mappings = {}
 
     " If a key is used in a global mapping and a local one, by default,
@@ -219,7 +112,7 @@ fu! my_lib#map_save(keys, mode, global) abort "{{{2
             "         • the mode (normal, visual, …)
             "
             " The `'unmapped'` key is not necessary. I just find it can make
-            " the code a little more readable inside `my_lib#map_restore()`.
+            " the code a little more readable inside `lg#map_restore()`.
             " Indeed, one can write:
 
             "     if has_key(mapping, 'unmapped') && !empty(mapping)
@@ -229,7 +122,7 @@ fu! my_lib#map_save(keys, mode, global) abort "{{{2
 "}}}
 
             " restore the local one
-            call my_lib#map_restore({l:key : buf_local_map})
+            call lg#map_restore({l:key : buf_local_map})
         endfor
 
     " TRY to return info local mappings.
@@ -254,8 +147,8 @@ endfu
 
 " Usage:{{{
 "
-"     let my_global_mappings = my_lib#map_save(['key1', 'key2', …], 'n', 1)
-"     let my_local_mappings  = my_lib#map_save(['key1', 'key2', …], 'n', 0)
+"     let my_global_mappings = lg#map_save(['key1', 'key2', …], 'n', 1)
+"     let my_local_mappings  = lg#map_save(['key1', 'key2', …], 'n', 0)
 "}}}
 " Output example: {{{
 
@@ -286,13 +179,13 @@ endfu
 "                \}
 "
 " }}}
-fu! my_lib#map_restore(mappings) abort "{{{2
+fu! lg#map_restore(mappings) abort "{{{2
     " Sometimes, we may need to restore mappings stored in a variable which we
     " can't be sure will always exist.
     " In such cases, it's convenient to use `get()` and default to an empty
     " list:
     "
-    "     call my_lib#map_restore(get(g:, 'unsure_variable', []))
+    "     call lg#map_restore(get(g:, 'unsure_variable', []))
     "
     " To support this use case, we need to immediately return when we receive
     " an empty list, since there's nothing to restore.
@@ -322,8 +215,8 @@ endfu
 
 " Warning:{{{
 " Don't try to restore a buffer local mapping unless you're sure that, when
-" `my_lib#map_restore()` is called, you're in the same buffer where
-" `my_lib#map_save()` was originally called.
+" `lg#map_restore()` is called, you're in the same buffer where
+" `lg#map_save()` was originally called.
 "
 " If you aren't in the same buffer, you could install a buffer-local mapping
 " inside a buffer where this mapping didn't exist before.
@@ -331,102 +224,17 @@ endfu
 "}}}
 " Usage:{{{
 "
-"     call my_lib#map_restore(my_saved_mappings)
+"     call lg#map_restore(my_saved_mappings)
 "
-" `my_saved_mappings` is a dictionary obtained earlier by calling `my_lib#map_save()`.
+" `my_saved_mappings` is a dictionary obtained earlier by calling `lg#map_save()`.
 " Its keys are the keys used in the mappings.
 " Its values are the info about those mappings stored in sub-dictionaries.
 "
-" There's nothing special to pass to `my_lib#map_restore()`, no other
+" There's nothing special to pass to `lg#map_restore()`, no other
 " argument, no wrapping inside a 3rd dictionary, or anything. Just this dictionary.
 "}}}
 
-fu! my_lib#matrix_transposition(...) abort "{{{2
-    " This function expects several lists as arguments, with all the same length.
-    " We could imagine the lists piled up, forming a matrix.
-    " The function should return a single list of lists, whose items are the
-    " columns of this table.
-    " This is similar to what is called, in math, a transposition:
-    "
-    "         https://en.wikipedia.org/wiki/Transpose
-    "
-    " That is, reading the  lines in a transposed matrix is  the same as reading
-    " the columns in the original one.
-
-
-    " handle special case where only 1 list was received (instead of 2)
-    if a:0 == 1
-        return map(range(len(a:1)), {i,v -> [a:1[i]]})
-    endif
-
-    " Check that all the arguments are lists and have the same length
-    let length = len(a:1)
-    for list in a:000
-        if type(list) != type([]) || len(list) != length
-            return -1
-        endif
-    endfor
-
-    " Initialize a list of empty lists (whose number is length).
-    " We can't use `repeat()`:
-    "
-    "         repeat([[]], length)
-    "
-    " … doesn't work as expected.
-    " So we create a list of numbers with the same size (`range(length)`),
-    " and then converts each number into [].
-    let transposed = map(range(length), '[]')
-
-    " Inside our table, we first iterate over lines (there're `a:0` lines),
-    " then over columns (there're `length` columns).
-    " With these nested for loops, we can reach all cells in the table:
-    "
-    "         a:000[i][j]    is the cell of coords [i,j]
-    "
-    " Imagine the upper-left corner is the origin of a coordinate system,
-    "
-    "         x axis goes down     = lines
-    "         y axis goes right    = columns
-    "
-    " A cell must be added to a list of `transposed`. Which one?
-    " A cell is in the j-th column / list of columns, so:    j
-    for i in range(a:0)
-        for j in range(length)
-            call add(transposed[j], a:000[i][j])
-        endfor
-    endfor
-
-    return transposed
-endfu
-
-fu! my_lib#max(numbers) abort "{{{2
-    " reimplement `max()` and `min()` because the builtins don't handle floats
-    if !len(a:numbers)
-        return 0
-    endif
-    let max = a:numbers[0]
-    for n in a:numbers[1:]
-        if n > max
-            let max = n
-        endif
-    endfor
-    return max
-endfu
-
-fu! my_lib#min(numbers) abort "{{{2
-    if !len(a:numbers)
-        return 0
-    endif
-    let min = a:numbers[0]
-    for n in a:numbers[1:]
-        if n < min
-            let min = n
-        endif
-    endfor
-    return min
-endfu
-
-fu! my_lib#quit() abort "{{{2
+fu! lg#quit() abort "{{{2
     " If we are in the command-line window, we want to close the latter,
     " and return without doing anything else (save session).
     "
@@ -477,7 +285,7 @@ fu! my_lib#quit() abort "{{{2
 
             exe 'mksession! '.g:my_undo_sessions[-1]
         catch
-            return my_lib#catch_error()
+            return lg#catch_error()
         finally
             " if no session has been loaded so far, we don't want to see
             " `[S]` in the statusline;
@@ -513,19 +321,19 @@ fu! my_lib#quit() abort "{{{2
             "}}}
             close
         catch
-            return my_lib#catch_error()
+            return lg#catch_error()
         endtry
     endif
 endfu
 
-fu! my_lib#reg_save(names) abort "{{{2
+fu! lg#reg_save(names) abort "{{{2
     for name in a:names
         let prefix          = get(s:reg_translations, name, name)
         let s:{prefix}_save = [getreg(name), getregtype(name)]
     endfor
 endfu
 
-fu! my_lib#reg_restore(names) abort "{{{2
+fu! lg#reg_restore(names) abort "{{{2
     for name in a:names
         let prefix   = get(s:reg_translations, name, name)
         let contents = s:{prefix}_save[0]
@@ -573,7 +381,7 @@ fu! my_lib#reg_restore(names) abort "{{{2
     endfor
 endfu
 
-fu! my_lib#restore_closed_window(cnt) abort "{{{2
+fu! lg#restore_closed_window(cnt) abort "{{{2
     if !exists('g:my_undo_sessions') || empty(g:my_undo_sessions)
         return
     endif
@@ -636,7 +444,7 @@ fu! my_lib#restore_closed_window(cnt) abort "{{{2
         " It could be useful if we hit `{number} leader u`, but `{number}` wasn't
         " big enough.
     catch
-        return my_lib#catch_error()
+        return lg#catch_error()
     finally
         " When we undo the closing of a window, we don't want the statusline to
         " tell us we've restored a session with the indicator [S].
