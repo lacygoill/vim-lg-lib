@@ -456,6 +456,43 @@ fu! lg#restore_closed_window(cnt) abort "{{{2
     endtry
 endfu
 
+fu! lg#window_get_modifier(...) abort "{{{2
+"   ││                     │
+"   ││                     └ optional flag meaning we're going to open a loc window
+"   └┤
+"    └ public so that it can be called in `vim-qf`
+"     `qf#open()` in autoload/
+
+    let origin = winnr()
+
+    "  ┌ are we opening a loc window?
+    "  │
+    "  │      ┌ and does it display a TOC?
+    "  │      │
+    if a:0 && get(getloclist(0, {'title': 0}), 'title', '') =~# '\<TOC$'
+        let mod = 'vert leftabove'
+    else
+        " are we at the bottom of the tabpage?
+        noautocmd wincmd b
+        if winnr() == origin
+            let mod = 'botright'
+        else
+            noautocmd wincmd p
+            " or maybe at the top?
+            noautocmd wincmd t
+            if winnr() == origin
+                let mod = 'topleft'
+            else
+                " ok we're in a middle window
+                noautocmd wincmd p
+                let mod = 'vert belowright'
+            endif
+        endif
+    endif
+
+    return mod
+endfu
+
 " Variables "{{{1
 
 let s:reg_translations = {
