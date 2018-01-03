@@ -75,7 +75,7 @@ fu! lg#window#quit() abort "{{{1
         endif
 
         " create a new temporary file for the session we're going to save
-        let g:my_undo_sessions = get(g:, 'my_undo_sessions', []) + [ tempname() ]
+        let s:undo_sessions = get(s:, 'undo_sessions', []) + [ tempname() ]
 
         try
             let session_save = v:this_session
@@ -84,7 +84,7 @@ fu! lg#window#quit() abort "{{{1
             let ssop_save = &ssop
             set ssop-=curdir
 
-            exe 'mksession! '.g:my_undo_sessions[-1]
+            exe 'mksession! '.s:undo_sessions[-1]
         catch
             return lg#catch_error()
         finally
@@ -128,7 +128,7 @@ fu! lg#window#quit() abort "{{{1
 endfu
 
 fu! lg#window#restore_closed(cnt) abort "{{{1
-    if !exists('g:my_undo_sessions') || empty(g:my_undo_sessions)
+    if empty(get(s:, 'undo_sessions', ''))
         return
     endif
 
@@ -137,9 +137,9 @@ fu! lg#window#restore_closed(cnt) abort "{{{1
 
     try
         let session_save = v:this_session
-        "                                     ┌─ handle the case where we hit a too big number
-        "                                     │
-        let session_file = g:my_undo_sessions[max([ -a:cnt, -len(g:my_undo_sessions) ])]
+        "                                  ┌─ handle the case where we hit a too big number
+        "                                  │
+        let session_file = s:undo_sessions[max([ -a:cnt, -len(s:undo_sessions) ])]
 
         if !has('nvim')
             " Eliminate terminal buffers, to avoid E947.{{{
@@ -173,16 +173,17 @@ fu! lg#window#restore_closed(cnt) abort "{{{1
         endif
 
         exe 'so '.session_file
-
-        " if we gave a count to restore several windows, we probably    ┐
-        " want to reset the stack of sessions, otherwise the next time  │
-        " we would hit `{number} leader u`, if `{number}` is too big    │
-        " we would end up in a weird old session we don't remember      │
-        "                                                               │
-        " I'm still not sure it's the right thing to do, because        │
-        " it prevents us from hitting `leader u` once again if          │
-        " `{number}` was too small; time will tell                      │
-        let g:my_undo_sessions = a:cnt == 1 ? g:my_undo_sessions[:-2] : []
+        let s:undo_sessions = a:cnt == 1 ? s:undo_sessions[:-2] : []
+        "                                                          │
+        "           if we gave a count to restore several windows, ┘
+        "
+        " … we  probably want to  reset the  stack of sessions,  otherwise the
+        " next time we  would hit `{number} leader u`, if  `{number}` is too big
+        " we would end up in a weird old session we don't remember
+        "
+        " I'm still not sure it's the right thing to do, because
+        " it prevents us from hitting `leader u` once again if
+        " `{number}` was too small; time will tell
 
         " Idea:
         " We could add a 2nd stack which wouldn't be reset when we give a count, and
