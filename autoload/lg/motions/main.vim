@@ -1,24 +1,47 @@
+" TODO:
+" We invoke `maparg()` too many times.
+" To optimize.
+"
+" It's called in:
+"
+"     lg#motions#main#make_repeatable() (unavoidable, because initial)
+"     s:populate()                      (unavoidable, because we need maparg but for another direction)
+"     s:get_motion_info()               (avoidable?)
+"
+" `s:get_motion_info()` is called in:
+"
+"         s:move_again()
+"         s:move()
+"         s:get_direction()
+"         s:update_last_motion()
+
 " FIXME:
-" Is the guard necessary?
-" Rename the file, and see if Vim resource it automatically causing an error.
-if exists('g:loaded_autoload_repeatable_motions')
-    finish
-endif
-let g:loaded_autoload_repeatable_motions = 1
+"     In vimrc go to a function containing a `:return` statement.
+"     Enter visual mode.
+"     Press `%` on `fu!`
+"     Press `;`.
+"     Press Escape
+"     Press `;`.
+"
+" Now `;` makes us enter visual mode. It shouldn't. We want a motion in normal
+" mode.
+"
+" Also, prior to that, `%` in normal mode is not silent. I can see the `matchit`
+" function being called. The original mapping was silent. The wrapper should
+" be too.
 
 " FIXME:
 " `;` doesn't always repeat the motion.
 " Press `V down ;`.
 
-" FIXME:
-" :ListRepeatableMotions doesn't show motions on all axes.
-
 " TODO:
-" Don't use a command to make a motion repeatable, use a public function.
-" Also, move all the code in `vim-lg`. Less dependency.
 " Split the code in several files if needed.
-" Also, make the signature of the function similar to `submode#map()`;
-" which means we shouldn't use a dictionary of arguments, just a list.
+" Also, make the signature of the main function similar to `submode#map()`;
+" which means we shouldn't use a dictionary of arguments, just plain arguments.
+" This would allow us to eliminate `lg#motions#main#make_repeatable()`.
+"
+" Also, I'm not satisfied with the current architecture of files for this plugin.
+" Also, maybe we should move it back to its own plugin.
 
 " TODO:
 " more granular listing
@@ -26,14 +49,6 @@ let g:loaded_autoload_repeatable_motions = 1
 
 " TODO:
 " In the listing, the mode should be printed.
-
-" TODO:
-" handle filetype  change (undo / teardown;  remove b: variable  + autocmd  ?
-" + wrapper mappings: no need to, the regular teardown should take care of them)
-
-" FIXME:
-" What currently happens for buffer-local mappings defined in `after/ftplugin`
-" directories?
 
 " TODO:
 " Document the fact that  when the plugin installs a wrapper for  a key, it uses
@@ -126,7 +141,7 @@ call s:init()
 
 " Command {{{1
 
-com!          ListRepeatableMotions  call s:list_all_motions()
+com!  ListRepeatableMotions  call s:list_all_motions()
 
 fu! s:get_direction(lhs) abort "{{{1
     let motion = s:get_motion_info(a:lhs)
@@ -134,28 +149,22 @@ fu! s:get_direction(lhs) abort "{{{1
     return is_fwd ? 'fwd' : 'bwd'
 endfu
 
-fu! s:get_mapcmd(mode, is_recursive, lhs) abort "{{{1
-    let maparg = maparg(a:lhs, a:mode, 0, 1)
+fu! s:get_mapcmd(mode, lhs, maparg) abort "{{{1
+    let is_recursive = !get(a:maparg, 'noremap', 1)
+    "                                            │
+    "                                            └ by default, we don't want
+    "                                              a recursive wrapper mapping
 
-    " Why not simply `maparg.noremap`?{{{
-    "
-    " If `lhs` is a default key (ex: `(`), then `maparg()` will return an
-    " empty dictionary.
-    "}}}
-    " let mapcmd = s:{get(maparg, 'noremap', 1) ? 'non_' : ''}recursive_mapcmd[a:mode]
-    "                                      │
-    "                                      └ by default, we don't want
-    "                                        a recursive wrapper mapping
-    let mapcmd = s:{a:is_recursive ? '' : 'non_'}recursive_mapcmd[a:mode]
+    let mapcmd = s:{is_recursive ? '' : 'non_'}recursive_mapcmd[a:mode]
 
     let mapcmd .= '  <expr>'
-    if get(maparg, 'buffer', 0)
+    if get(a:maparg, 'buffer', 0)
         let mapcmd .= '<buffer>'
     endif
-    if get(maparg, 'nowait', 0)
+    if get(a:maparg, 'nowait', 0)
         let mapcmd .= '<nowait>'
     endif
-    if get(maparg, 'silent', 0)
+    if get(a:maparg, 'silent', 0)
         let mapcmd .= '<silent>'
     endif
 
@@ -240,7 +249,7 @@ fu! s:list_all_motions() abort "{{{1
     "     gives us persistence
     "     make it easier to copy some information
     "     make it easier to create some custom syntax highlighting
-    for n in [1, s:n_axes]
+    for n in range(1, s:n_axes)
         call s:list_motions_on_this_axis(n, motions_on_axis_{n})
     endfor
 endfu
@@ -294,13 +303,13 @@ fu! s:make_keys_feedable(seq) abort "{{{1
     sil exe 'return "'.m.'"'
 endfu
 
-fu! s:make_it_repeatable(what) abort "{{{1
+fu! s:make_it_repeatable(what, maparg) abort "{{{1
     let mode = a:what.mode
     let buffer = a:what.buffer
     let bwd = a:what.motions.bwd
     let fwd = a:what.motions.fwd
     let axis = a:what.motions.axis
-    let is_recursive = a:what.motions.r
+    let is_recursive = !get(a:maparg, 'noremap', 1)
 
     " Purpose:{{{
     "
@@ -342,7 +351,7 @@ fu! s:make_it_repeatable(what) abort "{{{1
     "
     "         let motion = s:populate(motion, …)
     "}}}
-    call s:populate(motion, mode, bwd, 0)
+    call s:populate(motion, mode, bwd, 0, a:maparg)
     " `motion` value is now sth like:{{{
     "
     " { 'axis' : 1,
@@ -368,7 +377,7 @@ fu! s:make_it_repeatable(what) abort "{{{1
     "         \                          'buffer': 0,
     "         \                          'motions': {'bwd': '<left>', 'fwd': '<right>', 'axis': 1})
     "
-    " FIXME:
+    " TODO:
     " Are you sure this explanation is still valid?
     "}}}
     if s:is_inconsistent(motion)
@@ -380,7 +389,7 @@ fu! s:make_it_repeatable(what) abort "{{{1
     " `b:repeatable_motions` may not exist. So we must make sure it exists.
     " I don't want to automatically create it in an autocmd. I only want it
     " if necessary. And we can't use `get(b:, 'repeatable_motions', [])` here
-    " to avoid an error  in case it doesn't exist, because it  would give use an
+    " to avoid an error  in case it doesn't exist, because it  would give us an
     " empty list which would NOT be the reference to `b:repeatable_motions`.
     " It would just be an empty list. So, `:ListRepeatableMotions` would not show
     " us buffer-local mappings, because we would never populate `b:repeatable_motions`.
@@ -401,7 +410,7 @@ fu! s:make_it_repeatable(what) abort "{{{1
     "}}}
     let repeatable_motions = {motion.bwd.buffer ? 'b:' : 's:'}repeatable_motions
 
-    " FIXME:
+    " TODO:
     " This prevents `b:repeatable_motions` from growing when we reload a buffer.
     " But it feels wrong to wait so late.
     " I would prefer to reset the variable early.
@@ -410,10 +419,38 @@ fu! s:make_it_repeatable(what) abort "{{{1
         return
     endif
 
-    let mapcmd = s:get_mapcmd(mode, is_recursive, bwd)
+    let mapcmd = s:get_mapcmd(mode, bwd, a:maparg)
     call s:install_wrapper(mapcmd, buffer, bwd, fwd)
 
     call add(repeatable_motions, motion)
+
+    if motion.bwd.buffer
+        " Why?{{{
+        "
+        " Watch:
+        "
+        "     coD
+        "     :e foo.vim
+        "     :Rename bar.vim
+        "     :Rename baz.vim
+        "
+        " Why these errors?
+        "
+        " This is because `:Rename` execute  `:filetype detect`, which loads Vim
+        " filetype plugins. In the  latter, we call a function  from this plugin
+        " to  make  some  motions  repeatable. When  the  filetype  plugins  are
+        " re-sourced,  Vim  removes  the  mappings  (b:undo_ftplugin). But,  our
+        " current plugin hasn't erased the repeatable wrappers from its database
+        " (b:repeatable_motions).
+        "
+        " We  must eliminate  the  database whenever  the  filetype plugins  are
+        " resourced.  We could do it directly from the Vim filetype plugins, but
+        " it  seems unreliable.   We'll undoubtedly  forget to  do it  sometimes
+        " for  other  filetypes.   Instead,  the current  plugin  should  update
+        " `b:undo_ftplugin`.
+        "}}}
+        call s:update_undo_ftplugin()
+    endif
 endfu
 
 fu! lg#motions#main#make_repeatable(what) abort "{{{1
@@ -423,16 +460,17 @@ fu! lg#motions#main#make_repeatable(what) abort "{{{1
 
     " try to make all the motions received repeatable
     for m in motions
+        let maparg = maparg(m.bwd, mode, 0, 1)
         "             ┌ the motion is local to a buffer,
         "             │ and a mapping whose {lhs} is `m.bwd` exists
         "             │
-        if !buffer || get(maparg(m.bwd, mode, 0, 1), 'buffer', 0)
-            " FIXME:
+        if !buffer || get(maparg, 'buffer', 0)
+            " TODO:
             " It's the only location where we call `s:make_it_repeatable()`
             " with `m.bwd`. Everywhere else, we pass `m.bwd.lhs`.
             " Why the difference?
             let what = extend(deepcopy(a:what), {'motions': m})
-            call s:make_it_repeatable(what)
+            call s:make_it_repeatable(what, maparg)
         endif
     endfor
 endfu
@@ -446,7 +484,7 @@ fu! s:motion_already_repeatable(motion, repeatable_motions) abort "{{{1
     "   ┌ Motion
     "   │
     for m in a:repeatable_motions
-        " FIXME:
+        " TODO:
         " Are both conditions necessary?
         " A single one wouldn't be enough?
         if  (bwd ==# m.bwd.lhs && mode_bwd ==# m.bwd.mode)
@@ -465,7 +503,7 @@ fu! s:motion_already_repeatable(motion, repeatable_motions) abort "{{{1
 endfu
 
 fu! s:move(lhs, buffer, update_last_motion) abort "{{{1
-    " FIXME:
+    " TODO:
     " The  only  location   where  `s:move()`  is  passed  a   second  non  zero
     " argument,  is  in  `s:move_again()`. This  check makes  sure  we  don't
     " update the last motion stored in `s:last_motion_on_axis_{number}` when
@@ -483,7 +521,7 @@ fu! s:move(lhs, buffer, update_last_motion) abort "{{{1
         \    substitute(motion[dir_key].rhs, '\c<sid>', '<snr>'.motion[dir_key].sid.'_', 'g')
     endif
 
-    " FIXME:
+    " TODO:
     " Shouldn't we invoke `s:make_keys_feedable()` in BOTH cases?
     " What if there are special keys in the rhs of an expr mapping?
     return is_expr_mapping
@@ -547,7 +585,7 @@ fu! s:move_again(axis, dir) abort "{{{1
 
     let seq = s:move(motion[a:dir].lhs, motion[a:dir].buffer, 0)
 
-    " FIXME: Why do we reset all these variables?
+    " TODO: Why do we reset all these variables?
     " Update:
     " I think it's for a custom function which we could define to implement
     " a special motion like `fFtT`. Similar to `s:tf_workaround()`.
@@ -609,10 +647,9 @@ fu! s:move_again(axis, dir) abort "{{{1
     return ''
 endfu
 
-fu! s:populate(motion, mode, lhs, is_fwd) abort "{{{1
+fu! s:populate(motion, mode, lhs, is_fwd, ...) abort "{{{1
+    let maparg = a:0 ? a:1 : maparg(a:lhs, a:mode, 0, 1)
     let dir = a:is_fwd ? 'fwd' : 'bwd'
-
-    let maparg = maparg(a:lhs, a:mode, 0, 1)
 
     " make a custom mapping repeatable
     if !empty(maparg)
@@ -635,7 +672,7 @@ fu! s:tf_workaround(cmd) abort "{{{1
     "
     " Make `fFtT` repeatable.
 
-    " FIXME:
+    " TODO:
     " We don't need to call this function to make `)` repeatable,
     " so why do we need to call it to make `fx` repeatable?
     "
@@ -695,7 +732,7 @@ fu! s:tf_workaround(cmd) abort "{{{1
 
         return (s:tf_cmd ==# a:cmd) ? ';' : ','
         "       │            │
-        "       │            └ FIXME: What is this? When we press `;` after `fx`, how is `a:cmd` obtained?
+        "       │            └ TODO: What is this? When we press `;` after `fx`, how is `a:cmd` obtained?
         "       │
         "       │                     Update: It's `f`.
         "       │                     Here's what happens approximately:
@@ -746,6 +783,14 @@ fu! s:update_last_motion(lhs) abort "{{{1
     let motion = s:get_motion_info(a:lhs)
     let n = motion.axis
     let s:last_motion_on_axis_{n} = s:translate_lhs(a:lhs)
+endfu
+
+fu! s:update_undo_ftplugin() abort "{{{1
+    if stridx(get(b:, 'undo_ftplugin', ''), 'unlet! b:repeatable_motions') == -1
+        let b:undo_ftplugin =          get(b:, 'undo_ftplugin', '')
+        \                     . (empty(get(b:, 'undo_ftplugin', '')) ? '' : '|')
+        \                     . 'unlet! b:repeatable_motions'
+    endif
 endfu
 
 " Mappings {{{1
@@ -895,8 +940,8 @@ nno  <unique>  ]S  5zl
 "     \                     { 'mode': '' ,
 "     \                       'buffer': 0,
 "     \                       'motions': [
-"     \                                    { 'bwd': '<Up>',  'fwd': '<Down>',  'axis': 2,  'r': 0 },
-"     \                                    { 'bwd': '[z',    'fwd': ']z',      'axis': 1,  'r': 0 },
+"     \                                    { 'bwd': '<Up>',  'fwd': '<Down>',  'axis': 2 },
+"     \                                    { 'bwd': '[z',    'fwd': ']z',      'axis': 1 },
 "     \                                    …
 "     \                                  ]
 "     \                     })
@@ -916,23 +961,23 @@ let s:default_motions = {
 \                         'mode': '',
 \                         'buffer': 0,
 \                         'motions': [
-\                                      {'bwd': "['",  'fwd': "]'",  'axis': 1,  'r': 0},
-\                                      {'bwd': '(' ,  'fwd': ')' ,  'axis': 1,  'r': 0},
-\                                      {'bwd': '[#',  'fwd': ']#',  'axis': 1,  'r': 0},
-\                                      {'bwd': '[(',  'fwd': '])',  'axis': 1,  'r': 0},
-\                                      {'bwd': '[*',  'fwd': ']*',  'axis': 1,  'r': 0},
-\                                      {'bwd': '[/',  'fwd': ']/',  'axis': 1,  'r': 0},
-\                                      {'bwd': '[M',  'fwd': ']M',  'axis': 1,  'r': 0},
-\                                      {'bwd': '[S',  'fwd': ']S',  'axis': 1,  'r': 0},
-\                                      {'bwd': '[[',  'fwd': ']]',  'axis': 1,  'r': 0},
-\                                      {'bwd': '[]',  'fwd': '][',  'axis': 1,  'r': 0},
-\                                      {'bwd': '[`',  'fwd': ']`',  'axis': 1,  'r': 0},
-\                                      {'bwd': '[c',  'fwd': ']c',  'axis': 1,  'r': 0},
-\                                      {'bwd': '[m',  'fwd': ']m',  'axis': 1,  'r': 0},
-\                                      {'bwd': '[s',  'fwd': ']s',  'axis': 1,  'r': 0},
-\                                      {'bwd': '[{',  'fwd': ']}',  'axis': 1,  'r': 0},
-\                                      {'bwd': 'g,',  'fwd': 'g;',  'axis': 1,  'r': 0},
-\                                      {'bwd': '{' ,  'fwd': '}' ,  'axis': 1,  'r': 0},
+\                                      {'bwd': "['",  'fwd': "]'",  'axis': 1 },
+\                                      {'bwd': '(' ,  'fwd': ')' ,  'axis': 1 },
+\                                      {'bwd': '[#',  'fwd': ']#',  'axis': 1 },
+\                                      {'bwd': '[(',  'fwd': '])',  'axis': 1 },
+\                                      {'bwd': '[*',  'fwd': ']*',  'axis': 1 },
+\                                      {'bwd': '[/',  'fwd': ']/',  'axis': 1 },
+\                                      {'bwd': '[M',  'fwd': ']M',  'axis': 1 },
+\                                      {'bwd': '[S',  'fwd': ']S',  'axis': 1 },
+\                                      {'bwd': '[[',  'fwd': ']]',  'axis': 1 },
+\                                      {'bwd': '[]',  'fwd': '][',  'axis': 1 },
+\                                      {'bwd': '[`',  'fwd': ']`',  'axis': 1 },
+\                                      {'bwd': '[c',  'fwd': ']c',  'axis': 1 },
+\                                      {'bwd': '[m',  'fwd': ']m',  'axis': 1 },
+\                                      {'bwd': '[s',  'fwd': ']s',  'axis': 1 },
+\                                      {'bwd': '[{',  'fwd': ']}',  'axis': 1 },
+\                                      {'bwd': 'g,',  'fwd': 'g;',  'axis': 1 },
+\                                      {'bwd': '{' ,  'fwd': '}' ,  'axis': 1 },
 \                                    ],
 \                       }
 
