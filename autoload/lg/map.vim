@@ -1,33 +1,34 @@
-fu! lg#map#restore(mappings) abort "{{{1
+fu! lg#map#restore(map_save) abort "{{{1
+    " Why?{{{
+    "
     " Sometimes, we may need to restore mappings stored in a variable which we
     " can't be sure will always exist.
     " In such cases, it's convenient to use `get()` and default to an empty
-    " list:
+    " dictionary:
     "
-    "     call lg#map#restore(get(g:, 'unsure_variable', []))
+    "     call lg#map#restore(get(g:, 'unsure_variable', {}))
     "
     " To support this use case, we need to immediately return when we receive
-    " an empty list, since there's nothing to restore.
-    if empty(a:mappings)
+    " an empty dictionary, since there's nothing to restore.
+    "}}}
+    if empty(a:map_save)
         return
     endif
 
-    for mapping in values(a:mappings)
-        if !has_key(mapping, 'unmapped') && !empty(mapping)
-            exe     mapping.mode
-               \ . (mapping.noremap ? 'noremap   ' : 'map ')
-               \ . (mapping.buffer  ? ' <buffer> ' : '')
-               \ . (mapping.expr    ? ' <expr>   ' : '')
-               \ . (mapping.nowait  ? ' <nowait> ' : '')
-               \ . (mapping.silent  ? ' <silent> ' : '')
-               \ .  mapping.lhs
-               \ . ' '
-               \ . substitute(mapping.rhs, '<SID>', '<SNR>'.mapping.sid.'_', 'g')
+    for maparg in values(a:map_save)
+        if !has_key(maparg, 'unmapped') && !empty(maparg)
+            exe maparg.mode
+            \. (maparg.noremap ? 'noremap   ' : 'map ')
+            \. (maparg.buffer  ? ' <buffer> ' : '')
+            \. (maparg.expr    ? ' <expr>   ' : '')
+            \. (maparg.nowait  ? ' <nowait> ' : '')
+            \. (maparg.silent  ? ' <silent> ' : '')
+            \.  maparg.lhs
+            \. ' '
+            \. substitute(maparg.rhs, '<SID>', '<SNR>'.maparg.sid.'_', 'g')
 
-        elseif has_key(mapping, 'unmapped')
-            sil! exe mapping.mode.'unmap '
-                                \ .(mapping.buffer ? ' <buffer> ' : '')
-                                \ . mapping.lhs
+        elseif has_key(maparg, 'unmapped')
+            sil! exe maparg.mode.'unmap '.(maparg.buffer ? ' <buffer> ' : '').maparg.lhs
         endif
     endfor
 endfu
@@ -53,32 +54,46 @@ endfu
 " argument, no wrapping inside a 3rd dictionary, or anything. Just this dictionary.
 "}}}
 
-fu! lg#map#save(keys, mode, global) abort "{{{1
-    let mappings = {}
+fu! lg#map#save(mode, is_local, keys) abort "{{{1
+    let map_save = {}
 
-    " If a key is used in a global mapping and a local one, by default,
-    " `maparg()` only returns information about the local one.
-    " We want to be able to get info about a global mapping even if a local
-    " one shadows it.
-    " To do that, we will temporarily unmap the local mapping.
-
-    if a:global
+    " TRY to return info local mappings.
+    " If they exist it will work, otherwise it will return info about global
+    " mappings.
+    if a:is_local
         for l:key in a:keys
-            let buf_local_map = maparg(l:key, a:mode, 0, 1)
+            let maparg          =  maparg(l:key, a:mode, 0, 1)
+            let map_save[l:key] = !empty(maparg)
+            \?                           maparg
+            \:                           {
+            \                              'unmapped' : 1,
+            \                              'buffer'   : 1,
+            \                              'lhs'      : l:key,
+            \                              'mode'     : a:mode,
+            \                            }
+        endfor
 
-            " temporarily unmap the local mapping
+    else
+        for l:key in a:keys
+            let local_maparg = maparg(l:key, a:mode, 0, 1)
+
+            " If a key is used in a global mapping and a local one, by default,
+            " `maparg()` only returns information about the local one.
+            " We want to be able to get info about a global mapping even if a local
+            " one shadows it.
+            " To do that, we will temporarily remove the local mapping.
             sil! exe a:mode.'unmap <buffer> '.l:key
 
             " save info about the global one
-            let map_info        = maparg(l:key, a:mode, 0, 1)
-            let mappings[l:key] =   !empty(map_info)
-            \                     ?     map_info
-            \                     :     {
-            \                             'unmapped' : 1,
-            \                             'buffer'   : 0,
-            \                             'lhs'      : l:key,
-            \                             'mode'     : a:mode,
-            \                           }
+            let maparg          =  maparg(l:key, a:mode, 0, 1)
+            let map_save[l:key] = !empty(maparg)
+            \?                           maparg
+            \:                           {
+            \                              'unmapped' : 1,
+            \                              'buffer'   : 0,
+            \                              'lhs'      : l:key,
+            \                              'mode'     : a:mode,
+            \                            }
 
             " If there's no mapping, why do we still save this dictionary: {{{
 
@@ -100,71 +115,54 @@ fu! lg#map#save(keys, mode, global) abort "{{{1
             "         • the lhs
             "         • the mode (normal, visual, …)
             "
-            " The `'unmapped'` key is not necessary. I just find it can make
+            " The 'unmapped' key is not necessary. I just find it can make
             " the code a little more readable inside `lg#map#restore()`.
             " Indeed, one can write:
 
-            "     if has_key(mapping, 'unmapped') && !empty(mapping)
+            "     if !has_key(maparg, 'unmapped') && !empty(maparg)
             "         …
             "     endif
             "
 "}}}
 
             " restore the local one
-            call lg#map#restore({l:key : buf_local_map})
-        endfor
-
-    " TRY to return info local mappings.
-    " If they exist it will work, otherwise it will return info about global
-    " mappings.
-    else
-        for l:key in a:keys
-            let map_info        = maparg(l:key, a:mode, 0, 1)
-            let mappings[l:key] =   !empty(map_info)
-            \                     ?     map_info
-            \                     :     {
-            \                             'unmapped' : 1,
-            \                             'buffer'   : 1,
-            \                             'lhs'      : l:key,
-            \                             'mode'     : a:mode,
-            \                           }
+            call lg#map#restore({l:key : local_maparg})
         endfor
     endif
 
-    return mappings
+    return map_save
 endfu
 
 " Usage:{{{
 "
-"     let my_global_mappings = lg#map#save(['key1', 'key2', …], 'n', 1)
-"     let my_local_mappings  = lg#map#save(['key1', 'key2', …], 'n', 0)
+"     let my_global_mappings = lg#map#save('n', 0, ['key1', 'key2', …])
+"     let my_local_mappings  = lg#map#save('n', 1, ['key1', 'key2', …])
 "}}}
 " Output example: {{{
 
-"     { '<left>' :
-"                \
-"                \ {'silent': 0,
-"                \ 'noremap': 1,
-"                \ 'lhs': '<Left>',
-"                \ 'mode': 'n',
-"                \ 'nowait': 0,
-"                \ 'expr': 0,
-"                \ 'sid': 7,
-"                \ 'rhs': ':echo ''foo''<cr>',
-"                \ 'buffer': 1},
-"                \
+"     { '<left>':
+"     \
+"     \            { 'silent': 0,
+"     \              'noremap': 1,
+"     \              'lhs': '<Left>',
+"     \              'mode': 'n',
+"     \              'nowait': 0,
+"     \              'expr': 0,
+"     \              'sid': 7,
+"     \              'rhs': ':echo ''foo''<cr>',
+"     \              'buffer': 1 },
+"     \
 "     \ '<right>':
-"                \
-"                \ { 'silent': 0,
-"                \ 'noremap': 1,
-"                \ 'lhs': '<Right>',
-"                \ 'mode': 'n',
-"                \ 'nowait': 0,
-"                \ 'expr': 0,
-"                \ 'sid': 7,
-"                \ 'rhs': ':echo ''bar''<cr>',
-"                \ 'buffer': 1,
-"                \ },
-"                \}
+"     \
+"     \            { 'silent': 0,
+"     \              'noremap': 1,
+"     \              'lhs': '<Right>',
+"     \              'mode': 'n',
+"     \              'nowait': 0,
+"     \              'expr': 0,
+"     \              'sid': 7,
+"     \              'rhs': ':echo ''bar''<cr>',
+"     \              'buffer': 1 },
+"     \}
 "
 " }}}

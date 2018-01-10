@@ -1,3 +1,13 @@
+if exists('g:autoloaded_repeatable_motions')
+    finish
+endif
+let g:autoloaded_repeatable_motions = 1
+
+" TODO:
+" Try to move all mappings in ~/.vim/autoload/slow_mappings/repeatable_motions.vim.
+" This plugin should only propose custom functions.
+" Make `s:move_again()` a public function.
+
 " TODO:
 " We invoke `maparg()` too many times.
 " To optimize.
@@ -149,7 +159,7 @@ fu! s:get_direction(lhs) abort "{{{1
     return is_fwd ? 'fwd' : 'bwd'
 endfu
 
-fu! s:get_mapcmd(mode, lhs, maparg) abort "{{{1
+fu! s:get_mapcmd(mode, maparg) abort "{{{1
     let is_recursive = !get(a:maparg, 'noremap', 1)
     "                                            │
     "                                            └ by default, we don't want
@@ -192,9 +202,10 @@ fu! s:get_motion_info(lhs) abort "{{{1
     endfor
 endfu
 
-fu! s:install_wrapper(mapcmd, buffer, bwd, fwd) abort "{{{1
-    exe a:mapcmd.'  '.a:bwd.'  <sid>move('.string(a:bwd).', '.a:buffer.', 1)'
-    exe a:mapcmd.'  '.a:fwd.'  <sid>move('.string(a:fwd).', '.a:buffer.', 1)'
+fu! s:install_wrapper(mode, m, maparg) abort "{{{1
+    let mapcmd = s:get_mapcmd(a:mode, a:maparg)
+    exe mapcmd.'  '.a:m.bwd.'  <sid>move('.string(a:m.bwd).', '.get(a:maparg, 'buffer', 0).', 1)'
+    exe mapcmd.'  '.a:m.fwd.'  <sid>move('.string(a:m.fwd).', '.get(a:maparg, 'buffer', 0).', 1)'
 endfu
 
 fu! s:invalid_axis_or_direction(axis, direction) abort "{{{1
@@ -303,13 +314,15 @@ fu! s:make_keys_feedable(seq) abort "{{{1
     sil exe 'return "'.m.'"'
 endfu
 
-fu! s:make_it_repeatable(what, maparg) abort "{{{1
-    let mode = a:what.mode
-    let buffer = a:what.buffer
-    let bwd = a:what.motions.bwd
-    let fwd = a:what.motions.fwd
-    let axis = a:what.motions.axis
-    let is_recursive = !get(a:maparg, 'noremap', 1)
+fu! s:make_it_repeatable(mode, is_local, m) abort "{{{1
+    let bwd    = a:m.bwd
+    let fwd    = a:m.fwd
+    let axis   = a:m.axis
+    let maparg = maparg(bwd, a:mode, 0, 1)
+
+    if a:is_local && !get(maparg, 'buffer', 0)
+        return
+    endif
 
     " Purpose:{{{
     "
@@ -351,7 +364,7 @@ fu! s:make_it_repeatable(what, maparg) abort "{{{1
     "
     "         let motion = s:populate(motion, …)
     "}}}
-    call s:populate(motion, mode, bwd, 0, a:maparg)
+    call s:populate(motion, a:mode, bwd, 0, maparg)
     " `motion` value is now sth like:{{{
     "
     " { 'axis' : 1,
@@ -359,7 +372,7 @@ fu! s:make_it_repeatable(what, maparg) abort "{{{1
     "                                                             │
     "                                                             └ nvo
     "}}}
-    call s:populate(motion, mode, fwd, 1)
+    call s:populate(motion, a:mode, fwd, 1)
     " `motion` value is now sth like:{{{
     "
     " { 'axis' : 1,
@@ -380,7 +393,7 @@ fu! s:make_it_repeatable(what, maparg) abort "{{{1
     " TODO:
     " Are you sure this explanation is still valid?
     "}}}
-    if s:is_inconsistent(motion)
+    if  s:is_inconsistent(motion)
         return
     endif
 
@@ -394,7 +407,7 @@ fu! s:make_it_repeatable(what, maparg) abort "{{{1
     " It would just be an empty list. So, `:ListRepeatableMotions` would not show
     " us buffer-local mappings, because we would never populate `b:repeatable_motions`.
     " We would just populate a random list.
-    if motion.bwd.buffer && !exists('b:repeatable_motions')
+    if a:is_local && !exists('b:repeatable_motions')
         let b:repeatable_motions = []
     endif
 
@@ -408,7 +421,7 @@ fu! s:make_it_repeatable(what, maparg) abort "{{{1
     " So, `repeatable_motions`  contains a reference to  its script/buffer-local
     " counterpart.
     "}}}
-    let repeatable_motions = {motion.bwd.buffer ? 'b:' : 's:'}repeatable_motions
+    let repeatable_motions = {a:is_local ? 'b:' : 's:'}repeatable_motions
 
     " TODO:
     " This prevents `b:repeatable_motions` from growing when we reload a buffer.
@@ -419,12 +432,11 @@ fu! s:make_it_repeatable(what, maparg) abort "{{{1
         return
     endif
 
-    let mapcmd = s:get_mapcmd(mode, bwd, a:maparg)
-    call s:install_wrapper(mapcmd, buffer, bwd, fwd)
+    call s:install_wrapper(a:mode, a:m, maparg)
 
     call add(repeatable_motions, motion)
 
-    if motion.bwd.buffer
+    if a:is_local
         " Why?{{{
         "
         " Watch:
@@ -454,23 +466,29 @@ fu! s:make_it_repeatable(what, maparg) abort "{{{1
 endfu
 
 fu! lg#motions#main#make_repeatable(what) abort "{{{1
-    let mode = a:what.mode
-    let buffer = a:what.buffer
-    let motions = a:what.motions
+    let mode     = a:what.mode
+    let is_local = a:what.buffer
 
     " try to make all the motions received repeatable
-    for m in motions
-        let maparg = maparg(m.bwd, mode, 0, 1)
-        "             ┌ the motion is local to a buffer,
-        "             │ and a mapping whose {lhs} is `m.bwd` exists
-        "             │
-        if !buffer || get(maparg, 'buffer', 0)
-            " TODO:
-            " It's the only location where we call `s:make_it_repeatable()`
-            " with `m.bwd`. Everywhere else, we pass `m.bwd.lhs`.
-            " Why the difference?
-            let what = extend(deepcopy(a:what), {'motions': m})
-            call s:make_it_repeatable(what, maparg)
+    for m in a:what.motions
+        " Warning: `execute()` is buggy in Neovim{{{
+        "
+        " It sometimes fail to capture anything. It  has been fixed in a Vim
+        " patch.  For this code to work in  Neovim, you need to wait for the
+        " patch to be merged there, or use `:redir`.
+       "}}}
+        if !is_local && execute(mode.'map <buffer> '.m.bwd) !~# '^\n\nNo mapping found$'
+            " Why?{{{
+            "
+            " If the  motion is global, it  could be shadowed by  a buffer-local
+            " mapping  using the  same lhs. We  handle this  particular case  by
+            " temporarily removing the latter.
+            "}}}
+            let map_save = s:unshadow(mode, m)
+            call s:make_it_repeatable(mode, is_local, m)
+            call lg#map#restore(map_save)
+        else
+            call s:make_it_repeatable(mode, is_local, m)
         endif
     endfor
 endfu
@@ -730,7 +748,9 @@ fu! s:tf_workaround(cmd) abort "{{{1
     "                             └ `[tfTF]x` motions are specific to the axis 1,
     "                                so there's no need to check `s:repeating_motion_on_axis_2,3,…`
 
-        return (s:tf_cmd ==# a:cmd) ? ';' : ','
+        " return (s:tf_cmd ==# a:cmd) ? ';' : ','
+        call feedkeys(s:tf_cmd ==# a:cmd ? "\<plug>Sneak_;" : "\<plug>Sneak_,", 'it')
+        return ''
         "       │            │
         "       │            └ TODO: What is this? When we press `;` after `fx`, how is `a:cmd` obtained?
         "       │
@@ -770,13 +790,21 @@ fu! s:tf_workaround(cmd) abort "{{{1
         "       │
         "       └ last command among the set [tfTF]
     else
-        let s:tf_cmd = a:cmd
-        return a:cmd . nr2char(getchar())
+        let s:tf_cmd = "\<plug>Sneak_".a:cmd
+        call feedkeys("\<plug>Sneak_".a:cmd, 'it')
+        return ''
     endif
 endfu
 
 fu! s:translate_lhs(lhs) abort "{{{1
     return eval('"'.substitute(a:lhs, '<\ze[^>]\+>', '\\<', 'g').'"')
+endfu
+
+fu! s:unshadow(mode, m) abort "{{{1
+    let map_save = lg#map#save(a:mode, 1, [a:m.bwd, a:m.fwd])
+    exe a:mode.'unmap <buffer> '.a:m.bwd
+    exe a:mode.'unmap <buffer> '.a:m.fwd
+    return map_save
 endfu
 
 fu! s:update_last_motion(lhs) abort "{{{1

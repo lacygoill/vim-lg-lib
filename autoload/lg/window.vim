@@ -27,7 +27,14 @@ fu! lg#window#get_modifier(...) abort "{{{1
             else
                 " ok we're in a middle window
                 noautocmd wincmd p
-                let mod = 'vert belowright'
+                " this will cause a vertical split to be opened on the left
+                " if you would prefer on the right, write this instead:
+                "
+                "     let mod = 'vert rightbelow'
+                "
+                " For the moment, I prefer on the left, to be consistent with
+                " how a TOC window is opened (on the left).
+                let mod = 'vert leftabove'
             endif
         endif
     endif
