@@ -837,12 +837,6 @@ endfu
 " Mappings {{{1
 
 " TODO:
-" For the moment, we've removed `<unique>` for    , ; t T f F
-" Restore later (once it doesn't raise any error).
-
-" To support visual mode + operator pending mode, we need `:noremap` instead of `:nno`.
-"
-" TODO:
 " Old comment, it should be eliminated. I keep it because it's not clear I can.
 " Make some tests with Up Down motions, and press `;` in all modes.
 "
@@ -879,6 +873,17 @@ endfu
 "     xno  <silent>  <plug>(return-visual-fwd)  :<c-u>exe 'norm! gv' <bar> call search('^\s*return\>', 'W')<cr>
 "     ono  <silent>  <plug>(return-op-fwd)      :<c-u>call search('^\s*return\>', 'W')<cr>
 "}}}
+
+" Why `:noremap` instead of `:nno`?{{{
+"
+" To also support visual mode + operator pending mode.
+"}}}
+" Why no `<unique>` for `,` and `;`?{{{
+"
+" Because `vim-sneak` has already remapped them.
+" `<unique>` would prevent our needed custom mappings to overwrite
+" the old definition.
+"}}}
 noremap  <expr>            ,  <sid>move_again(1,'bwd')
 noremap  <expr>            ;  <sid>move_again(1,'fwd')
 
@@ -896,13 +901,12 @@ noremap  <expr>  <plug>(plus_comma)      <sid>move_again(3,'bwd')
 nno      <expr>  <plug>(co_semicolon)    <sid>move_again(4,'fwd')
 nno      <expr>  <plug>(co_comma)        <sid>move_again(4,'bwd')
 
-noremap  <expr>  t  <sid>tf_workaround('t')
-noremap  <expr>  T  <sid>tf_workaround('T')
-noremap  <expr>  f  <sid>tf_workaround('f')
-noremap  <expr>  F  <sid>tf_workaround('F')
-
-noremap  <expr>  ss <sid>tf_workaround('s')
-noremap  <expr>  SS <sid>tf_workaround('S')
+noremap  <expr><unique>  t   <sid>tf_workaround('t')
+noremap  <expr><unique>  T   <sid>tf_workaround('T')
+noremap  <expr><unique>  f   <sid>tf_workaround('f')
+noremap  <expr><unique>  F   <sid>tf_workaround('F')
+noremap  <expr><unique>  ss  <sid>tf_workaround('s')
+noremap  <expr><unique>  SS  <sid>tf_workaround('S')
 
 " Why here, and not in `vimrc`?{{{
 "
