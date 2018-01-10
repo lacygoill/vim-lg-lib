@@ -681,7 +681,7 @@ fu! s:populate(motion, mode, lhs, is_fwd, ...) abort "{{{1
 endfu
 
 fu! s:tf_workaround(cmd) abort "{{{1
-    " FIXME:
+    " FIXME:{{{
     " How to make the code integrate our custom logic to use vim-sneak?
     " For the moment, we've removed this from `s:default_motions`:
     "
@@ -689,8 +689,8 @@ fu! s:tf_workaround(cmd) abort "{{{1
     "         {'bwd': 'T' ,  'fwd': 't' ,  'axis': 1}
     "
     " Make `fFtT` repeatable.
-
-    " TODO:
+"}}}
+    " TODO:{{{
     " We don't need to call this function to make `)` repeatable,
     " so why do we need to call it to make `fx` repeatable?
     "
@@ -728,6 +728,7 @@ fu! s:tf_workaround(cmd) abort "{{{1
     "                       So we must use the 2nd solution, and press `;`.
     "
     "                       to finish
+"}}}
 
     " What's the purpose of this `if` conditional?{{{
     "
@@ -741,59 +742,59 @@ fu! s:tf_workaround(cmd) abort "{{{1
     " It needs to distinguish from where it was called.
     " Because in  the first  case, it  needs to  ask the  user for  a character,
     " before returning the  keys to press. In the other, it  doesn't need to ask
-    " for anything.
+    " anything.
     "}}}
     if s:repeating_motion_on_axis_1
     "                             │
     "                             └ `[tfTF]x` motions are specific to the axis 1,
     "                                so there's no need to check `s:repeating_motion_on_axis_2,3,…`
 
-        " return (s:tf_cmd ==# a:cmd) ? ';' : ','
-        call feedkeys(s:tf_cmd ==# a:cmd ? "\<plug>Sneak_;" : "\<plug>Sneak_,", 'it')
-        return ''
-        "       │            │
-        "       │            └ TODO: What is this? When we press `;` after `fx`, how is `a:cmd` obtained?
-        "       │
-        "       │                     Update: It's `f`.
-        "       │                     Here's what happens approximately:
-        "       │
-        "       │                     ;  →  s:move_again(1,'fwd'))
-        "       │
-        "       │                                   s:get_motion_info(s:last_motion_on_axis_1)  saved in `motion`
-        "       │                                                     │
-        "       │                                                     └ 'f'
-        "       │
-        "       │                           s:move(motion.fwd.lhs, 0, 0)
-        "       │                                  │
-        "       │                                  └ 'f'
-        "       │
-        "       │                                   s:get_motion_info(a:lhs)  saved in `motion`
-        "       │                                                     │
-        "       │                                                     └ 'f'
-        "       │
-        "       │                                   s:get_direction(a:lhs)  saved in `dir_key`
-        "       │                                   │
-        "       │                                   └ 'fwd'
-        "       │
-        "       │                           eval(motion[dir_key].rhs)
-        "       │                                └─────────────────┤
-        "       │                                                  └ s:tf_workaround('f')
-        "       │                                                                     │
-        "       │                                                                     └ !!! a:cmd !!!
-        "       │
-        "       │                            Consequence of all of this:
-        "       │                            our plugin normalizes the direction of the motions `,` and `;`
-        "       │                            i.e. `;` always moves the cursor forward no matter whether
-        "       │                            we previously used f or F or t or T
-        "       │                            In fact, it seems the normalization applies also to non-f motions!
-        "       │                            Document this automatic normalization somewhere.
-        "       │
-        "       └ last command among the set [tfTF]
+        "             ┌  last [tfTF] command
+        "             │
+        call feedkeys(s:tf_cmd[-1:-1] ==# a:cmd ? "\<plug>Sneak_;" : "\<plug>Sneak_,", 'it')
+        call timer_start(0, {-> feedkeys('zv', 'int')})
+        "                          │{{{
+        "                          └ TODO: What is this? When we press `;` after `fx`, how is `a:cmd` obtained?
+        "
+        "                                   Update: It's `f`.
+        "                                   Here's what happens approximately:
+        "
+        "                                   ;  →  s:move_again(1,'fwd'))
+        "
+        "                                                 s:get_motion_info(s:last_motion_on_axis_1)  saved in `motion`
+        "                                                                   │
+        "                                                                   └ 'f'
+        "
+        "                                         s:move(motion.fwd.lhs, 0, 0)
+        "                                                │
+        "                                                └ 'f'
+        "
+        "                                                 s:get_motion_info(a:lhs)  saved in `motion`
+        "                                                                   │
+        "                                                                   └ 'f'
+        "
+        "                                                 s:get_direction(a:lhs)  saved in `dir_key`
+        "                                                 │
+        "                                                 └ 'fwd'
+        "
+        "                                         eval(motion[dir_key].rhs)
+        "                                              └─────────────────┤
+        "                                                                └ s:tf_workaround('f')
+        "                                                                                   │
+        "                                                                                   └ !!! a:cmd !!!
+        "
+        "                                          Consequence of all of this:
+        "                                          our plugin normalizes the direction of the motions `,` and `;`
+        "                                          i.e. `;` always moves the cursor forward no matter whether
+        "                                          we previously used f or F or t or T
+        "                                          In fact, it seems the normalization applies also to non-f motions!
+        "                                          Document this automatic normalization somewhere.
+        "}}}
     else
         let s:tf_cmd = "\<plug>Sneak_".a:cmd
         call feedkeys("\<plug>Sneak_".a:cmd, 'it')
-        return ''
     endif
+    return ''
 endfu
 
 fu! s:translate_lhs(lhs) abort "{{{1
@@ -991,6 +992,8 @@ let s:default_motions = {
 \                         'motions': [
 \                                      {'bwd': "['",  'fwd': "]'",  'axis': 1 },
 \                                      {'bwd': '(' ,  'fwd': ')' ,  'axis': 1 },
+\                                      {'bwd': 'F' ,  'fwd': 'f' ,  'axis': 1 },
+\                                      {'bwd': 'T' ,  'fwd': 't' ,  'axis': 1 },
 \                                      {'bwd': '[#',  'fwd': ']#',  'axis': 1 },
 \                                      {'bwd': '[(',  'fwd': '])',  'axis': 1 },
 \                                      {'bwd': '[*',  'fwd': ']*',  'axis': 1 },
