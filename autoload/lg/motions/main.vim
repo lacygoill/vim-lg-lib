@@ -681,18 +681,6 @@ fu! s:populate(motion, mode, lhs, is_fwd, ...) abort "{{{1
 endfu
 
 fu! s:tf_workaround(cmd) abort "{{{1
-    " FIXME:{{{
-    " After a  `Tx` or `Fx`  motion, `;`  and `,` don't  move the cursor  in the
-    " expected  direction. The latter  should be  normalized: `;`  should always
-    " move forward,  and `,` backward,  no matter  the previous command  `ft` or
-    " `FT`.
-
-    " FIXME:
-    " Make the plugin repeat `ss` &friends.
-    " You may need to implement a `s:ss_workaround()` function.
-    " Or maybe the current function could also handle it.
-    " I don't know.
-    "}}}
     " TODO:{{{
     " We don't need to call this function to make `)` repeatable,
     " so why do we need to call it to make `fx` repeatable?
@@ -774,7 +762,7 @@ fu! s:tf_workaround(cmd) abort "{{{1
     "                             └ `[tfTF]x` motions are specific to the axis 1,
     "                                so there's no need to check `s:repeating_motion_on_axis_2,3,…`
 
-        let move_fwd = a:cmd =~# '\C[ft]'
+        let move_fwd = a:cmd =~# '\C[fts]'
         "             │{{{
         "             └ TODO: What is this?
         "
@@ -913,6 +901,8 @@ noremap  <expr>  T  <sid>tf_workaround('T')
 noremap  <expr>  f  <sid>tf_workaround('f')
 noremap  <expr>  F  <sid>tf_workaround('F')
 
+noremap  <expr>  ss <sid>tf_workaround('s')
+noremap  <expr>  SS <sid>tf_workaround('S')
 
 " Why here, and not in `vimrc`?{{{
 "
