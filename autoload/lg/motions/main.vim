@@ -682,14 +682,17 @@ endfu
 
 fu! s:tf_workaround(cmd) abort "{{{1
     " FIXME:{{{
-    " How to make the code integrate our custom logic to use vim-sneak?
-    " For the moment, we've removed this from `s:default_motions`:
-    "
-    "         {'bwd': 'F' ,  'fwd': 'f' ,  'axis': 1}
-    "         {'bwd': 'T' ,  'fwd': 't' ,  'axis': 1}
-    "
-    " Make `fFtT` repeatable.
-"}}}
+    " After a  `Tx` or `Fx`  motion, `;`  and `,` don't  move the cursor  in the
+    " expected  direction. The latter  should be  normalized: `;`  should always
+    " move forward,  and `,` backward,  no matter  the previous command  `ft` or
+    " `FT`.
+
+    " FIXME:
+    " Make the plugin repeat `ss` &friends.
+    " You may need to implement a `s:ss_workaround()` function.
+    " Or maybe the current function could also handle it.
+    " I don't know.
+    "}}}
     " TODO:{{{
     " We don't need to call this function to make `)` repeatable,
     " so why do we need to call it to make `fx` repeatable?
@@ -744,6 +747,24 @@ fu! s:tf_workaround(cmd) abort "{{{1
     " before returning the  keys to press. In the other, it  doesn't need to ask
     " anything.
     "}}}
+
+    " Why not `call feedkeys('zv', 'int')`?{{{
+    "
+    " It  would interfere  with  `vim-sneak`,  when the  latter  asks for  which
+    " character we want to move on. `zv` would be interpreted like this:
+    "
+    "     zv
+    "     ││
+    "     │└ enter visual mode
+    "     └ move cursor to next/previous `z` character
+    "}}}
+    augroup sneak_open_folds
+        au!
+        au CursorMoved * exe 'norm! zv'
+        \|               exe 'au! sneak_open_folds '
+        \|               aug! sneak_open_folds
+    augroup END
+
     if s:repeating_motion_on_axis_1
     "                             │
     "                             └ `[tfTF]x` motions are specific to the axis 1,
@@ -752,7 +773,6 @@ fu! s:tf_workaround(cmd) abort "{{{1
         "             ┌  last [tfTF] command
         "             │
         call feedkeys(s:tf_cmd[-1:-1] ==# a:cmd ? "\<plug>Sneak_;" : "\<plug>Sneak_,", 'it')
-        call timer_start(0, {-> feedkeys('zv', 'int')})
         "                          │{{{
         "                          └ TODO: What is this? When we press `;` after `fx`, how is `a:cmd` obtained?
         "
