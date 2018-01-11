@@ -1,3 +1,8 @@
+if exists('g:loaded_lg#lib#reg')
+    finish
+endif
+let g:loaded_lg#lib#reg = 1
+
 let s:reg_translations = {
 \                          '"': 'unnamed',
 \                          '+': 'plus',

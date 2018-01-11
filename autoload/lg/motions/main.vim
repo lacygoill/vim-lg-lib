@@ -1,7 +1,7 @@
-if exists('g:autoloaded_repeatable_motions')
+if exists('g:autoloaded_lg#motions#main')
     finish
 endif
-let g:autoloaded_repeatable_motions = 1
+let g:autoloaded_lg#motions#main = 1
 
 " TODO:
 " Try to move all mappings in ~/.vim/autoload/slow_mappings/repeatable_motions.vim.
