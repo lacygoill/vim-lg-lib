@@ -4,66 +4,6 @@ endif
 let g:autoloaded_lg#motions#main = 1
 
 " FIXME:
-" Focus a window where a vim buffer is displayed.
-" Restart Vim.
-" Reload the buffer.
-"
-" Plenty of errors due to the teardown which fails to remove some local mappings
-" which don't exist:
-"
-"     n  [m          *@<SNR>99_move('[m', 1, 1)
-"     n  ]m          *@<SNR>99_move(']m', 1, 1)
-"
-"     n  [[          *@<SNR>99_move('[[', 1, 1)
-"     n  ]]          *@<SNR>99_move(']]', 1, 1)
-"
-"     n  []          *@<SNR>99_move('[]', 1, 1)
-"     n  ][          *@<SNR>99_move('][', 1, 1)
-"
-" They haven't been  installed. They should. They have been  everywhere else, so
-" why not in the last file focused in the session.
-"
-" Update:
-" The issue comes from the fact that we delay the sourcing of
-"
-"     ~/.vim/autoload/slow_mappings/repeatable_motions.vim
-"
-" Update:
-" More specifically, it  comes from the fact that we  delay the repeatability of
-" the global motions `[m`, `]m`, `[[`, `]]`.
-"
-" It seems that  Vim removes pre-existing buffer-local mappings  when we install
-" the shadowing global counterparts. Why?
-"
-" Update:
-" It's because this command fails to do its job:
-"
-"     call lg#map#restore(map_save)
-"
-" Here's the value of `map_save` for `[m`:
-"
-"     {'[m': {'expr': 0, 'noremap': 1, 'lhs': '[m', 'mode': 'x', 'nowait': 1, 'silent': 1, 'sid': 98, 'rhs': ':<c-u>exe ''norm! gv'' <bar> call myfuncs#sections_custom(''^\s*fu\%[nction]!\s\+'', 0)<cr>', 'buffer': 1},
-"      ']m': {'expr': 0, 'noremap': 1, 'lhs': ']m', 'mode': 'x', 'nowait': 1, 'silent': 1, 'sid': 98, 'rhs': ':<c-u>exe ''norm! gv'' <bar> call myfuncs#sections_custom(''^\s*fu\%[nction]!\s\+'', 1)<cr>', 'buffer': 1}}
-"
-" If you  pass this dictionary to  `lg#map#restore()`, it won't restore  `[m` in
-" normal mode, which is normal, since it contains information regarding a VISUAL
-" mode mapping.
-" What's weird  though, is  that the  function gets  this dictionary  because it
-" received the mode '' (empty string).
-"
-" Ok I got it. The function has removed  `[m` in ALL modes (nvo because of empty
-" string received  in argument), then in  restores ONLY in visual  mode (because
-" that's the first mapping found by `maparg()`).
-"
-" This is a  fundamental issue with `lg#map#save()`. When it receives  '' as the
-" mode, it  should return  3 information about  3 modes, not  just the  first in
-" which a mapping is found.
-"
-" Or,    we    should    forbid    `lg#map#save()`    to    accept    '',    and
-" `lg#motions#main#make_repeatable()` should be passed 'n',  'v' or 'o', but not
-" ''.
-
-" FIXME:
 "
 " ]m V ;
 

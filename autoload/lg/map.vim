@@ -32,15 +32,6 @@ fu! lg#map#restore(map_save) abort "{{{1
     endif
 endfu
 
-" Warning:{{{
-" Don't try to restore a buffer local mapping unless you're sure that, when
-" `lg#map#restore()` is called, you're in the same buffer where
-" `lg#map#save()` was originally called.
-"
-" If you aren't in the same buffer, you could install a buffer-local mapping
-" inside a buffer where this mapping didn't exist before.
-" It could cause unexpected behavior on the user's system.
-"}}}
 " Usage:{{{
 "
 "     call lg#map#restore(map_save)
@@ -60,7 +51,7 @@ fu! s:restore(map_save) abort "{{{1
             continue
         endif
 
-        " remove a possible mapping if it didn't exists when we tried to save it
+        " remove a possible mapping if it didn't exist when we tried to save it
         if has_key(maparg, 'unmapped')
             sil! exe maparg.mode.'unmap '.(maparg.buffer ? ' <buffer> ' : '').maparg.lhs
 
@@ -99,7 +90,7 @@ fu! lg#map#save(mode, is_local, keys) abort "{{{1
     let keys = type(a:keys) == type([]) ? a:keys : [a:keys]
 
     let map_save = {}
-    " return info about local mappings
+    " get info about local mappings
     if a:is_local
         for a_key in keys
             " save info about the local mapping
@@ -128,7 +119,7 @@ fu! lg#map#save(mode, is_local, keys) abort "{{{1
             call extend(map_save[a_key], {'bufnr': bufnr('%')})
         endfor
 
-    " return info about global mapping
+    " get info about global mappings
     else
         for a_key in keys
             " save info about the local mapping
@@ -182,16 +173,7 @@ fu! lg#map#save(mode, is_local, keys) abort "{{{1
             "         • is the mapping global or buffer-local (<buffer> argument)?
             "         • the lhs
             "         • the mode (normal, visual, …)
-            "
-            " The 'unmapped' key is not necessary. I just find it can make
-            " the code a little more readable inside `lg#map#restore()`.
-            " Indeed, one can write:
-
-            "     if !has_key(maparg, 'unmapped') && !empty(maparg)
-            "         …
-            "     endif
-            "
-"}}}
+            "}}}
 
             " restore the local one
             call lg#map#restore({a_key : local_maparg})
