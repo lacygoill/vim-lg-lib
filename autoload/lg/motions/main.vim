@@ -5,7 +5,16 @@ let g:autoloaded_lg#motions#main = 1
 
 " FIXME:
 "
-" ]m V ;
+"         ]m V ;
+"
+" Update:
+" It doesn't work because `s:get_motion_info()` returns 0 in `s:move_again()`.
+"
+" Also:
+" After you've fixed the previous issue, make sure you haven't re-broken this:
+"
+"         V ]m
+
 
 " TODO:
 " Try to move all mappings in ~/.vim/autoload/slow_mappings/repeatable_motions.vim.
@@ -16,7 +25,7 @@ let g:autoloaded_lg#motions#main = 1
 
 " TODO:
 " We invoke `maparg()` too many times.
-" To optimize.
+" To optimize. (What about `type()`?)
 "
 " It's called in:
 "
@@ -154,6 +163,9 @@ com!  ListRepeatableMotions  call s:list_all_motions()
 
 fu! s:get_direction(lhs) abort "{{{1
     let motion = s:get_motion_info(a:lhs)
+    if type(motion) != type({})
+        return ''
+    endif
     let is_fwd = s:translate_lhs(a:lhs) ==# s:translate_lhs(motion.fwd.lhs)
     return is_fwd ? 'fwd' : 'bwd'
 endfu
@@ -212,90 +224,29 @@ fu! s:get_motion_info(lhs) abort "{{{1
     \:                s:repeatable_motions
 
     for m in motions
-        if m.bwd.lhs ==# 'F' || m.bwd.lhs ==# '[m'
-            " let g:debug = get(g:, 'debug', [])
-            " \
-            " \+            deepcopy([{ 'm':         m,
-            " \                         'm.bwd.lhs': m.bwd.lhs,
-            " \                         'm.fwd.lhs': m.fwd.lhs,
-            " \                         'a:lhs':     a:lhs,
-            " \                         'mode':      mode    }])
-            " let g:foo = [ mode, ' ', m.bwd.mode]
-            "
-            " FIXME: V ]m{{{
-            "
-            " Update:
-            " substitute(substitute(mode(1), "[vV\<c-v>]", 'x', ''), 'no', 'o', '')
-            "     → 'x' (✔)
-            "
-            " m.bwd.mode
-            "     → 'n'
-            "
-            " index([substitute(…), ' '], m.bwd.mode) >= 0
-            "     → 0 (✘)
-            "
-            " The function fails to find a motion in the database whose `lhs` is `]m`
-            " and which works in visual mode.
-            " It only finds one in normal mode.
-            " Do we have a `]m` motion in visual mode?
-            " If so, why doesn't the function finds it.
-            " If not, why haven't we one?
-            "
-            " Update:
-            " Yes, we  have a  `]m` motion  in visual  mode, but  here `motions`
-            " contains only the buffer-local motions.
-            " And the only `]m` motion we have in visual mode is global, not local.
-            "
-            " Update:
-            " I found a dirty way to fix the issue.
-            " Replace this:
-            "
-            "     let motions = get(maparg(a:lhs, '', 0, 1), 'buffer', 0)
-            "     \?                get(b:, 'repeatable_motions', [])
-            "     \:                s:repeatable_motions
-            "
-            " with this:
-            "
-            "                                      ┌ difference!
-            "                                      │
-            "     let motions = get(maparg(a:lhs, 'x', 0, 1), 'buffer', 0)
-            "     \?                get(b:, 'repeatable_motions', [])
-            "     \:                s:repeatable_motions
-            "
-            " And this:
-            "     \&& index([substitute(substitute(mode(1), "[vV\<c-v>]", 'x', ''), 'no', 'o', ''), ' '], m.bwd.mode) >= 0
-            "
-            " with this:
-            "     \&& index([substitute(substitute(mode(1), "[vV\<c-v>]", 'x', ''), 'no', 'o', ''), ''], m.bwd.mode) >= 0
-            "                                                                                        │
-            "                                                                                        └ difference!
-            "
-            " The first modification means that we should pass the mode to the function,
-            " or we could try to guess it with `mode(1)`.
-            "
-            " However, I don't understand the 2nd modification.
-            " It contradicts what we wrote about the inconsistency in `maparg()`.
-            " In particular, we wrote that `maparg()` returned a single space when the mode
-            " was `nvo`. So, why do we need to use an empty string now?
-            "}}}
-            " FIXME:
-            " This kind  of bugs  occurs frequently; we  should maybe  handle it
-            " definitively, and more  gracefully (no more errors,  just tell Vim
-            " to not do anything).
-        endif
+        " if m.bwd.lhs ==# 'F' || m.bwd.lhs ==# '[m'
+        "     let g:debug = get(g:, 'debug', [])
+        "     \
+        "     \+            deepcopy([{ 'm':         m,
+        "     \                         'm.bwd.lhs': m.bwd.lhs,
+        "     \                         'm.fwd.lhs': m.fwd.lhs,
+        "     \                         'a:lhs':     a:lhs,
+        "     \                         'mode':      mode    }])
+        "     let g:foo = [ mode, ' ', m.bwd.mode]
+        " endif
 
         if  index([s:translate_lhs(m.bwd.lhs), s:translate_lhs(m.fwd.lhs)],
         \          s:translate_lhs(a:lhs)) >= 0
-        \&& index([mode, ' ', ''], m.bwd.mode) >= 0
-        "                          └────────┤
-        "                                   └ this flag was originally obtained with `maparg()`
+        \&& index([mode, ' '], m.bwd.mode) >= 0
+        "                      └────────┤
+        "                               └ this flag was originally obtained with `maparg()`
         "
         " Why this last condition? {{{
         "
         " We only  pass a lhs  to this function. So, when  it tries to  find the
         " relevant info in  the database, it doesn't care about  the mode of the
-        " motion. It stops searching as soon as it funds one which has the right
-        " lhs.  It should also care about the mode.
+        " motion. It stops searching as soon as it finds one which has the right
+        " lhs.  It's wrong; it should also care about the mode.
         "
         " Without this condition, here's what could happen:
         "
@@ -316,19 +267,20 @@ fu! s:get_motion_info(lhs) abort "{{{1
         "
         "     index([…, ' '], m.bwd.mode) >= 0
         "
-        "         check whether the mode of the motion found in the database matches the current one,
-        "         or an empty string
+        "         check whether  the mode  of the motion  found in  the database
+        "         matches the current one, or a single space.
         "
         "         Why a single space?
-        "         For `maparg()`, a single space matches all the modes in which we're interested:
-        "         normal, visual, operator-pending.
-        "         So, it should always be right for the motion we're looking for.
+        "         For `maparg()`, a single space  matches all the modes in which
+        "         we're  interested: normal,  visual, operator-pending.   So, it
+        "         should always be right for the motion we're looking for.
         "
-        "         Note that there's an inconsistency in `maparg()` which shouldn't confuse you:
-        "         if you want information about a mapping in the 3 modes `nvo`,
-        "         the help says that you must pass an empty string as the 2nd argument.
-        "         But in the output, they will be represented with a single space, not with
-        "         an empty string.
+        "         Note  that  there's  an   inconsistency  in  `maparg()`  which
+        "         shouldn't confuse you: if you want information about a mapping
+        "         in the  3 modes  `nvo`, the  help says that  you must  pass an
+        "         empty string  as the  2nd argument.  But  in the  output, they
+        "         will be  represented with  a single space,  not with  an empty
+        "         string.
         "}}}
             return m
         endif
@@ -663,9 +615,15 @@ fu! s:move(lhs, buffer, update_last_motion) abort "{{{1
         call s:update_last_motion(a:lhs)
     endif
 
-    let dir_key = s:get_direction(a:lhs)
     let motion = s:get_motion_info(a:lhs)
+    if type(motion) != type({})
+        return ''
+    endif
 
+    let dir_key = s:get_direction(a:lhs)
+    if empty(dir_key)
+        return ''
+    endif
     let is_expr_mapping = motion[dir_key].expr
     if motion[dir_key].rhs =~# '\c<sid>'
         let motion[dir_key].rhs =
@@ -979,6 +937,9 @@ endfu
 
 fu! s:update_last_motion(lhs) abort "{{{1
     let motion = s:get_motion_info(a:lhs)
+    if type(motion) != type({})
+        return
+    endif
     let n = motion.axis
     " TODO:
     " Should we translate `a:lhs`?
