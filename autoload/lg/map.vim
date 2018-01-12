@@ -102,10 +102,10 @@ fu! lg#map#save(mode, is_local, keys) abort "{{{1
     " return info about local mappings
     if a:is_local
         for a_key in keys
+            " save info about the local mapping
             let maparg =  maparg(a_key, a:mode, 0, 1)
 
-            " if we ask for a local  mapping, the function shouldn't return info
-            " about a global one
+            " make sure it's local
             if !get(maparg, 'buffer', 1)
             "                         │
             "                         └ if there isn't even a 'buffer' key,
@@ -128,9 +128,10 @@ fu! lg#map#save(mode, is_local, keys) abort "{{{1
             call extend(map_save[a_key], {'bufnr': bufnr('%')})
         endfor
 
-    " return info about global mappings
+    " return info about global mapping
     else
         for a_key in keys
+            " save info about the local mapping
             let local_maparg = maparg(a_key, a:mode, 0, 1)
 
             " If a key is used in a global mapping and a local one, by default,
@@ -143,8 +144,7 @@ fu! lg#map#save(mode, is_local, keys) abort "{{{1
             " save info about the global one
             let maparg = maparg(a_key, a:mode, 0, 1)
 
-            " if we ask for a global mapping, the function shouldn't return info
-            " about a local one
+            " make sure it's global
             if get(maparg, 'buffer', 0)
             "                        │
             "                        └ if there isn't even a 'buffer' key,
