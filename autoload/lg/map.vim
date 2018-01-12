@@ -15,22 +15,21 @@ fu! lg#map#restore(map_save) abort "{{{1
         return
     endif
 
-    for maparg in values(a:map_save)
-        if !has_key(maparg, 'unmapped') && !empty(maparg)
-            exe maparg.mode
-            \. (maparg.noremap ? 'noremap   ' : 'map ')
-            \. (maparg.buffer  ? ' <buffer> ' : '')
-            \. (maparg.expr    ? ' <expr>   ' : '')
-            \. (maparg.nowait  ? ' <nowait> ' : '')
-            \. (maparg.silent  ? ' <silent> ' : '')
-            \.  maparg.lhs
-            \. ' '
-            \. substitute(maparg.rhs, '<SID>', '<SNR>'.maparg.sid.'_', 'g')
-
-        elseif has_key(maparg, 'unmapped')
-            sil! exe maparg.mode.'unmap '.(maparg.buffer ? ' <buffer> ' : '').maparg.lhs
-        endif
-    endfor
+    " Why?{{{
+    "
+    " If we've saved a mapping for:
+    "
+    "     • a mode different than '', `lg#map#save()` will have returned a dictionary
+    "     • the mode ''             , `lg#map#save()` will have returned a list
+    "                                                                    of up to 3 dictionaries
+    "}}}
+    if type(a:map_save) == type({})
+        call s:restore(a:map_save)
+    elseif type(a:map_save) == type([])
+        for a_map_save in a:map_save
+            call s:restore(a_map_save)
+        endfor
+    endif
 endfu
 
 " Warning:{{{
@@ -44,25 +43,78 @@ endfu
 "}}}
 " Usage:{{{
 "
-"     call lg#map#restore(my_saved_mappings)
+"     call lg#map#restore(map_save)
 "
-" `my_saved_mappings` is a dictionary obtained earlier by calling `lg#map#save()`.
+" `map_save` is a dictionary obtained earlier by calling `lg#map#save()`.
 " Its keys are the keys used in the mappings.
 " Its values are the info about those mappings stored in sub-dictionaries.
-"
-" There's nothing special to pass to `lg#map#restore()`, no other
-" argument, no wrapping inside a 3rd dictionary, or anything. Just this dictionary.
 "}}}
 
-fu! lg#map#save(mode, is_local, keys) abort "{{{1
-    let map_save = {}
+fu! s:restore(map_save) abort "{{{1
+    for maparg in values(a:map_save)
+        " If the mapping is local to a buffer, check we're in the right one.
+        " Also make sure we have at least the 'lhs' key; just to be sure we
+        " have received relevant information.
+        if  get(maparg, 'buffer', 0) && bufnr('%') != get(maparg, 'bufnr', 0)
+        \|| !has_key(maparg, 'lhs')
+            continue
+        endif
 
-    " TRY to return info local mappings.
-    " If they exist it will work, otherwise it will return info about global
-    " mappings.
+        " remove a possible mapping if it didn't exists when we tried to save it
+        if has_key(maparg, 'unmapped')
+            sil! exe maparg.mode.'unmap '.(maparg.buffer ? ' <buffer> ' : '').maparg.lhs
+
+        " restore a saved mapping
+        else
+            exe maparg.mode
+            \. (maparg.noremap ? 'noremap   ' : 'map ')
+            \. (maparg.buffer  ? ' <buffer> ' : '')
+            \. (maparg.expr    ? ' <expr>   ' : '')
+            \. (maparg.nowait  ? ' <nowait> ' : '')
+            \. (maparg.silent  ? ' <silent> ' : '')
+            \.  maparg.lhs
+            \. ' '
+            \. substitute(maparg.rhs, '<SID>', '<SNR>'.maparg.sid.'_', 'g')
+        endif
+    endfor
+endfu
+
+fu! lg#map#save(mode, is_local, keys) abort "{{{1
+    " The function accepts a list of keys, or just a single key (in a string).
+    if type(a:keys) != type([]) && type(a:keys) != type('')
+        return
+    endif
+
+    " If we pass the mode '', the function should interpret it as 'nvo',
+    " like `maparg()` does.
+    if a:mode ==# ''
+        let n_map_save = lg#map#save('n', a:is_local, a:keys)
+        let x_map_save = lg#map#save('x', a:is_local, a:keys)
+        let o_map_save = lg#map#save('o', a:is_local, a:keys)
+        " And so, instead of returning a dictionary, it will return a list
+        " of up to 3 dictionaries; 1 for each mode.
+        return filter([n_map_save, x_map_save, o_map_save], {i,v -> !empty(v)})
+    endif
+
+    let keys = type(a:keys) == type([]) ? a:keys : [a:keys]
+
+    let map_save = {}
+    " return info about local mappings
     if a:is_local
-        for a_key in a:keys
-            let maparg          =  maparg(a_key, a:mode, 0, 1)
+        for a_key in keys
+            let maparg =  maparg(a_key, a:mode, 0, 1)
+
+            " if we ask for a local  mapping, the function shouldn't return info
+            " about a global one
+            if !get(maparg, 'buffer', 1)
+            "                         │
+            "                         └ if there isn't even a 'buffer' key,
+            "                           `maparg`  is probably  empty, but  don't
+            "                           bail out;  we want  to know  the mapping
+            "                           doesn't exist ('unmapped' key)
+                continue
+            endif
+
             let map_save[a_key] = !empty(maparg)
             \?                           maparg
             \:                           {
@@ -71,10 +123,14 @@ fu! lg#map#save(mode, is_local, keys) abort "{{{1
             \                              'lhs'      : a_key,
             \                              'mode'     : a:mode,
             \                            }
+            " Save the  buffer number, so that  we can check we're  in the right
+            " buffer when we want to restore a buffer-local mapping.
+            call extend(map_save[a_key], {'bufnr': bufnr('%')})
         endfor
 
+    " return info about global mappings
     else
-        for a_key in a:keys
+        for a_key in keys
             let local_maparg = maparg(a_key, a:mode, 0, 1)
 
             " If a key is used in a global mapping and a local one, by default,
@@ -85,7 +141,19 @@ fu! lg#map#save(mode, is_local, keys) abort "{{{1
             sil! exe a:mode.'unmap <buffer> '.a_key
 
             " save info about the global one
-            let maparg          =  maparg(a_key, a:mode, 0, 1)
+            let maparg = maparg(a_key, a:mode, 0, 1)
+
+            " if we ask for a global mapping, the function shouldn't return info
+            " about a local one
+            if get(maparg, 'buffer', 0)
+            "                        │
+            "                        └ if there isn't even a 'buffer' key,
+            "                          `maparg`  is  probably empty,  but  don't
+            "                          bail  out; we  want to  know the  mapping
+            "                          doesn't exist ('unmapped' key)
+                continue
+            endif
+
             let map_save[a_key] = !empty(maparg)
             \?                           maparg
             \:                           {
