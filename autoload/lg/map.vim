@@ -61,37 +61,37 @@ fu! lg#map#save(mode, is_local, keys) abort "{{{1
     " If they exist it will work, otherwise it will return info about global
     " mappings.
     if a:is_local
-        for l:key in a:keys
-            let maparg          =  maparg(l:key, a:mode, 0, 1)
-            let map_save[l:key] = !empty(maparg)
+        for a_key in a:keys
+            let maparg          =  maparg(a_key, a:mode, 0, 1)
+            let map_save[a_key] = !empty(maparg)
             \?                           maparg
             \:                           {
             \                              'unmapped' : 1,
             \                              'buffer'   : 1,
-            \                              'lhs'      : l:key,
+            \                              'lhs'      : a_key,
             \                              'mode'     : a:mode,
             \                            }
         endfor
 
     else
-        for l:key in a:keys
-            let local_maparg = maparg(l:key, a:mode, 0, 1)
+        for a_key in a:keys
+            let local_maparg = maparg(a_key, a:mode, 0, 1)
 
             " If a key is used in a global mapping and a local one, by default,
             " `maparg()` only returns information about the local one.
             " We want to be able to get info about a global mapping even if a local
             " one shadows it.
             " To do that, we will temporarily remove the local mapping.
-            sil! exe a:mode.'unmap <buffer> '.l:key
+            sil! exe a:mode.'unmap <buffer> '.a_key
 
             " save info about the global one
-            let maparg          =  maparg(l:key, a:mode, 0, 1)
-            let map_save[l:key] = !empty(maparg)
+            let maparg          =  maparg(a_key, a:mode, 0, 1)
+            let map_save[a_key] = !empty(maparg)
             \?                           maparg
             \:                           {
             \                              'unmapped' : 1,
             \                              'buffer'   : 0,
-            \                              'lhs'      : l:key,
+            \                              'lhs'      : a_key,
             \                              'mode'     : a:mode,
             \                            }
 
@@ -100,7 +100,7 @@ fu! lg#map#save(mode, is_local, keys) abort "{{{1
             "     {
             "     \ 'unmapped' : 1,
             "     \ 'buffer'   : 0,
-            "     \ 'lhs'      : l:key,
+            "     \ 'lhs'      : a_key,
             "     \ 'mode'     : a:mode,
             "     \ }
 
@@ -126,7 +126,7 @@ fu! lg#map#save(mode, is_local, keys) abort "{{{1
 "}}}
 
             " restore the local one
-            call lg#map#restore({l:key : local_maparg})
+            call lg#map#restore({a_key : local_maparg})
         endfor
     endif
 

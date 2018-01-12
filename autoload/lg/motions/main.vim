@@ -3,10 +3,76 @@ if exists('g:autoloaded_lg#motions#main')
 endif
 let g:autoloaded_lg#motions#main = 1
 
+" FIXME:
+" Focus a window where a vim buffer is displayed.
+" Restart Vim.
+" Reload the buffer.
+"
+" Plenty of errors due to the teardown which fails to remove some local mappings
+" which don't exist:
+"
+"     n  [m          *@<SNR>99_move('[m', 1, 1)
+"     n  ]m          *@<SNR>99_move(']m', 1, 1)
+"
+"     n  [[          *@<SNR>99_move('[[', 1, 1)
+"     n  ]]          *@<SNR>99_move(']]', 1, 1)
+"
+"     n  []          *@<SNR>99_move('[]', 1, 1)
+"     n  ][          *@<SNR>99_move('][', 1, 1)
+"
+" They haven't been  installed. They should. They have been  everywhere else, so
+" why not in the last file focused in the session.
+"
+" Update:
+" The issue comes from the fact that we delay the sourcing of
+"
+"     ~/.vim/autoload/slow_mappings/repeatable_motions.vim
+"
+" Update:
+" More specifically, it  comes from the fact that we  delay the repeatability of
+" the global motions `[m`, `]m`, `[[`, `]]`.
+"
+" It seems that  Vim removes pre-existing buffer-local mappings  when we install
+" the shadowing global counterparts. Why?
+"
+" Update:
+" It's because this command fails to do its job:
+"
+"     call lg#map#restore(map_save)
+"
+" Here's the value of `map_save` for `[m`:
+"
+"     {'[m': {'expr': 0, 'noremap': 1, 'lhs': '[m', 'mode': 'x', 'nowait': 1, 'silent': 1, 'sid': 98, 'rhs': ':<c-u>exe ''norm! gv'' <bar> call myfuncs#sections_custom(''^\s*fu\%[nction]!\s\+'', 0)<cr>', 'buffer': 1},
+"      ']m': {'expr': 0, 'noremap': 1, 'lhs': ']m', 'mode': 'x', 'nowait': 1, 'silent': 1, 'sid': 98, 'rhs': ':<c-u>exe ''norm! gv'' <bar> call myfuncs#sections_custom(''^\s*fu\%[nction]!\s\+'', 1)<cr>', 'buffer': 1}}
+"
+" If you  pass this dictionary to  `lg#map#restore()`, it won't restore  `[m` in
+" normal mode, which is normal, since it contains information regarding a VISUAL
+" mode mapping.
+" What's weird  though, is  that the  function gets  this dictionary  because it
+" received the mode '' (empty string).
+"
+" Ok I got it. The function has removed  `[m` in ALL modes (nvo because of empty
+" string received  in argument), then in  restores ONLY in visual  mode (because
+" that's the first mapping found by `maparg()`).
+"
+" This is a  fundamental issue with `lg#map#save()`. When it receives  '' as the
+" mode, it  should return  3 information about  3 modes, not  just the  first in
+" which a mapping is found.
+"
+" Or,    we    should    forbid    `lg#map#save()`    to    accept    '',    and
+" `lg#motions#main#make_repeatable()` should be passed 'n',  'v' or 'o', but not
+" ''.
+
+" FIXME:
+"
+" ]m V ;
+
 " TODO:
 " Try to move all mappings in ~/.vim/autoload/slow_mappings/repeatable_motions.vim.
 " This plugin should only propose custom functions.
 " Make `s:move_again()` a public function.
+"
+" And what about the command?
 
 " TODO:
 " We invoke `maparg()` too many times.
@@ -24,25 +90,6 @@ let g:autoloaded_lg#motions#main = 1
 "         s:move()
 "         s:get_direction()
 "         s:update_last_motion()
-
-" FIXME:
-"     In vimrc go to a function containing a `:return` statement.
-"     Enter visual mode.
-"     Press `%` on `fu!`
-"     Press `;`.
-"     Press Escape
-"     Press `;`.
-"
-" Now `;` makes us enter visual mode. It shouldn't. We want a motion in normal
-" mode.
-"
-" Also, prior to that, `%` in normal mode is not silent. I can see the `matchit`
-" function being called. The original mapping was silent. The wrapper should
-" be too.
-
-" FIXME:
-" `;` doesn't always repeat the motion.
-" Press `V down ;`.
 
 " TODO:
 " Split the code in several files if needed.
@@ -114,9 +161,21 @@ let g:autoloaded_lg#motions#main = 1
 "                            the 4th axis for cycling through options values
 "}}}
 fu! s:init() abort "{{{1
-    let s:default_maparg     = { 'noremap': 1, 'expr': 0, 'nowait': 0, 'silent': 0, 'buffer': 0}
     let s:repeatable_motions = []
-
+    let s:default_maparg     = {'buffer': 0, 'expr': 0, 'mode': ' ', 'noremap': 1, 'nowait': 0, 'silent': 0}
+    "                                                       Why? ┘{{{
+    "
+    " This variable will be used to populate information about a default motion,
+    " for which `maparg()` doesn't output anything. We need to choose a character
+    " standing for the default mode we want. As a default mode, I want `nvo`.
+    " For `maparg()`, `nvo` is represented with:
+    "
+    "     • an empty string in its input
+    "     • a single space in its output
+    "
+    " We need to be consistent with the output of `maparg()`. So, we choose
+    " an empty space.
+"}}}
     let s:axes = {
     \              '1': 1,
     \              '2': 2,
@@ -190,13 +249,147 @@ fu! s:get_motion_info(lhs) abort "{{{1
 
     " TODO:
     " in `maparg()`, replace '' with the actual mode
-    let motions = get(maparg(a:lhs, '', 0, 1), 'buffer', 0)
+    " It may be unnecessary now that we have added the condition
+    "
+    "         \&& index([substitute(substitute(mode(1), "[vV\<c-v>]", 'x', ''), 'no', 'o', ''), ' '], m.bwd.mode) >= 0
+    "
+    " … in the next for loop.
+    " That being said, if you do it, maybe you could eliminate this condition, and
+    " maybe it would improve the performance.
+    " I'm not sure it's worth it though, as it would probably add much complexity.
+    let mode = substitute(substitute(mode(1), "[vV\<c-v>]", 'x', ''), 'no', 'o', '')
+    " Why the substitutions?{{{
+    "
+    "     substitute(mode(1), "[vV\<c-v>]", 'x', ''):
+    "         normalize output of `mode()` to match the one of `maparg()`
+    "         in case we're in visual mode
+    "
+    "     substitute(…, 'no', 'o', '')
+    "         same thing for operator-pending mode
+    "}}}
+    let motions = get(maparg(a:lhs, mode, 0, 1), 'buffer', 0)
     \?                get(b:, 'repeatable_motions', [])
     \:                s:repeatable_motions
 
     for m in motions
-        if index([s:translate_lhs(m.bwd.lhs), s:translate_lhs(m.fwd.lhs)],
-        \        s:translate_lhs(a:lhs)) >= 0
+        if m.bwd.lhs ==# 'F' || m.bwd.lhs ==# '[m'
+            " let g:debug = get(g:, 'debug', [])
+            " \
+            " \+            deepcopy([{ 'm':         m,
+            " \                         'm.bwd.lhs': m.bwd.lhs,
+            " \                         'm.fwd.lhs': m.fwd.lhs,
+            " \                         'a:lhs':     a:lhs,
+            " \                         'mode':      mode    }])
+            " let g:foo = [ mode, ' ', m.bwd.mode]
+            "
+            " FIXME: V ]m{{{
+            "
+            " Update:
+            " substitute(substitute(mode(1), "[vV\<c-v>]", 'x', ''), 'no', 'o', '')
+            "     → 'x' (✔)
+            "
+            " m.bwd.mode
+            "     → 'n'
+            "
+            " index([substitute(…), ' '], m.bwd.mode) >= 0
+            "     → 0 (✘)
+            "
+            " The function fails to find a motion in the database whose `lhs` is `]m`
+            " and which works in visual mode.
+            " It only finds one in normal mode.
+            " Do we have a `]m` motion in visual mode?
+            " If so, why doesn't the function finds it.
+            " If not, why haven't we one?
+            "
+            " Update:
+            " Yes, we  have a  `]m` motion  in visual  mode, but  here `motions`
+            " contains only the buffer-local motions.
+            " And the only `]m` motion we have in visual mode is global, not local.
+            "
+            " Update:
+            " I found a dirty way to fix the issue.
+            " Replace this:
+            "
+            "     let motions = get(maparg(a:lhs, '', 0, 1), 'buffer', 0)
+            "     \?                get(b:, 'repeatable_motions', [])
+            "     \:                s:repeatable_motions
+            "
+            " with this:
+            "
+            "                                      ┌ difference!
+            "                                      │
+            "     let motions = get(maparg(a:lhs, 'x', 0, 1), 'buffer', 0)
+            "     \?                get(b:, 'repeatable_motions', [])
+            "     \:                s:repeatable_motions
+            "
+            " And this:
+            "     \&& index([substitute(substitute(mode(1), "[vV\<c-v>]", 'x', ''), 'no', 'o', ''), ' '], m.bwd.mode) >= 0
+            "
+            " with this:
+            "     \&& index([substitute(substitute(mode(1), "[vV\<c-v>]", 'x', ''), 'no', 'o', ''), ''], m.bwd.mode) >= 0
+            "                                                                                        │
+            "                                                                                        └ difference!
+            "
+            " The first modification means that we should pass the mode to the function,
+            " or we could try to guess it with `mode(1)`.
+            "
+            " However, I don't understand the 2nd modification.
+            " It contradicts what we wrote about the inconsistency in `maparg()`.
+            " In particular, we wrote that `maparg()` returned a single space when the mode
+            " was `nvo`. So, why do we need to use an empty string now?
+            "}}}
+            " FIXME:
+            " This kind  of bugs  occurs frequently; we  should maybe  handle it
+            " definitively, and more  gracefully (no more errors,  just tell Vim
+            " to not do anything).
+        endif
+
+        if  index([s:translate_lhs(m.bwd.lhs), s:translate_lhs(m.fwd.lhs)],
+        \          s:translate_lhs(a:lhs)) >= 0
+        \&& index([mode, ' ', ''], m.bwd.mode) >= 0
+        "                          └────────┤
+        "                                   └ this flag was originally obtained with `maparg()`
+        "
+        " Why this last condition? {{{
+        "
+        " We only  pass a lhs  to this function. So, when  it tries to  find the
+        " relevant info in  the database, it doesn't care about  the mode of the
+        " motion. It stops searching as soon as it funds one which has the right
+        " lhs.  It should also care about the mode.
+        "
+        " Without this condition, here's what could happen:
+        "
+        "     1. go to a function containing a `:return` statement
+        "     2. enter visual mode
+        "     3. press `%` on `fu!`
+        "     4. press `;`
+        "     5. press Escape
+        "     6. press `;`
+        "
+        " Now `;` makes us enter visual  mode. It shouldn't. We want a motion in
+        " normal mode.
+        "}}}
+        " Break it down please:{{{
+        "
+        "     mode:
+        "         current mode
+        "
+        "     index([…, ' '], m.bwd.mode) >= 0
+        "
+        "         check whether the mode of the motion found in the database matches the current one,
+        "         or an empty string
+        "
+        "         Why a single space?
+        "         For `maparg()`, a single space matches all the modes in which we're interested:
+        "         normal, visual, operator-pending.
+        "         So, it should always be right for the motion we're looking for.
+        "
+        "         Note that there's an inconsistency in `maparg()` which shouldn't confuse you:
+        "         if you want information about a mapping in the 3 modes `nvo`,
+        "         the help says that you must pass an empty string as the 2nd argument.
+        "         But in the output, they will be represented with a single space, not with
+        "         an empty string.
+        "}}}
             return m
         endif
     endfor
@@ -303,7 +496,7 @@ fu! s:make_keys_feedable(seq) abort "{{{1
     \                     '<kPlus>',   '<kMinus>',  '<kMultiply>',  '<kDivide>',
     \                     '<kEnter>',  '<kPoint>',  '<k0>',         '<S-',
     \                     '<C-',       '<M-',       '<A-',          '<D-',
-    \                     '<Plug',
+    \                     '<Plug>',
     \                   ]
     for s in special_chars
         let m = substitute(m, '\c\('.s.'\)', '\\\1', 'g')
@@ -594,9 +787,9 @@ fu! s:move_again(axis, dir) abort "{{{1
     " the function. But if the mapping uses the `<expr>` argument, we EVALUATE
     " the rhs. Besides, if we have previously pressed `fx`, the rhs is:
     "
-    "     <sid>tf_workaround('f')
+    "     <sid>tfs_workaround('f')
     "
-    " And the code in `s:tf_workaround()` IS influenced by
+    " And the code in `s:tfs_workaround()` IS influenced by
     " `s:repeating_motion_on_axis_1`.
     "}}}
     let s:repeating_motion_on_axis_{a:axis} = a:dir ==# 'fwd' ? 1 : -1
@@ -606,7 +799,7 @@ fu! s:move_again(axis, dir) abort "{{{1
     " TODO: Why do we reset all these variables?
     " Update:
     " I think it's for a custom function which we could define to implement
-    " a special motion like `fFtT`. Similar to `s:tf_workaround()`.
+    " a special motion like `fFtT`. Similar to `s:tfs_workaround()`.
     " `fFtT` are special because the lhs, which is saved for repetition, doesn't
     " contain the necessary character which must be passed to the command.
     "
@@ -644,12 +837,13 @@ fu! s:move_again(axis, dir) abort "{{{1
     let is_silent = motion[a:dir].silent
     if is_silent
         " FIXME:
-        " `:redraw!` is overkill. Besides, if the motion wants to echo a message,
-        " it will probably be erased. That's not what <silent> does.
-        " <silent> only prevents the rhs from being echo'ed. But the rhs can still
-        " display a message if it wants to.
+        " `:redraw!`  is  overkill. Besides,  if  the motion  wants  to  echo  a
+        " message, it  will probably be  erased. That's not what  <silent> does.
+        " <silent> only  prevents the  rhs from being  echo'ed. But the  rhs can
+        " still display a message if it wants to.
         "
-        " Besides, try that:
+        " Besides:
+        " try that:
         "
         "     ]oL
         "     co;
@@ -657,8 +851,13 @@ fu! s:move_again(axis, dir) abort "{{{1
         "
         " The command-line seems to flash.
         "
+        " Besides:
+        " `%`  repeated in  normal mode  via `;`  is not  silent. I can  see the
+        " `matchit` function being called. The  original mapping was silent. The
+        " wrapper should be too.
+        "
         " Update:
-        " Maybe we could install a temporary `<plug>` mapping which would mimic
+        " Maybe we could install a  temporary `<plug>` mapping which would mimic
         " the original (using `<silent>` if necessary)?
         call timer_start(0, {-> execute('redraw!')})
     endif
@@ -674,13 +873,31 @@ fu! s:populate(motion, mode, lhs, is_fwd, ...) abort "{{{1
         let a:motion[dir] = maparg
     " make a default motion repeatable
     else
-        let a:motion[dir] = extend(deepcopy(s:default_maparg), {'mode': a:mode })
+        let a:motion[dir] = extend(deepcopy(s:default_maparg),
+        \                          {'mode': empty(a:mode) ? ' ' : a:mode })
+        "                                Why? ┘{{{
+        "
+        " Because if `maparg()`  doesn't give any info, we want  to fall back on
+        " the mode `nvo`. And  to be consistent, we want to  populate our motion
+        " with exactly  the same info that  `maparg()` would give for  `nvo`: an
+        " empty space.
+        "
+        " So, if we initially passed the mode '' when we invoked the function to
+        " make some motions repeatable,  we now want to use '  ' to populate the
+        " database of repeatable motions.
+        "
+        " This inconsistency between '' and ' ' mimics the one found in `maparg()`.
+        " For `maparg()`, `nvo` is represented with:
+        "
+        "     • an empty string in its input
+        "     • a single space in its output
+        "}}}
         let a:motion[dir].lhs = a:lhs
         let a:motion[dir].rhs = a:lhs
     endif
 endfu
 
-fu! s:tf_workaround(cmd) abort "{{{1
+fu! s:tfs_workaround(cmd) abort "{{{1
     " TODO:{{{
     " We don't need to call this function to make `)` repeatable,
     " so why do we need to call it to make `fx` repeatable?
@@ -688,7 +905,7 @@ fu! s:tf_workaround(cmd) abort "{{{1
     " What is special about making `fx` repeatable, compared to `)`?
     "
     " Update:
-    " `s:move_again()` → `s:move()` → `s:tf_workaround()`
+    " `s:move_again()` → `s:move()` → `s:tfs_workaround()`
     "                     │
     "                     └ something different happens here depending on whether
     "                       the last motion is a simple `)` or a special `fx`
@@ -750,7 +967,7 @@ fu! s:tf_workaround(cmd) abort "{{{1
     "     •   directly from a  [ftFT]  mapping
     "     • indirectly from a  [;,]    mapping
     "       │
-    "       └ s:move_again()  →  s:move()  →  s:tf_workaround()
+    "       └ s:move_again()  →  s:move()  →  s:tfs_workaround()
     "
     " It needs to distinguish from where it was called.
     " Because in  the first  case, it  needs to  ask the  user for  a character,
@@ -762,9 +979,9 @@ fu! s:tf_workaround(cmd) abort "{{{1
     "                             └ `[tfTF]x` motions are specific to the axis 1,
     "                                so there's no need to check `s:repeating_motion_on_axis_2,3,…`
 
-        let move_fwd = a:cmd =~# '\C[fts]'
-        "             │{{{
-        "             └ TODO: What is this?
+        let move_fwd = a:cmd =~# '\C[tfs]'
+        "              │{{{
+        "              └ TODO: What is this?
         "
         " When we press `;` after `fx`, how is `a:cmd` obtained?
         "
@@ -791,9 +1008,9 @@ fu! s:tf_workaround(cmd) abort "{{{1
         "
         "         eval(motion[dir_key].rhs)
         "              └─────────────────┤
-        "                                └ s:tf_workaround('f')
-        "                                                   │
-        "                                                   └ !!! a:cmd !!!
+        "                                └ s:tfs_workaround('f')
+        "                                                    │
+        "                                                    └ !!! a:cmd !!!
         "
         "          Consequence of all of this:
         "          our plugin normalizes the direction of the motions `,` and `;`
@@ -823,6 +1040,20 @@ endfu
 fu! s:update_last_motion(lhs) abort "{{{1
     let motion = s:get_motion_info(a:lhs)
     let n = motion.axis
+    " TODO:
+    " Should we translate `a:lhs`?
+    " I think yes. Why?
+    " Because this function is called at the beginning of `s:move()`.
+    " The  latter passes  to it  a keysequence,  which originally  comes from  a
+    " mapping:  Vim automatically translates it.
+    "
+    "     mapping → s:move(lhs, …) → s:update_last_motion(lhs)
+    "     │                │                              │
+    "     │                │                              └ same result
+    "     │                │
+    "     │                └ result of the previous translation
+    "     │
+    "     └ automatically translates special keys
     let s:last_motion_on_axis_{n} = s:translate_lhs(a:lhs)
 endfu
 
@@ -840,12 +1071,20 @@ endfu
 " Old comment, it should be eliminated. I keep it because it's not clear I can.
 " Make some tests with Up Down motions, and press `;` in all modes.
 "
+" Update:
+" `;` doesn't seem to repeat the last object:
+"
+"     y Down       (to copy between the current line down to next occurrence of a return statement)
+"     copy garbage
+"     y ;          to re-copy last text-object
+"     p            puts 2 lines
+"
 " If you need recursiveness (for example for a `<plug>`), use `feedkeys()`.
 " Example:{{{
 "
-"                                        ┌ necessary to get the full name of the mode
-"                                        │ otherwise, in operator-pending mode, we would get 'n',
-"                                        │ instead of 'no'
+"                                        ┌ necessary to get the full name of the mode,
+"                                        │ otherwise in operator-pending mode,
+"                                        │ we would get 'n' instead of 'no'
 "                                        │
 "     noremap  <expr>  <down>  Func(mode(1),1)
 "     noremap  <expr>  <up>    Func(mode(1),0)
@@ -901,12 +1140,12 @@ noremap  <expr>  <plug>(plus_comma)      <sid>move_again(3,'bwd')
 nno      <expr>  <plug>(co_semicolon)    <sid>move_again(4,'fwd')
 nno      <expr>  <plug>(co_comma)        <sid>move_again(4,'bwd')
 
-noremap  <expr><unique>  t   <sid>tf_workaround('t')
-noremap  <expr><unique>  T   <sid>tf_workaround('T')
-noremap  <expr><unique>  f   <sid>tf_workaround('f')
-noremap  <expr><unique>  F   <sid>tf_workaround('F')
-noremap  <expr><unique>  ss  <sid>tf_workaround('s')
-noremap  <expr><unique>  SS  <sid>tf_workaround('S')
+noremap  <expr><unique>  t   <sid>tfs_workaround('t')
+noremap  <expr><unique>  T   <sid>tfs_workaround('T')
+noremap  <expr><unique>  f   <sid>tfs_workaround('f')
+noremap  <expr><unique>  F   <sid>tfs_workaround('F')
+noremap  <expr><unique>  ss  <sid>tfs_workaround('s')
+noremap  <expr><unique>  SS  <sid>tfs_workaround('S')
 
 " Why here, and not in `vimrc`?{{{
 "
@@ -941,119 +1180,3 @@ nno  <unique>  [S  5zh
 nno  <unique>  ]S  5zl
 "               │
 "               └ mnemonics: Scroll
-
-
-" Use `s:default_motions` only to make default motions repeatable.
-" Don't use it to make custom motions defined in other plugins repeatable.
-" Why?{{{
-"
-" We're going to invoke `lg#motions_repeatable#main()`.
-" The latter  will invoke `s:make_it_repeatable()` for  every motion in
-" `s:default_motions`. Suppose we add this dictionary:
-"
-"     {'bwd': '[z',  'fwd': ']z',  'axis': 1}
-"
-" The goal would  be to make the  motions `[z` and `]z` (defined in `vim-fold`)
-" repeatable. So, here's what will happen:
-"
-"     ✘
-"     if `vim-fold` is sourced AFTER this  plugin, and the `]z` mapping which is
-"     defined there  uses `<unique>`,  E227 will  be raised,  because `vim-fold`
-"     will try to overwrite the meaning of `]z` given by the current plugin:
-"
-"             nno ]z <sid>move(']z', 0, 1)
-"
-"     ✘
-"     if `vim-fold` is sourced AFTER this  plugin, and the `]z` mapping which is
-"     defined  there does  NOT  use `<unique>`,  `vim-fold`  will overwrite  the
-"     meaning of `]z` given by the current plugin (which is not what we we want)
-"
-"     ✔
-"     if `vim-fold`  is sourced BEFORE `vim-repeatable_motion`,  the latter will
-"     successfully capture the definition of  `]z` given by `vim-fold`, and will
-"     install the necessary wrapper to make it repeatable
-"
-" Bottom Line:
-" For  `]z`  to  keep the  meaning  it  has  in  `vim-fold` AND  be  repeatable,
-" we   need  to   make  sure   `lg#motions_repeatable#main()`  is   invoked
-" AFTER  `]z`  has  been  defined,  which  can't  be  guaranteed  if  we  invoke
-" `lg#motions_repeatable#main()` right now.
-"}}}
-" How to make a custom motion repeatable then?{{{
-"
-" In `~/.vim/after/plugin/my_repeatable_motions.vim`, write:
-"
-"     call lg#motions_repeatable#main(
-"     \                     { 'mode': '' ,
-"     \                       'buffer': 0,
-"     \                       'motions': [
-"     \                                    { 'bwd': '<Up>',  'fwd': '<Down>',  'axis': 2 },
-"     \                                    { 'bwd': '[z',    'fwd': ']z',      'axis': 1 },
-"     \                                    …
-"     \                                  ]
-"     \                     })
-"}}}
-" TODO:
-" Remove from `s:default_motions` all motions defined somewhere else.
-"
-" What about `[[`? It's defined somewhere else (after/ftplugin/vim.vim),
-" so we should remove it. But if we remove it, we lose the global wrapper.
-" We want the global wrapper (could be useful).
-"
-" Nope:
-" `[[` is defined somewhere else, but it's a buffer-local mapping.
-" So, we shouldn't remove it from `s:default_motions`, if we want
-" the global wrapper.
-let s:default_motions = {
-\                         'mode': '',
-\                         'buffer': 0,
-\                         'motions': [
-\                                      {'bwd': "['",  'fwd': "]'",  'axis': 1 },
-\                                      {'bwd': '(' ,  'fwd': ')' ,  'axis': 1 },
-\                                      {'bwd': 'F' ,  'fwd': 'f' ,  'axis': 1 },
-\                                      {'bwd': 'SS',  'fwd': 'ss',  'axis': 1 },
-\                                      {'bwd': 'T' ,  'fwd': 't' ,  'axis': 1 },
-\                                      {'bwd': '[#',  'fwd': ']#',  'axis': 1 },
-\                                      {'bwd': '[(',  'fwd': '])',  'axis': 1 },
-\                                      {'bwd': '[*',  'fwd': ']*',  'axis': 1 },
-\                                      {'bwd': '[/',  'fwd': ']/',  'axis': 1 },
-\                                      {'bwd': '[M',  'fwd': ']M',  'axis': 1 },
-\                                      {'bwd': '[S',  'fwd': ']S',  'axis': 1 },
-\                                      {'bwd': '[[',  'fwd': ']]',  'axis': 1 },
-\                                      {'bwd': '[]',  'fwd': '][',  'axis': 1 },
-\                                      {'bwd': '[`',  'fwd': ']`',  'axis': 1 },
-\                                      {'bwd': '[c',  'fwd': ']c',  'axis': 1 },
-\                                      {'bwd': '[m',  'fwd': ']m',  'axis': 1 },
-\                                      {'bwd': '[s',  'fwd': ']s',  'axis': 1 },
-\                                      {'bwd': '[{',  'fwd': ']}',  'axis': 1 },
-\                                      {'bwd': 'g,',  'fwd': 'g;',  'axis': 1 },
-\                                      {'bwd': '{' ,  'fwd': '}' ,  'axis': 1 },
-\                                    ],
-\                       }
-
-" You need to make the default motions repeatable at the very end of the plugin.{{{
-"
-" In particular, you need  to invoke `s:make_it_repeatable()` AFTER the
-" custom fFtT mappings have been installed.
-"}}}
-" What will happen if you don't? {{{
-"
-" If you invoke `s:make_it_repeatable()` BEFORE the fFtT mappings,
-" `fx` will no longer be repeatable. Why?
-"
-" Because  then, `s:make_it_repeatable()`  will  fail to  save all  the
-" information relative to the `f` mapping inside `s:repeatable_motions`.
-" The latter must contain this info, so that `s:move_again()` can retrieve it
-" via `s:get_motion_info()`.
-"
-" FIXME:
-" I think  that these 2  comments are  irrelevant. If there are  custom mappings
-" whose lhs is `fFtT`, then  they shouldn't be in `s:default_motions` (according
-" to the previous fix_me).
-"
-" Update:
-" There's some confusion. The `fFtT` custom mappings defined in another plugin
-" should indeed probably be outside `s:default_motions`.
-" But the `fFtT` custom mappings defined in this plugin, that's another story…
-"}}}
-call lg#motions#main#make_repeatable(s:default_motions)
