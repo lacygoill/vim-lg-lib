@@ -3,18 +3,19 @@ if exists('g:autoloaded_lg#motions#main')
 endif
 let g:autoloaded_lg#motions#main = 1
 
-" FIXME:
+" Warning:{{{
 "
-"         ]m V ;
+" The mode you give to the function  which makes a motion repeatable must be
+" EXACTLY the same as the original one.
 "
-" Update:
-" It doesn't work because `s:get_motion_info()` returns 0 in `s:move_again()`.
+" In particular, don't use '' if your motion is defined in normal mode.
+" Yes `nvo` includes `n`, but it doesn't matter:  n != nvo
 "
-" Also:
-" After you've fixed the previous issue, make sure you haven't re-broken this:
+" If you don't respect this rule, you will break the motion, because the wrapper
+" installed around it will fail to retrieve it from the db (wrong mode).
 "
-"         V ]m
-
+" Use '' only for a motion defined explicitly with `:noremap` or `:map`.
+"}}}
 
 " TODO:
 " Try to move all mappings in ~/.vim/autoload/slow_mappings/repeatable_motions.vim.
@@ -69,46 +70,6 @@ let g:autoloaded_lg#motions#main = 1
 " to tweak its definition and use `<expr>` + `mode(1)` to distinguish the current mode
 " inside a function.
 
-" Terminology:{{{
-"
-"     axis
-"
-"             type of space in which we are moving:
-"
-"                     • buffer text
-"                     • filesystem
-"                     • versions of buffer
-"
-"                           in this particular case, the “motion” is in fact an edition
-"                           the edition makes us move from a version of the buffer to another
-"
-"                     • option values
-"
-"     motion
-"
-"             dictionary containing 3 keys:
-"
-"                 • bwd:     output of `maparg('<left>')` where '<left>' is
-"                            backward motion
-"
-"                 • fwd:     same thing for `<right>` as the forward motion
-"
-"                 • axis:    number which determines how the motion should be
-"                            repeated:
-"
-"                                1:  with a bare , ;
-"                                2:                         z
-"                                3:  same but prefixed with +
-"                                4:                         co
-"                                …
-"
-"                            the 2nd axis could be  reserved to motions moving the
-"                            focus across different files, or resizing a window
-"
-"                            the 3rd axis for editions which can be performed in 2 directions
-"
-"                            the 4th axis for cycling through options values
-"}}}
 fu! s:init() abort "{{{1
     let s:repeatable_motions = []
     let s:default_maparg     = {'buffer': 0, 'expr': 0, 'mode': ' ', 'noremap': 1, 'nowait': 0, 'silent': 0}
@@ -135,17 +96,17 @@ fu! s:init() abort "{{{1
     let s:n_axes = len(s:axes)
 
     let s:recursive_mapcmd = {
-    \                          'n':  'nmap',
-    \                          'x':  'xmap',
-    \                          'no': 'omap',
-    \                          '':   'map',
+    \                          'n': 'nmap',
+    \                          'x': 'xmap',
+    \                          'o': 'omap',
+    \                          '' : 'map',
     \                        }
 
     let s:non_recursive_mapcmd = {
-    \                              'n':  'nnoremap',
-    \                              'x':  'xnoremap',
-    \                              'no': 'onoremap',
-    \                              '':   'noremap',
+    \                              'n': 'nnoremap',
+    \                              'x': 'xnoremap',
+    \                              'o': 'onoremap',
+    \                              '' : 'noremap',
     \                            }
 
     for i in range(1, s:n_axes)
@@ -192,49 +153,75 @@ fu! s:get_mapcmd(mode, maparg) abort "{{{1
     return mapcmd
 endfu
 
+fu! s:get_current_mode() abort "{{{1
+    " Why the substitutions?{{{
+    "
+    "     substitute(mode(1), "[vV\<c-v>]", 'x', ''):
+    "
+    "         normalize output of `mode()` to match the one of `maparg()`
+    "         in case we're in visual mode
+    "
+    "     substitute(…, 'no', 'o', '')
+    "
+    "         same thing for operator-pending mode
+    "}}}
+    return substitute(substitute(mode(1), "[vV\<c-v>]", 'x', ''), 'no', 'o', '')
+endfu
+
+" Terminology:{{{
+"
+"     axis
+"
+"             type of space in which we are moving:
+"
+"                     • buffer text
+"                     • filesystem
+"                     • versions of buffer
+"
+"                           in this particular case, the “motion” is in fact an edition
+"                           the edition makes us move from a version of the buffer to another
+"
+"                     • option values
+"
+"     motion
+"
+"             dictionary containing 3 keys:
+"
+"                 • bwd:     output of `maparg('<left>')` where '<left>' is
+"                            backward motion
+"
+"                 • fwd:     same thing for `<right>` as the forward motion
+"
+"                 • axis:    number which determines how the motion should be
+"                            repeated:
+"
+"                                1:  with a bare , ;
+"                                2:                         z
+"                                3:  same but prefixed with +
+"                                4:                         co
+"                                …
+"
+"                            the 2nd axis could be  reserved to motions moving the
+"                            focus across different files, or resizing a window
+"
+"                            the 3rd axis for editions which can be performed in 2 directions
+"
+"                            the 4th axis for cycling through options values
+"}}}
 fu! s:get_motion_info(lhs) abort "{{{1
     " return any motion which:
     "
     "     • is registered as repeatable  (i.e. is present inside [s:|b:]repeatable_motions)
     "     • contains a lhs (forward or backward) equal to the one received by the function
 
-
-    " TODO:
-    " in `maparg()`, replace '' with the actual mode
-    " It may be unnecessary now that we have added the condition
-    "
-    "         \&& index([substitute(substitute(mode(1), "[vV\<c-v>]", 'x', ''), 'no', 'o', ''), ' '], m.bwd.mode) >= 0
-    "
-    " … in the next for loop.
-    " That being said, if you do it, maybe you could eliminate this condition, and
-    " maybe it would improve the performance.
-    " I'm not sure it's worth it though, as it would probably add much complexity.
-    let mode = substitute(substitute(mode(1), "[vV\<c-v>]", 'x', ''), 'no', 'o', '')
-    " Why the substitutions?{{{
-    "
-    "     substitute(mode(1), "[vV\<c-v>]", 'x', ''):
-    "         normalize output of `mode()` to match the one of `maparg()`
-    "         in case we're in visual mode
-    "
-    "     substitute(…, 'no', 'o', '')
-    "         same thing for operator-pending mode
-    "}}}
+    let mode = s:get_current_mode()
+    let g:mode = deepcopy(mode)
     let motions = get(maparg(a:lhs, mode, 0, 1), 'buffer', 0)
     \?                get(b:, 'repeatable_motions', [])
     \:                s:repeatable_motions
+    let g:motions = deepcopy(motions)
 
     for m in motions
-        " if m.bwd.lhs ==# 'F' || m.bwd.lhs ==# '[m'
-        "     let g:debug = get(g:, 'debug', [])
-        "     \
-        "     \+            deepcopy([{ 'm':         m,
-        "     \                         'm.bwd.lhs': m.bwd.lhs,
-        "     \                         'm.fwd.lhs': m.fwd.lhs,
-        "     \                         'a:lhs':     a:lhs,
-        "     \                         'mode':      mode    }])
-        "     let g:foo = [ mode, ' ', m.bwd.mode]
-        " endif
-
         if  index([s:translate_lhs(m.bwd.lhs), s:translate_lhs(m.fwd.lhs)],
         \          s:translate_lhs(a:lhs)) >= 0
         \&& index([mode, ' '], m.bwd.mode) >= 0
@@ -269,18 +256,26 @@ fu! s:get_motion_info(lhs) abort "{{{1
         "
         "         check whether  the mode  of the motion  found in  the database
         "         matches the current one, or a single space.
+        "}}}
+        " Why a single space?{{{
         "
-        "         Why a single space?
-        "         For `maparg()`, a single space  matches all the modes in which
-        "         we're  interested: normal,  visual, operator-pending.   So, it
-        "         should always be right for the motion we're looking for.
+        " For `maparg()`,  a single space matches  all the modes in  which we're
+        " interested: normal, visual, operator-pending.  So, it should always be
+        " right for the motion we're looking for.
+        "}}}
+        " Note that there's an inconsistency in  maparg(){{{
         "
-        "         Note  that  there's  an   inconsistency  in  `maparg()`  which
-        "         shouldn't confuse you: if you want information about a mapping
-        "         in the  3 modes  `nvo`, the  help says that  you must  pass an
-        "         empty string  as the  2nd argument.  But  in the  output, they
-        "         will be  represented with  a single space,  not with  an empty
-        "         string.
+        " Don't be confused:
+        "
+        " if you want information about a mapping in the 3 modes `nvo`, the help
+        " says that you must  pass an empty string as the  2nd argument.  But in
+        " the output, they will be represented  with a single space, not with an
+        " empty string.
+        "}}}
+        " There's also one between  maparg()  and  mode(){{{
+        "
+        " To express  the operator-pending mode,  `maparg()` expects 'o'  in its
+        " input, while `mode(1)` uses 'no' in its output.
         "}}}
             return m
         endif
@@ -482,16 +477,20 @@ fu! s:make_it_repeatable(mode, is_local, m) abort "{{{1
         return
     endif
 
-    " TODO:
-    " Explain why this is necessary.
-    " `b:repeatable_motions` may not exist. So we must make sure it exists.
+    " Why?{{{
+    "
+    " `b:repeatable_motions` may not exist. We must make sure it does.
+    "
     " I don't want to automatically create it in an autocmd. I only want it
-    " if necessary. And we can't use `get(b:, 'repeatable_motions', [])` here
-    " to avoid an error  in case it doesn't exist, because it  would give us an
-    " empty list which would NOT be the reference to `b:repeatable_motions`.
-    " It would just be an empty list. So, `:ListRepeatableMotions` would not show
-    " us buffer-local mappings, because we would never populate `b:repeatable_motions`.
-    " We would just populate a random list.
+    " if necessary.
+    "}}}
+    " Ok, but why not `let repeatable_motions = get(b:, 'repeatable_motions', [])` ?{{{
+    "
+    " It  would  give  us  an  empty  list which  would  NOT  be  the  reference
+    " to  `b:repeatable_motions`.    It  would   just  be  an   empty  list.
+    "
+    " We need the update the db of local motions, not restart from scratch.
+    "}}}
     if a:is_local && !exists('b:repeatable_motions')
         let b:repeatable_motions = []
     endif
@@ -651,17 +650,15 @@ fu! s:move_again(axis, dir) abort "{{{1
     " get last motion on the axis provided
     let motion = s:get_motion_info(s:last_motion_on_axis_{a:axis})
 
-    " TODO:
-    " How could we get an unrecognized motion?
-    " You would need:
+    " How could we get an unrecognized motion?{{{
     "
-    "     no motion inside `[b:|s:]repeatable_motions`  has a `lhs` (m.bwd.lhs /
-    "     m.fwd.lhs) equal to s:last_motion_on_axis_{a:axis}
+    " You have a motion defined in a given mode.
+    " You've invoked the function to repeat it in a different mode.
     "
-    " The latter is defined in `update_last_motion()`.
-    " Update:
-    " Maybe if  the last motion  is buffer local, we  change the buffer,  and in
-    " this one the motion doesn't exist…
+    " Another possibility:
+    " The last motion is  local to a buffer, you change the  buffer, and in this
+    " one the motion doesn't exist…
+    "}}}
     if type(motion) != type({})
         return ''
     endif
@@ -717,47 +714,57 @@ fu! s:move_again(axis, dir) abort "{{{1
 
     " Why not returning the sequence of keys directly?{{{
     "
-    " The   ; , z; z,   mappings are non-recursive (`:noremap`),
-    " because that's what we want by default.
-    " However, for some motions, we may need recursiveness.
+    " The original  motion could be  silent or recursive; blindly  returning the
+    " keys could alter these properties.
+    "
+    " As an  example, the  ; ,  z; z,  mappings are  non-recursive (`:noremap`),
+    " because that's what we want by default.  However, for some motions, we may
+    " need recursiveness.
+    "
     " Example: `]e` to move the line down.
     "
-    " Therefore, if we returned the sequence directly, it wouldn't be expanded
-    " even when it needs to be. So, we use `feedkeys()` to write it in the
-    " typeahead buffer recursively or non-recursively depending on how the
+    " Therefore, if we  returned the sequence directly, it  wouldn't be expanded
+    " even when  it needs  to be. So,  we use  `feedkeys()` to  write it  in the
+    " typeahead  buffer  recursively or  non-recursively  depending  on how  the
     " original motion was defined.
+    "
+    " And if the  original mapping was silent, the wrapper should be too.
+    " IOW, if the rhs is an Ex command, it shouldn't be displayed on the command
+    " line.
     "}}}
     let is_recursive = !motion[a:dir].noremap
-    call feedkeys(seq, 'i'.(is_recursive ? '' : 'n').'t')
-
-    " if the sequence is an Ex command, it may appear on the command-line
-    " make sure to erase it if the orginal motion was silent
     let is_silent = motion[a:dir].silent
     if is_silent
-        " FIXME:
-        " `:redraw!`  is  overkill. Besides,  if  the motion  wants  to  echo  a
-        " message, it  will probably be  erased. That's not what  <silent> does.
-        " <silent> only  prevents the  rhs from being  echo'ed. But the  rhs can
-        " still display a message if it wants to.
+        " Why installing a mapping? Why not simply `:redraw!`?{{{
         "
-        " Besides:
-        " try that:
+        "     • overkill
         "
-        "     ]oL
-        "     co;
-        "     ;
+        "     • If  the  motion  wants  to  echo   a  message,  it  will
+        "       probably  be erased. That's not what <silent> does.  <silent>
+        "       only prevents the rhs from being  echo'ed. But it can still
+        "       display  a message  if it wants to.
         "
-        " The command-line seems to flash.
+        "     • Sometimes, the command line may seem to flash.
+        "       Currently,  it  happens when  we  cycle  through the  levels  of
+        "       lightness of the colorscheme (]oL  co;  ;).
+        "}}}
+        " Why do we need to replace `|` with `<bar>`?{{{
         "
-        " Besides:
-        " `%`  repeated in  normal mode  via `;`  is not  silent. I can  see the
-        " `matchit` function being called. The  original mapping was silent. The
-        " wrapper should be too.
+        " We're going to install a mapping. `|` would wrongly end the rhs.
+        "}}}
+        " Where does this bar come from?{{{
         "
-        " Update:
-        " Maybe we could install a  temporary `<plug>` mapping which would mimic
-        " the original (using `<silent>` if necessary)?
-        call timer_start(0, {-> execute('redraw!')})
+        " `s:make_keys_feedable()`, called by `s:move()`, called when we got `seq`.
+        "}}}
+        let tmp_map = s:get_current_mode().(is_recursive ? 'map' : 'no').'  <silent>  '
+        \            .'<plug>(repeat-silently)  '.substitute(seq, '|', '<bar>', 'g')
+        exe tmp_map
+        call feedkeys("\<plug>(repeat-silently)", 'it')
+        "                                          │
+        "                                          └ `<plug>(…)`, contrary to `seq`, must ALWAYS
+        "                                            be expanded so don't add the 'n' flag
+    else
+        call feedkeys(seq, 'i'.(is_recursive ? '' : 'n').'t')
     endif
     return ''
 endfu
