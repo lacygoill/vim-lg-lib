@@ -756,9 +756,8 @@ fu! s:move_again(axis, dir) abort "{{{1
         "
         " `s:make_keys_feedable()`, called by `s:move()`, called when we got `seq`.
         "}}}
-        let tmp_map = s:get_current_mode().(is_recursive ? 'map' : 'no').'  <silent>  '
-        \            .'<plug>(repeat-silently)  '.substitute(seq, '|', '<bar>', 'g')
-        exe tmp_map
+        exe s:get_current_mode().(is_recursive ? 'map' : 'no').'  <silent>  '
+        \   .'<plug>(repeat-silently)  '.substitute(seq, '|', '<bar>', 'g')
         call feedkeys("\<plug>(repeat-silently)", 'it')
         "                                          │
         "                                          └ `<plug>(…)`, contrary to `seq`, must ALWAYS
