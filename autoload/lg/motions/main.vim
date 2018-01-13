@@ -974,52 +974,6 @@ endfu
 
 " Mappings {{{1
 
-" TODO:
-" Old comment, it should be eliminated. I keep it because it's not clear I can.
-" Make some tests with Up Down motions, and press `;` in all modes.
-"
-" Update:
-" `;` doesn't seem to repeat the last object:
-"
-"     y Down       (to copy between the current line down to next occurrence of a return statement)
-"     copy garbage
-"     y ;          to re-copy last text-object
-"     p            puts 2 lines
-"
-" If you need recursiveness (for example for a `<plug>`), use `feedkeys()`.
-" Example:{{{
-"
-"                                        ┌ necessary to get the full name of the mode,
-"                                        │ otherwise in operator-pending mode,
-"                                        │ we would get 'n' instead of 'no'
-"                                        │
-"     noremap  <expr>  <down>  Func(mode(1),1)
-"     noremap  <expr>  <up>    Func(mode(1),0)
-"
-"     fu! Func(mode, is_fwd) abort
-"         let plug_dir = a:is_fwd ? 'fwd' : 'bwd'
-"         let seq = index(['v', 'V', "\<c-v>"], a:mode) >= 0
-"         \?            "\<plug>(return-visual-".plug_dir.')'
-"         \:        a:mode ==# 'no'
-"         \?            "\<plug>(return-op-".plug_dir.')'
-"         \:            "\<plug>(return-normal-".plug_dir.')'
-"         call feedkeys(seq, 'i')
-"         return ''
-"     endfu
-"
-"     nno  <silent>  <plug>(return-normal-bwd)  :<c-u>call search('^\s*return\>', 'bW')<cr>
-"     xno  <silent>  <plug>(return-visual-bwd)  :<c-u>exe 'norm! gv' <bar> call search('^\s*return\>', 'bW')<cr>
-"                                                     └────────────┤
-"                                                                  └ necessary for the search to be done
-"                                                                    in visual mode
-"
-"     ono  <silent>  <plug>(return-op-bwd)      :<c-u>call search('^\s*return\>', 'bW')<cr>
-"
-"     nno  <silent>  <plug>(return-normal-fwd)  :<c-u>call search('^\s*return\>', 'W')<cr>
-"     xno  <silent>  <plug>(return-visual-fwd)  :<c-u>exe 'norm! gv' <bar> call search('^\s*return\>', 'W')<cr>
-"     ono  <silent>  <plug>(return-op-fwd)      :<c-u>call search('^\s*return\>', 'W')<cr>
-"}}}
-
 " Why `:noremap` instead of `:nno`?{{{
 "
 " To also support visual mode + operator pending mode.
