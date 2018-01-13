@@ -18,6 +18,13 @@ let g:autoloaded_lg#motions#main = 1
 "}}}
 
 " TODO:
+" Remove `g:motion_to_repeat` everywhere.
+
+" TODO:
+" Customize :ListRepeatableMotions, so that it can display the origin of a motion.
+" In which file it was installed.
+
+" TODO:
 " Try to move all mappings in ~/.vim/autoload/slow_mappings/repeatable_motions.vim.
 " This plugin should only propose custom functions.
 " Make `s:move_again()` a public function.
@@ -30,7 +37,7 @@ let g:autoloaded_lg#motions#main = 1
 "
 " It's called in:
 "
-"     lg#motions#main#make_repeatable() (unavoidable, because initial)
+"     lg#motion#main#make_repeatable()  (unavoidable, because initial)
 "     s:populate()                      (unavoidable, because we need maparg but for another direction)
 "     s:get_motion_info()               (avoidable?)
 "
@@ -45,7 +52,7 @@ let g:autoloaded_lg#motions#main = 1
 " Split the code in several files if needed.
 " Also, make the signature of the main function similar to `submode#map()`;
 " which means we shouldn't use a dictionary of arguments, just plain arguments.
-" This would allow us to eliminate `lg#motions#main#make_repeatable()`.
+" This would allow us to eliminate `lg#motion#main#make_repeatable()`.
 "
 " Also, I'm not satisfied with the current architecture of files for this plugin.
 " Also, maybe we should move it back to its own plugin.
@@ -56,19 +63,6 @@ let g:autoloaded_lg#motions#main = 1
 
 " TODO:
 " In the listing, the mode should be printed.
-
-" TODO:
-" Document the fact that  when the plugin installs a wrapper for  a key, it uses
-" :noremap.
-"
-" 2 consequences:
-"
-" If the original mapping needs recursiveness, you'll need to tweak its definition
-" and use `feedkeys()`.
-"
-" If you need different definitions depending on the mode (n or v or o), you'll need
-" to tweak its definition and use `<expr>` + `mode(1)` to distinguish the current mode
-" inside a function.
 
 fu! s:init() abort "{{{1
     let s:repeatable_motions = []
@@ -110,9 +104,10 @@ fu! s:init() abort "{{{1
     \                            }
 
     for i in range(1, s:n_axes)
+        " Used to mark the last motion in the output of `:ListRepeatableMotions`.
         let s:last_motion_on_axis_{i} = ''
-        " Currently not used for i=2. But could be useful for a custom mapping.
-        " See :h repeatable-motions-relative-direction.
+        " See :h repeatable-motions-relative-direction, and `s:tfs_workaround()`
+        " for a use of this variable.
         let s:repeating_motion_on_axis_{i} = 0
     endfor
 endfu
@@ -215,11 +210,9 @@ fu! s:get_motion_info(lhs) abort "{{{1
     "     • contains a lhs (forward or backward) equal to the one received by the function
 
     let mode = s:get_current_mode()
-    let g:mode = deepcopy(mode)
     let motions = get(maparg(a:lhs, mode, 0, 1), 'buffer', 0)
     \?                get(b:, 'repeatable_motions', [])
     \:                s:repeatable_motions
-    let g:motions = deepcopy(motions)
 
     for m in motions
         if  index([s:translate_lhs(m.bwd.lhs), s:translate_lhs(m.fwd.lhs)],
@@ -406,14 +399,17 @@ fu! s:make_it_repeatable(mode, is_local, m) abort "{{{1
 
     " Purpose:{{{
     "
-    "     1. Install wrapper mappings around a pair of motion mappings, to
-    "        save the last motion.
+    "     1. Install wrapper mappings around a pair of motion mappings.
+    "        The wrappers will be used to save the last motion.
     "
     "     2. Add to the list `[s:|b:]repeatable_motions` a dictionary
     "        containing all the information relative to this original pair of
-    "        motion mappings. This list is used by `s:bufreadpost()` to know
-    "        which …
-    "        TODO: finish this paragraph
+    "        motion mappings. This list is used as a database by the wrappers
+    "        to know what the motions are mapped to, and which keys to type in
+    "        the typeahead buffer.
+    "
+    "        This db is also used by :ListRepeatableMotions, to get info
+    "        about all motions currently repeatable.
     "}}}
     " Could we install the wrapper mappings BEFORE populating `s:repeatable_motions`?{{{
     "
@@ -518,6 +514,8 @@ fu! s:make_it_repeatable(mode, is_local, m) abort "{{{1
 
     call s:install_wrapper(a:mode, a:m, maparg)
 
+    " add the motion in a db, so that we can retrieve info about it later;
+    " in particular its rhs
     call add(repeatable_motions, motion)
 
     if a:is_local
@@ -549,7 +547,7 @@ fu! s:make_it_repeatable(mode, is_local, m) abort "{{{1
     endif
 endfu
 
-fu! lg#motions#main#make_repeatable(what) abort "{{{1
+fu! lg#motion#main#make_repeatable(what) abort "{{{1
     let mode     = a:what.mode
     let is_local = a:what.buffer
 
@@ -605,11 +603,21 @@ fu! s:motion_already_repeatable(motion, repeatable_motions) abort "{{{1
 endfu
 
 fu! s:move(lhs, buffer, update_last_motion) abort "{{{1
-    " TODO:
-    " The  only  location   where  `s:move()`  is  passed  a   second  non  zero
-    " argument,  is  in  `s:move_again()`. This  check makes  sure  we  don't
-    " update the last motion stored in `s:last_motion_on_axis_{number}` when
-    " `s:move_again()` calls `s:move()`. Is it really necessary? Why?
+    " Why?{{{
+    "
+    " To be efficient. There's no need to always update the last motion.
+    "}}}
+    " When is it useless to update it?{{{
+    "
+    " `s:move()` is called  by `s:move_again()` to know which keys  to type when
+    " we press `;`  (&friends).  When that happens, we don't  need to update the
+    " last motion: it didn't change. Only the  direction may change, but not the
+    " motion.
+    "
+    " So we pass a zero flag as the last argument for `s:move()` when we call it
+    " from `s:move_again()`. The  rest of the  time, in the wrappers  around the
+    " motions, we pass a zero flag.
+    "}}}
     if a:update_last_motion
         call s:update_last_motion(a:lhs)
     endif
@@ -623,6 +631,7 @@ fu! s:move(lhs, buffer, update_last_motion) abort "{{{1
     if empty(dir_key)
         return ''
     endif
+
     let is_expr_mapping = motion[dir_key].expr
     if motion[dir_key].rhs =~# '\c<sid>'
         let motion[dir_key].rhs =
@@ -632,6 +641,7 @@ fu! s:move(lhs, buffer, update_last_motion) abort "{{{1
     " TODO:
     " Shouldn't we invoke `s:make_keys_feedable()` in BOTH cases?
     " What if there are special keys in the rhs of an expr mapping?
+    " Or does `eval()` translate them?
     return is_expr_mapping
     \?         eval(motion[dir_key].rhs)
     \:         s:make_keys_feedable(motion[dir_key].rhs)
@@ -640,8 +650,8 @@ endfu
 fu! s:move_again(axis, dir) abort "{{{1
     " This function is called by various mappings whose suffix is `,` or `;`.
 
-    " make sure the mapping is correctly defined
-    " and we've used at least one motion on this axis
+    " make sure the arguments are valid,
+    " and that we've used at least one motion on the axis
     if  s:invalid_axis_or_direction(a:axis, a:dir)
     \|| empty(s:last_motion_on_axis_{a:axis})
         return ''
@@ -705,11 +715,50 @@ fu! s:move_again(axis, dir) abort "{{{1
         let s:repeating_motion_on_axis_{i} = 0
     endfor
 
-    " if we're using `]q` &friends (to move into a list of files), we need to
-    " redraw all statuslines, so that the position in the list is updated
+    " if we're using  `]q` &friends (to move  into a list of files),  we need to
+    " redraw  all statuslines,  so  that the  position in  the  list is  updated
     " immediately
     if a:axis == 2
         call timer_start(0, {-> execute('redraws!')})
+    endif
+
+    " How could it be empty?{{{
+    "
+    " The rhs of the motion could be an expression returning an empty string.
+    " But during its evaluation, Vim would have to invoke `feedkeys()`.
+    " That's a mechanism we may sometimes need to use.
+    "}}}
+    " If it's empty, then is the repetition of the motion broken?{{{
+    "
+    " No. In this particular case, the original code implementing the motion has
+    " already invoked `feedkeys()`. We don't need to re-invoke it here.
+    " And we  can't anyway. We don't know  what the original code  does: what it
+    " passes to `feedkeys()`. It doesn't matter. The motion is fine.
+    "}}}
+    " Why return only now, and not as soon as we get `seq`? {{{
+    "
+    " Before returning, we must make sure to properly reset `s:repeating_motion_on_axis_…`
+    " Otherwise it would break the repeatibility of some motions, like `fx` &friends.
+    " We probably also need to redraw the statusline for `]q` &friends.
+    "
+    " Bottom Line:
+    " Even if `seq` is empty, return as late as possible.
+    "}}}
+    " What happens if we don't return?{{{
+    "
+    " Nothing. But if the original motion was  silent, the next block of code is
+    " going  to  try  to  install  a temporary  mapping. It  will  be  correctly
+    " installed, but will have no rhs. So, when we'll repeat the motion, we'll
+    " see the message:
+    "
+    "     No mapping found
+    "
+    " Also, for some reason, the repetition seems to be broken. Probably because
+    " of  the previous  error. Vim  must  stop processing  the  mapping when  it
+    " encounters it.
+    "}}}
+    if empty(seq)
+        return ''
     endif
 
     " Why not returning the sequence of keys directly?{{{
@@ -756,8 +805,10 @@ fu! s:move_again(axis, dir) abort "{{{1
         "
         " `s:make_keys_feedable()`, called by `s:move()`, called when we got `seq`.
         "}}}
-        exe s:get_current_mode().(is_recursive ? 'map' : 'no').'  <silent>  '
-        \   .'<plug>(repeat-silently)  '.substitute(seq, '|', '<bar>', 'g')
+        exe s:get_current_mode().(is_recursive ? 'map' : 'noremap')
+        \   .'  <silent>'
+        \   .'  <plug>(repeat-silently)'
+        \   .'  '.substitute(seq, '|', '<bar>', 'g')
         call feedkeys("\<plug>(repeat-silently)", 'it')
         "                                          │
         "                                          └ `<plug>(…)`, contrary to `seq`, must ALWAYS
@@ -931,7 +982,7 @@ fu! s:tfs_workaround(cmd) abort "{{{1
 endfu
 
 fu! s:translate_lhs(lhs) abort "{{{1
-    return eval('"'.substitute(a:lhs, '<\ze[^>]\+>', '\\<', 'g').'"')
+    return eval('"'.escape(substitute(a:lhs, '<\ze[^>]\+>', '\\<', 'g'), '"').'"')
 endfu
 
 fu! s:unshadow(mode, m) abort "{{{1
