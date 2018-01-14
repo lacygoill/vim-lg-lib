@@ -3,11 +3,6 @@ if exists('g:autoloaded_lg#motion#section')
 endif
 let g:autoloaded_lg#motion#section = 1
 
-" TODO:
-" Add a guard in all autoloaded files which install an interface element,
-" or which have a state (assign value to variable, call to function).
-" Maybe leave a comment redirecting here, to explain the reasoning.
-
 " Why a guard?{{{
 "
 " We need to install a few `<plug>` mappings, for the functions to work.
@@ -39,6 +34,15 @@ let g:autoloaded_lg#motion#section = 1
 "
 " This is unexpected, and we don't want that.
 "}}}
+
+" TODO:
+" Add a guard in all autoloaded files which install an interface element,
+" or which have a state (assign value to variable, call to function).
+" Maybe leave a comment redirecting here, to explain the reasoning.
+" Also, normalize their name: only 1 underscore, # for the rest.
+
+" TODO:
+" Review and explain how this code works.
 
 fu! lg#motion#section#go(mode) abort "{{{1
     let args = split(input(''), '\zs')
@@ -88,6 +92,14 @@ fu! lg#motion#section#rhs(is_fwd, pat) abort "{{{1
     \         .{'fu': "\u2000", 'endfu': "\u2001", '{{' : "\u2002", '#': "\u2003"}[a:pat]
     \         ."\<cr>"
 
+    " Why `feedkeys()`?{{{
+    "
+    " This function is used in an `<expr>` mapping.
+    " But we  may need to  execute some  `:normal` commands, which  is forbidden
+    " while the textlock is active.
+    " So, we delegate the rest of the work to another function `lg#motion#section#go()`.
+    " And we call the latter via a `<plug>` mapping.
+    "}}}
     call feedkeys(seq, 'i')
     return ''
 endfu

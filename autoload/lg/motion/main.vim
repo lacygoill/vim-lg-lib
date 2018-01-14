@@ -18,6 +18,18 @@ let g:autoloaded_lg#motions#main = 1
 "}}}
 
 " TODO:
+" create a function in the plugin which makes motions repeatable
+" to manually set the last motion on a given axis
+"
+" Not sure this is a good idea.
+" It's a bit unexpected to see that `;` has changed its behavior when
+" we execute some commands but not others.
+"
+" And if that makes us lose a previous motion…
+"
+" Don't know.
+
+" TODO:
 " Remove `g:motion_to_repeat` everywhere.
 
 " TODO:
