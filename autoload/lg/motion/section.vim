@@ -1,8 +1,3 @@
-if exists('g:autoloaded_lg#motion#section')
-    finish
-endif
-let g:autoloaded_lg#motion#section = 1
-
 fu! lg#motion#section#go(kwd, is_fwd, mode) abort "{{{1
     let cnt = v:count1
     let pat = get({
