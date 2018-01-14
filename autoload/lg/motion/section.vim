@@ -81,7 +81,13 @@ fu! lg#motion#section#go() abort "{{{1
         let cnt -= 1
     endwhile
 
-    exe 'norm! '.(mode ==# 'n' ? 'zM' : '').'zv'
+    " If you  try to  simplify this  block in a  single statement,  don't forget
+    " this: the function shouldn't do anything in operator-pending mode.
+    if mode ==# 'n'
+        norm! zMzv
+    elseif mode ==# 'x'
+        norm! zv
+    endif
 endfu
 
 fu! lg#motion#section#rhs(is_fwd, pat) abort "{{{1
@@ -121,6 +127,20 @@ fu! lg#motion#section#rhs(is_fwd, pat) abort "{{{1
         " So,  we   delegate  the   rest  of  the   work  to   another  function
         " `lg#motion#section#go()`.   And  we call  the  latter  via a  `<plug>`
         " mapping.
+        "}}}
+        " Why not a timer?{{{
+        "
+        " It would indeed make the code much simpler.
+        "
+        " No need to install a `<plug>` mapping to call the 2nd function:
+        " we could call it directly.
+        " No need to write special whitespace in the typeahead buffer:
+        " we could pass them directly too.
+        " The 2nd function could be local to the script instead of public.
+        "
+        " However,  it seems  it  would break  the  mapping in  operator-pending
+        " mode. Besides,  in visual  mode,  we would  need  to redraw  (probably
+        " because of the previous textlock).
         "}}}
         call feedkeys(seq, 'i')
     endif
