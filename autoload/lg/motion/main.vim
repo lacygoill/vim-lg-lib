@@ -304,8 +304,8 @@ fu! s:is_inconsistent(motion) abort "{{{1
     \|| !a:motion.bwd.buffer &&  a:motion.fwd.buffer
         try
             throw printf('%s and %s must be buffer or global mappings',
-            \             motion.bwd.lhs,
-            \             motion.fwd.lhs)
+            \             a:motion.bwd.lhs,
+            \             a:motion.fwd.lhs)
         catch
             return lg#catch_error()
         finally
@@ -477,9 +477,27 @@ fu! s:make_it_repeatable(mode, is_local, m) abort "{{{1
     "         call s:make_it_repeatable({'mode': '',
     "         \                          'buffer': 0,
     "         \                          'motions': {'bwd': '<left>', 'fwd': '<right>', 'axis': 1})
-    "
     " TODO:
     " Are you sure this explanation is still valid?
+    "
+    " Update:
+    " Open dirvish right after opening a Vim session (with no files).
+    " You'll see the plugin complain because of T (global) + t (local).
+    " How can that happen?
+    " Those are 2 different motions. Why does the plugin mixes them?
+    "
+    " Update:
+    " Here's what I think happen:
+    "
+    "     1. you start Vim, and immediately open dirvish
+    "
+    "     2. the dirvish ftplugin installs a buffer local `t` mapping
+    "
+    "     3. the timer sources ~/.vim/autoload/slow_mappings/repeatable_motions.vim
+    "        which installs the global motion `Tt`
+    "        but the previous buffer-local mapping probably interferes
+    "
+    "        Because of this, the `[tT]x` motion isn't repeatable.
     "}}}
     if  s:is_inconsistent(motion)
         return
@@ -614,7 +632,33 @@ fu! s:motion_already_repeatable(motion, repeatable_motions) abort "{{{1
     return 0
 endfu
 
-fu! s:move(lhs, buffer, update_last_motion) abort "{{{1
+fu! s:move(lhs, buffer, update_last_motion, ...) abort "{{{1
+    " What is the purpose of this optional argument?{{{
+    "
+    " When it's passed, it means we don't want the function to translate
+    " special keys at the end.
+    " If we let the function translate them, it will translate `<plug>`.
+    "}}}
+    " So… We don't want `<plug>` to be translated?{{{
+    "
+    " It depends.
+    "
+    " When `s:move()` is called from a  wrapper, the keys are directly typed. In
+    " this case, `<plug>` must be translated.
+    "
+    " But when `s:move()` is called  from `s:move_again()`, and the latter can't
+    " type the  keys directly  because the  original motion  is silent,  it must
+    " install a temporary mapping. Something like:
+    "
+    "     nmap  <plug>(repeat-silently)  rhs_containing_a_plug
+    "                                                     ^
+    "                                                     must NOT be translated
+    "
+    " We  won't   be  able  to  install   it  properly  if  `<plug>`   has  been
+    " translated. The rhs will be wrong, and  I can't undo the translation, even
+    " with a substitution.
+    "}}}
+
     " Why?{{{
     "
     " To be efficient. There's no need to always update the last motion.
@@ -656,7 +700,7 @@ fu! s:move(lhs, buffer, update_last_motion) abort "{{{1
     " Or does `eval()` translate them?
     return is_expr_mapping
     \?         eval(motion[dir_key].rhs)
-    \:         s:make_keys_feedable(motion[dir_key].rhs)
+    \:         a:0 ? motion[dir_key].rhs : s:make_keys_feedable(motion[dir_key].rhs)
 endfu
 
 fu! s:move_again(axis, dir) abort "{{{1
@@ -711,7 +755,14 @@ fu! s:move_again(axis, dir) abort "{{{1
     "}}}
     let s:repeating_motion_on_axis_{a:axis} = a:dir ==# 'fwd' ? 1 : -1
 
-    let seq = s:move(motion[a:dir].lhs, motion[a:dir].buffer, 0)
+    let is_silent = motion[a:dir].silent
+    let seq = call('s:move',   [motion[a:dir].lhs, motion[a:dir].buffer, 0]
+    \                        + (is_silent ? [1] : []))
+    "                                        │
+    "                                        └ don't translate special keys;
+    "                                        we're going to install a temporary mapping
+    "                                        (because the motion must be silent), so `<plug>`
+    "                                        must NOT be translated
 
     " TODO: Why do we reset all these variables?
     " Update:
@@ -794,7 +845,7 @@ fu! s:move_again(axis, dir) abort "{{{1
     " line.
     "}}}
     let is_recursive = !motion[a:dir].noremap
-    let is_silent = motion[a:dir].silent
+
     if is_silent
         " Why installing a mapping? Why not simply `:redraw!`?{{{
         "
@@ -813,20 +864,20 @@ fu! s:move_again(axis, dir) abort "{{{1
         "
         " We're going to install a mapping. `|` would wrongly end the rhs.
         "}}}
-        " Where does this bar come from?{{{
+        " Where could this bar come from?{{{
         "
-        " `s:make_keys_feedable()`, called by `s:move()`, called when we got `seq`.
+        " `s:move()`, called when we got `seq`.
         "}}}
         exe s:get_current_mode().(is_recursive ? 'map' : 'noremap')
         \   .'  <silent>'
         \   .'  <plug>(repeat-silently)'
         \   .'  '.substitute(seq, '|', '<bar>', 'g')
-        call feedkeys("\<plug>(repeat-silently)", 'it')
+        call feedkeys("\<plug>(repeat-silently)", 'i')
         "                                          │
         "                                          └ `<plug>(…)`, contrary to `seq`, must ALWAYS
         "                                            be expanded so don't add the 'n' flag
     else
-        call feedkeys(seq, 'i'.(is_recursive ? '' : 'n').'t')
+        call feedkeys(seq, 'i'.(is_recursive ? '' : 'n'))
     endif
     return ''
 endfu
@@ -986,9 +1037,9 @@ fu! s:tfs_workaround(cmd) abort "{{{1
         "          In fact, it seems the normalization applies also to non-f motions!
         "          Document this automatic normalization somewhere.
         "}}}
-        call feedkeys(move_fwd ? "\<plug>Sneak_;" : "\<plug>Sneak_,", 'it')
+        call feedkeys(move_fwd ? "\<plug>Sneak_;" : "\<plug>Sneak_,", 'i')
     else
-        call feedkeys("\<plug>Sneak_".a:cmd, 'it')
+        call feedkeys("\<plug>Sneak_".a:cmd, 'i')
     endif
     return ''
 endfu

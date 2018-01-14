@@ -44,28 +44,31 @@ let g:autoloaded_lg#motion#section = 1
 " TODO:
 " Review and explain how this code works.
 
-fu! lg#motion#section#go(mode) abort "{{{1
-    let args = split(input(''), '\zs')
-    let is_fwd = args[0] ==# "\u2000" ? 1 : 0
-    let pat = { "\u2000": '^\s*fu\%[nction]!\s\+',
-    \           "\u2001": '^\s*endfu\%[nction]\s*$',
-    \           "\u2002": '\v\{{3}%(\d+)?\s*$',
-    \           "\u2003": '^#\|^=',
-    \         }[args[1]]
+fu! s:go(is_fwd, mode, pat) abort "{{{1
+    let cnt = v:count1
+    let pat = get({
+    \               'fu':    '^\s*fu\%[nction]!\s\+',
+    \               'endfu': '^\s*endfu\%[nction]\s*$',
+    \               '{{':    '\v\{{3}%(\d+)?\s*$',
+    \               '#':     '^#\|^=',
+    \             }, a:pat, '')
+
+    if empty(pat)
+        return
+    endif
 
     norm! m'
 
     " If we were initially in visual mode, we've left it as soon as the mapping
     " pressed Enter to execute the call to this function.
     " We need to get back in visual mode, before the search.
-    if a:mode ==# 'x'
+    if a:mode ==# 'v'
         norm! gv
     endif
 
-    let c = v:count1
-    while c > 0
-        call search(pat, is_fwd ? 'W' : 'bW')
-        let c -= 1
+    while cnt > 0
+        call search(pat, a:is_fwd ? 'W' : 'bW')
+        let cnt -= 1
     endwhile
 
     if a:mode ==# 'n'
@@ -78,32 +81,16 @@ fu! lg#motion#section#rhs(is_fwd, pat) abort "{{{1
     "               │ operator-pending mode, we would get 'n' instead of 'no'
     "               │
     let mode = mode(1)
-    let seq = index(['v', 'V', "\<c-v>"], mode) >= 0
-    \?            "\<plug>(section-visual)"
-    \:        mode ==# 'no'
-    \?            "\<plug>(section-op)"
-    \:            "\<plug>(section-normal)"
 
-    " TODO:
-    " Explain these unicode characters.
-    " They are special kind of spaces.
-    " We use them because their glyph isn't visible on the command-line.
-    let seq .= (a:is_fwd ? "\u2000" : "\u2001")
-    \         .{'fu': "\u2000", 'endfu': "\u2001", '{{' : "\u2002", '#': "\u2003"}[a:pat]
-    \         ."\<cr>"
-
-    " Why `feedkeys()`?{{{
+    " Why a timer?{{{
     "
-    " This function is used in an `<expr>` mapping.
-    " But we  may need to  execute some  `:normal` commands, which  is forbidden
-    " while the textlock is active.
-    " So, we delegate the rest of the work to another function `lg#motion#section#go()`.
-    " And we call the latter via a `<plug>` mapping.
+    " This function  is used  in an  `<expr>` mapping.  But  we may  need to
+    " execute some `:normal` commands, which is forbidden while the textlock
+    " is active.
+    "
+    " So, we delegate the rest of the work to another function `s:go()` which we
+    " call after the textlock has been disabled.
     "}}}
-    call feedkeys(seq, 'i')
+    call timer_start(0, {-> s:go(a:is_fwd, mode, a:pat)})
     return ''
 endfu
-
-nno  <silent>  <plug>(section-normal)  :<c-u>call lg#motion#section#go('n')<cr>
-xno  <silent>  <plug>(section-visual)  :<c-u>call lg#motion#section#go('x')<cr>
-ono  <silent>  <plug>(section-op)      :<c-u>call lg#motion#section#go('o')<cr>
