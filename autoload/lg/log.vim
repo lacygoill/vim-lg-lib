@@ -34,6 +34,11 @@ fu! lg#log#msg(what) abort "{{{1
         "                                        └─ LF hex code
         "}}}
 
+        " 1. execute `excmd`, and redirect its output in a temporary file
+        " 2. check the output of `s:redirect_to_tempfile()`
+        "
+        "        it should be `0`
+        "        if, instead, it's a string, then an error has occurred: bail out
         if type(s:redirect_to_tempfile(tempfile, level, excmd)) == type('')
             return
         endif
