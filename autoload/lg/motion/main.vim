@@ -322,10 +322,9 @@ endfu
 fu! lg#motion#main#list_all_motions(...) abort "{{{1
     let cmd_args = split(a:1)
     let opt = {
-    \           'mode'       : matchstr(a:1, '\v-mode\s+\zs%(\w|-)+'),
-    \           'nospecial'  : index(cmd_args, '-nospecial') >= 0,
-    \           'nomapcheck' : index(cmd_args, '-nomapcheck') >= 0,
-    \           'noleader'   : index(cmd_args, '-noleader') >= 0,
+    \           'axis':  matchstr(a:1, '-axis\s\+\zs\d\+'),
+    \           'mode':  matchstr(a:1, '\v-mode\s+\zs%(\w|-)+'),
+    \           'scope': matchstr(a:1, '\v-scope\s+\zs\w+'),
     \         }
 
     for i in range(1, s:N_AXES)
@@ -334,7 +333,7 @@ fu! lg#motion#main#list_all_motions(...) abort "{{{1
 
     for l in [s:repeatable_motions, get(b:, 'repeatable_motions', [])]
         for m in l
-            let text = m.bwd.mode.' '
+            let text  = m.bwd.mode.' '
             let text .= m.bwd.lhs
             let text .= ' : '.m.fwd.lhs
 
@@ -372,7 +371,7 @@ fu! lg#motion#main#list_complete(arglead, cmdline, _p) abort "{{{1
     if  a:arglead[0] ==# '-'
     \|| empty(a:arglead)
     \&& a:cmdline !~# '-\%(axis\|scope\)\s\+$'
-    \&& a:cmdline !~# '-mode \w*$'
+    \&& a:cmdline !~# '-mode\s\+\w*$'
         " Why not filtering the options?{{{
         "
         " We don't need to, because the command invoking this completion function is
@@ -392,7 +391,7 @@ fu! lg#motion#main#list_complete(arglead, cmdline, _p) abort "{{{1
         \           ]
         return join(modes, "\n")
 
-    elseif a:cmdline =~# '-scope \w*$'
+    elseif a:cmdline =~# '-scope\s\+\w*$'
         return "local\nglobal"
     endif
 
