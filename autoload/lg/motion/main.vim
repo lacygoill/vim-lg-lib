@@ -40,10 +40,6 @@ let g:autoloaded_lg#motions#main = 1
 " :ListRepeatableMotions -this_axis -this_scope -this_mode
 
 " TODO:
-" Customize the listing, so that it can display the origin of a motion.
-" In which file it was installed (-verbose).
-
-" TODO:
 " create a function in the plugin which makes motions repeatable
 " to manually set the last motion on a given axis
 "
@@ -132,6 +128,51 @@ fu! s:init() abort "{{{1
     endfor
 endfu
 call s:init()
+
+fu! s:build_listing_for_all_axes(opt) abort "{{{1
+    " iterate over the 2 lists
+    let i = 0
+    for l in [get(b:, 'repeatable_motions', []), s:repeatable_motions]
+        let scope = ['local', 'global'][i]
+        " iterate over motions in a list
+        for m in l
+            let n = m.axis
+            let line = s:get_line_in_listing(m,n)
+            let line .= a:opt.verbose1
+            \?              '    '.m['original mapping']
+            \:              ''
+
+            let listing = s:listing_for_axis_{n}[scope]
+            " populate `motions_on_axis_123`
+            call add(listing, '  '.line)
+            if a:opt.verbose2
+                call extend(listing,
+                \                    (!empty(m['original mapping']) ? ['       '.m['original mapping']] : [])
+                \                   +['       Made repeatable from '.m['made repeatable from']]
+                \                   +['']
+                \)
+            endif
+        endfor
+        let i += 1
+    endfor
+endfu
+
+fu! s:customize_preview_window() abort "{{{1
+    if &l:pvw
+        call matchadd('Title', '^Motions on axis:  \d\+$')
+        call matchadd('SpecialKey', '^global\|local$')
+        " Why?{{{
+        "
+        " If we  press `gf` on a  filepath, it will replace  the preview buffer.
+        " After that, we won't be able  to load the preview buffer back, because
+        " we've set 'bt=nofile'.
+        "
+        " To avoid  this accident, we  remap `gf` so  that it splits  the window
+        " before reading another file.
+        "}}}
+        nno  <buffer><nowait><silent>  gf  <c-w>f
+    endif
+endfu
 
 fu! s:get_direction(lhs) abort "{{{1
     let motion = s:get_motion_info(a:lhs)
@@ -291,6 +332,18 @@ fu! s:get_motion_info(lhs) abort "{{{1
     endfor
 endfu
 
+fu! s:get_line_in_listing(m,n) abort "{{{1
+    let text  = a:m.bwd.mode.'  '
+    let text .= a:m.bwd.lhs
+    let text .= ' : '.a:m.fwd.lhs
+    " make last motion  used on this axis visible, by  prefixing it with
+    " an asterisk
+    if index([a:m.bwd.lhs, a:m.fwd.lhs], s:last_motion_on_axis_{a:n}) >= 0
+        let text = '* '.text
+    endif
+    return text
+endfu
+
 fu! s:install_wrapper(mode, m, maparg) abort "{{{1
     let mapcmd = s:get_mapcmd(a:mode, a:maparg)
     exe mapcmd.'  '.a:m.bwd.'  <sid>move('.string(a:m.bwd).', '.get(a:maparg, 'buffer', 0).', 1)'
@@ -322,40 +375,36 @@ endfu
 fu! lg#motion#main#list_all_motions(...) abort "{{{1
     let cmd_args = split(a:1)
     let opt = {
-    \           'axis':  matchstr(a:1, '-axis\s\+\zs\d\+'),
-    \           'mode':  matchstr(a:1, '\v-mode\s+\zs%(\w|-)+'),
-    \           'scope': matchstr(a:1, '\v-scope\s+\zs\w+'),
+    \           'axis':     matchstr(a:1, '-axis\s\+\zs\d\+'),
+    \           'mode':     matchstr(a:1, '\v-mode\s+\zs%(\w|-)+'),
+    \           'scope':    matchstr(a:1, '\v-scope\s+\zs\w+'),
+    \           'verbose1': index(cmd_args, '-v') >= 0,
+    \           'verbose2': index(cmd_args, '-vv') >= 0,
     \         }
 
     for i in range(1, s:N_AXES)
-        let motions_on_axis_{i} = {'global': [], 'buffer_local': []}
+        " initialize `motions_on_axis_123`;
+        " it's a dictionary containing 2 lists:
+        "
+        "     • one with info about global motions
+        "     • the other for local ones
+        let s:listing_for_axis_{i} = {'global': [], 'local': []}
     endfor
 
-    for l in [s:repeatable_motions, get(b:, 'repeatable_motions', [])]
-        for m in l
-            let text  = m.bwd.mode.' '
-            let text .= m.bwd.lhs
-            let text .= ' : '.m.fwd.lhs
+    call s:build_listing_for_all_axes(opt)
 
-            " make last motion  used on this axis visible, by  prefixing it with
-            " an asterisk
-            let n = m.axis
-            if index([m.bwd.lhs, m.fwd.lhs], s:last_motion_on_axis_{n}) >= 0
-                let text = '* '.text
-            endif
-            call add(l == get(b:, 'repeatable_motions', [])
-            \?           motions_on_axis_{n}.buffer_local
-            \:           motions_on_axis_{n}.global,
-            \        '  '.text)
-        endfor
-    endfor
-
-    let msg = []
+    "          ┌ necessary to force `lg#log#msg()` to add a newline
+    "          │ after the title of the buffer;
+    "          │
+    "          │ otherwise `Motions on axis:  1` would be on the same line as the title
+    let msg = ['']
 
     for n in range(1, s:N_AXES)
-        let msg += s:list_motions_on_this_axis(n, motions_on_axis_{n})
+        let msg += s:list_motions_on_this_axis(n, s:listing_for_axis_{n})
+        unlet! s:listing_for_axis_{n}
     endfor
-    call lg#log#msg({'excmd': ':ListRepeatableMotions', 'msg': msg})
+    call lg#log#msg({'excmd': 'ListRepeatableMotions', 'msg': msg})
+    call s:customize_preview_window()
 endfu
 
 fu! lg#motion#main#list_complete(arglead, cmdline, _p) abort "{{{1
@@ -363,6 +412,8 @@ fu! lg#motion#main#list_complete(arglead, cmdline, _p) abort "{{{1
     \           '-axis ',
     \           '-mode',
     \           '-scope ',
+    \           '-v ',
+    \           '-vv ',
     \         ]
 
     if  a:arglead[0] ==# '-'
@@ -401,12 +452,12 @@ fu! s:list_motions_on_this_axis(n, motions_on_this_axis) abort "{{{1
         let msg += ['']
     endif
     let msg += ['Motions on axis:  '.a:n]
-    if empty(a:motions_on_this_axis.global) && empty(a:motions_on_this_axis.buffer_local)
+    if empty(a:motions_on_this_axis.global) && empty(a:motions_on_this_axis.local)
         let msg += ['  no repeatable motions on axis '.a:n]
     else
-        for scope in ['global', 'buffer_local']
+        for scope in ['global', 'local']
             if !empty(a:motions_on_this_axis[scope])
-                let msg += ['', substitute(scope, '_', '-', '')]
+                let msg += ['', scope]
                 for m in a:motions_on_this_axis[scope]
                     let msg += [m]
                 endfor

@@ -1,8 +1,21 @@
 fu! lg#log#msg(what) abort "{{{1
-    " The dictionary passed to this function should have one of those set of keys:
+    " The dictionary passed to this function should have one of those set of keys:{{{
     "
-    "     • excmd, level    (for :Verbose Cmd)
-    "     • excmd, msg      (for :ListRepeatableMotions)
+    "       ┌ command we want to execute
+    "       │ (to read its output in the preview window)
+    "       │
+    "       │      ┌ desired level of verbosity
+    "       │      │
+    "     • excmd, level    for :Verbose Cmd
+    "     • excmd, msg      for :ListRepeatableMotions,
+    "       │      │        or any command for which we manually build its output
+    "       │      │
+    "       │      └ lists of lines which we'll use as the output of the command
+    "       │
+    "       └ command whose name will be used only as a title
+    "         (inside the contents of the buffer displayed in the preview window)
+    "
+"}}}
     if  !(has_key(a:what, 'excmd') && has_key(a:what, 'msg')
     \||   has_key(a:what, 'excmd') && has_key(a:what, 'level'))
         return
@@ -38,8 +51,10 @@ fu! lg#log#msg(what) abort "{{{1
         "                                        └─ LF hex code
         "}}}
 
-        " 1. execute `excmd`, and redirect its output in a temporary file
-        " 2. check the output of `s:redirect_to_tempfile()`
+        " 1. `s:redirect_…()` executes `excmd`,
+        "     and redirects its output in a temporary file
+        "
+        " 2. `type(…)` checks the output of `s:redirect_…()`
         "
         "        it should be `0`
         "        if, instead, it's a string, then an error has occurred: bail out
@@ -57,7 +72,7 @@ fu! lg#log#msg(what) abort "{{{1
     " Vim doesn't give the focus to the preview window. Jump to it.
     wincmd P
     " if we really get there...
-    if &previewwindow
+    if &l:pvw
         nno  <buffer><nowait><silent>  q  :<c-u>call lg#window#quit()<cr>
         setl bh=wipe bt=nofile nobl nowrap noswf
     endif
@@ -67,7 +82,7 @@ fu! s:redirect_to_tempfile(tempfile, level, excmd) abort "{{{1
     try
         " We set 'vfile' to `tempfile`.
         " It will redirect (append) all messages to the end of this file.
-        let &verbosefile = a:tempfile
+        let &vfile = a:tempfile
 
         "                        ┌─ From `:h :verb`:
         "                        │
@@ -92,10 +107,10 @@ fu! s:redirect_to_tempfile(tempfile, level, excmd) abort "{{{1
         "     1. to restore the original value
         "
         "     2. writes are buffered, thus may not show up for some time
-        "        Writing to the file ends when […] 'verbosefile' is made empty.
+        "        Writing to the file ends when […] 'vfile' is made empty.
         "
         " These info are from `:h 'vfile'`.
-        let &verbosefile = ''
+        let &vfile = ''
     endtry
     return 0
 endfu
