@@ -35,9 +35,23 @@ if exists('g:autoloaded_lg#motions#main')
 endif
 let g:autoloaded_lg#motions#main = 1
 
-" TODO:
-" more granular listing
-" :ListRepeatableMotions -this_axis -this_scope -this_mode
+" FIXME:
+"     ListRepeatableMotions -scope global -vv -axis 1
+"
+" Prints "local", while it should be "global"
+"
+" Prints:
+"
+"     Motions on axis:  2
+"       ∅
+"
+"     Motions on axis:  3
+"       ∅
+"
+"     Motions on axis:  4
+"       ∅
+" While it should not print anything.
+
 
 " TODO:
 " create a function in the plugin which makes motions repeatable
@@ -304,16 +318,20 @@ fu! s:get_motion_info(lhs) abort "{{{1
     endfor
 endfu
 
-fu! s:get_line_in_listing(m,n) abort "{{{1
-    let text  = a:m.bwd.mode.'  '
-    let text .= a:m.bwd.lhs
-    let text .= ' : '.a:m.fwd.lhs
+fu! s:get_line_in_listing(m,n,desired_mode) abort "{{{1
+    let motion_mode = a:m.bwd.mode
+    if !empty(a:desired_mode) && motion_mode !=# a:desired_mode
+        return ''
+    endif
+    let line  = a:m.bwd.mode.'  '
+    let line .= a:m.bwd.lhs
+    let line .= ' : '.a:m.fwd.lhs
     " make last motion  used on this axis visible, by  prefixing it with
     " an asterisk
     if index([a:m.bwd.lhs, a:m.fwd.lhs], s:last_motion_on_axis_{a:n}) >= 0
-        let text = '* '.text
+        let line = '* '.line
     endif
-    return text
+    return line
 endfu
 
 fu! s:install_wrapper(mode, m, maparg) abort "{{{1
@@ -344,7 +362,7 @@ fu! s:is_inconsistent(motion) abort "{{{1
     return 0
 endfu
 
-fu! lg#motion#main#list_all_motions(...) abort "{{{1
+fu! lg#motion#main#list_motions(...) abort "{{{1
     let cmd_args = split(a:1)
     let opt = {
     \           'axis':     matchstr(a:1, '-axis\s\+\zs\d\+'),
@@ -353,6 +371,8 @@ fu! lg#motion#main#list_all_motions(...) abort "{{{1
     \           'verbose1': index(cmd_args, '-v') >= 0,
     \           'verbose2': index(cmd_args, '-vv') >= 0,
     \         }
+
+    let opt.mode = substitute(opt.mode, 'nvo', ' ', '')
 
     " initialize each listing scoped to a given axis
     for i in range(1, s:N_AXES)
@@ -676,7 +696,7 @@ fu! s:merge_listings(...) abort "{{{1
     endif
     let lines += ['Motions on axis:  '.n]
     if empty(listing_for_this_axis.global) && empty(listing_for_this_axis.local)
-        let lines += ['  no repeatable motions on axis '.n]
+        let lines += ['  ∅']
     else
         for scope in ['global', 'local']
             if !empty(listing_for_this_axis[scope])
@@ -1001,14 +1021,24 @@ fu! s:populate(motion, mode, lhs, is_fwd, ...) abort "{{{1
 endfu
 
 fu! s:populate_listings_for_all_axes(opt) abort "{{{1
-    " iterate over the 2 lists
+    let lists = a:opt.scope ==# 'local'
+    \?              [get(b:, 'repeatable_motions', [])]
+    \:          a:opt.scope ==# 'global'
+    \?              [s:repeatable_motions]
+    \:              [get(b:, 'repeatable_motions', []), s:repeatable_motions]
+
     let i = 0
-    for a_list in [get(b:, 'repeatable_motions', []), s:repeatable_motions]
+    for a_list in lists
         let scope = ['local', 'global'][i]
-        " iterate over motions in a list
         for m in a_list
             let n = m.axis
-            let line = s:get_line_in_listing(m,n)
+            if !empty(a:opt.axis) && n != a:opt.axis
+                continue
+            endif
+            let line = s:get_line_in_listing(m,n,a:opt.mode)
+            if empty(line)
+                continue
+            endif
             let line .= a:opt.verbose1
             \?              '    '.m['original mapping']
             \:              ''
