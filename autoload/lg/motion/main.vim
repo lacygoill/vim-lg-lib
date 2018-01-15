@@ -319,7 +319,15 @@ fu! s:is_inconsistent(motion) abort "{{{1
     return 0
 endfu
 
-fu! lg#motion#main#list_all_motions() abort "{{{1
+fu! lg#motion#main#list_all_motions(...) abort "{{{1
+    let cmd_args = split(a:1)
+    let opt = {
+    \           'mode'       : matchstr(a:1, '\v-mode\s+\zs%(\w|-)+'),
+    \           'nospecial'  : index(cmd_args, '-nospecial') >= 0,
+    \           'nomapcheck' : index(cmd_args, '-nomapcheck') >= 0,
+    \           'noleader'   : index(cmd_args, '-noleader') >= 0,
+    \         }
+
     for i in range(1, s:N_AXES)
         let motions_on_axis_{i} = {'global': [], 'buffer_local': []}
     endfor
@@ -352,6 +360,43 @@ fu! lg#motion#main#list_all_motions() abort "{{{1
     for n in range(1, s:N_AXES)
         call s:list_motions_on_this_axis(n, motions_on_axis_{n})
     endfor
+endfu
+
+fu! lg#motion#main#list_complete(arglead, cmdline, _p) abort "{{{1
+    let opt = [
+    \           '-axis ',
+    \           '-mode',
+    \           '-scope ',
+    \         ]
+
+    if  a:arglead[0] ==# '-'
+    \|| empty(a:arglead)
+    \&& a:cmdline !~# '-\%(axis\|scope\)\s\+$'
+    \&& a:cmdline !~# '-mode \w*$'
+        " Why not filtering the options?{{{
+        "
+        " We don't need to, because the command invoking this completion function is
+        " defined with the attribute `-complete=custom`, not `-complete=customlist`,
+        " which means Vim performs a basic filtering automatically.
+        " }}}
+        return join(opt, "\n")
+
+    elseif a:cmdline =~# '-axis\s\+$'
+        return join(keys(s:AXES), "\n")
+
+    elseif a:cmdline =~# '-mode \w*$'
+        let modes = [
+        \             'normal',
+        \             'visual',
+        \             'operator-pending',
+        \           ]
+        return join(modes, "\n")
+
+    elseif a:cmdline =~# '-scope \w*$'
+        return "local\nglobal"
+    endif
+
+    return ''
 endfu
 
 fu! s:list_motions_on_this_axis(n, motions_on_this_axis) abort "{{{1
@@ -406,6 +451,7 @@ endfu
 fu! lg#motion#main#make_repeatable(what) abort "{{{1
     " can make several motions repeatable
 
+    let from     = a:what.from
     let mode     = a:what.mode
     let is_local = a:what.buffer
 
@@ -425,15 +471,15 @@ fu! lg#motion#main#make_repeatable(what) abort "{{{1
             " temporarily removing the latter.
             "}}}
             let map_save = s:unshadow(mode, m)
-            call s:make_repeatable(mode, is_local, m)
+            call s:make_repeatable(mode, is_local, m, from)
             call lg#map#restore(map_save)
         else
-            call s:make_repeatable(mode, is_local, m)
+            call s:make_repeatable(mode, is_local, m, from)
         endif
     endfor
 endfu
 
-fu! s:make_repeatable(mode, is_local, m) abort "{{{1
+fu! s:make_repeatable(mode, is_local, m, from) abort "{{{1
     " can make only ONE motion repeatable
 
     let bwd    = a:m.bwd
@@ -479,7 +525,11 @@ fu! s:make_repeatable(mode, is_local, m) abort "{{{1
     "     endfu
     "}}}
 
-    let motion = { 'axis': axis }
+    let motion = { 'axis': axis,
+    \              'made repeatable from': a:from,
+    \              'original mapping': matchstr(
+    \                                           execute('verb '.a:mode.'no '.(a:is_local ? ' <buffer> ' : '').bwd),
+    \                                           '.*\n\s*\zsLast set from.*') }
     " Why don't we write an assignment to populate `motion`?{{{
     "
     " `motion` is an array (!= scalar), so Vim passes it to `s:populate()`
