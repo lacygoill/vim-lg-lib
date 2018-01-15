@@ -38,8 +38,6 @@ let g:autoloaded_lg#motions#main = 1
 " FIXME:
 "     ListRepeatableMotions -scope global -vv -axis 1
 "
-" Prints "local", while it should be "global"
-"
 " Prints:
 "
 "     Motions on axis:  2
@@ -50,6 +48,7 @@ let g:autoloaded_lg#motions#main = 1
 "
 "     Motions on axis:  4
 "       ∅
+"
 " While it should not print anything.
 
 
@@ -156,7 +155,10 @@ fu! s:customize_preview_window() abort "{{{1
         " To avoid  this accident, we  remap `gf` so  that it splits  the window
         " before reading another file.
         "}}}
-        nno  <buffer><nowait><silent>  gf  <c-w>f
+        nno  <buffer><nowait><silent>  gf  <c-w>Fzv
+        "                                       │└┤
+        "                                       │ └ open possible folds
+        "                                       └── go to line number after colon
     endif
 endfu
 
@@ -1027,9 +1029,8 @@ fu! s:populate_listings_for_all_axes(opt) abort "{{{1
     \?              [s:repeatable_motions]
     \:              [get(b:, 'repeatable_motions', []), s:repeatable_motions]
 
-    let i = 0
     for a_list in lists
-        let scope = ['local', 'global'][i]
+        let scope = a_list is# s:repeatable_motions ? 'global' : 'local'
         for m in a_list
             let n = m.axis
             if !empty(a:opt.axis) && n != a:opt.axis
@@ -1053,7 +1054,6 @@ fu! s:populate_listings_for_all_axes(opt) abort "{{{1
                 \                   +[''])
             endif
         endfor
-        let i += 1
     endfor
 endfu
 
