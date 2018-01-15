@@ -35,23 +35,6 @@ if exists('g:autoloaded_lg#motions#main')
 endif
 let g:autoloaded_lg#motions#main = 1
 
-" FIXME:
-"     ListRepeatableMotions -scope global -vv -axis 1
-"
-" Prints:
-"
-"     Motions on axis:  2
-"       ∅
-"
-"     Motions on axis:  3
-"       ∅
-"
-"     Motions on axis:  4
-"       ∅
-"
-" While it should not print anything.
-
-
 " TODO:
 " create a function in the plugin which makes motions repeatable
 " to manually set the last motion on a given axis
@@ -381,7 +364,7 @@ fu! lg#motion#main#list_motions(...) abort "{{{1
         let s:listing_for_axis_{i} = {'global': [], 'local': []}
     endfor
     call s:populate_listings_for_all_axes(opt)
-    let total_listing = s:merge_listings()
+    let total_listing = s:merge_listings(opt)
 
     call lg#log#lines({'excmd': 'ListRepeatableMotions', 'lines': total_listing})
     call s:customize_preview_window()
@@ -667,8 +650,8 @@ fu! s:make_repeatable(mode, is_local, m, from) abort "{{{1
     endif
 endfu
 
-fu! s:merge_listings(...) abort "{{{1
-    " when the function is called for the 1st time, it's not passed any argument
+fu! s:merge_listings(opt, ...) abort "{{{1
+    " when the function is called for the 1st time, it's not passed any optional argument
     if !a:0
         "                    ┌ necessary to force `lg#log#lines()` to add a newline
         "                    │ after the title of the buffer;
@@ -677,7 +660,7 @@ fu! s:merge_listings(...) abort "{{{1
         let total_listing = ['']
 
         for n in range(1, s:N_AXES)
-            let total_listing += s:merge_listings(n, s:listing_for_axis_{n})
+            let total_listing += s:merge_listings(a:opt, n, s:listing_for_axis_{n})
             unlet! s:listing_for_axis_{n}
         endfor
 
@@ -685,12 +668,16 @@ fu! s:merge_listings(...) abort "{{{1
     endif
 
     " when the function is called afterwards (by itself, i.e. recursively),
-    " it's passed 2 arguments:
+    " it's passed 2 additional arguments:
     "
     "     • the index of an axis
     "     • the listing of the latter
     let n = a:1
     let listing_for_this_axis = a:2
+
+    if !empty(a:opt.axis) && n != a:opt.axis
+        return []
+    endif
 
     let lines = []
     if n > 1
@@ -1227,4 +1214,3 @@ fu! s:update_undo_ftplugin() abort "{{{1
         \                     . 'unlet! b:repeatable_motions'
     endif
 endfu
-
