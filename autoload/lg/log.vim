@@ -1,4 +1,4 @@
-fu! lg#log#msg(what) abort "{{{1
+fu! lg#log#lines(what) abort "{{{1
     " The dictionary passed to this function should have one of those set of keys:{{{
     "
     "       ┌ command we want to execute
@@ -7,7 +7,7 @@ fu! lg#log#msg(what) abort "{{{1
     "       │      ┌ desired level of verbosity
     "       │      │
     "     • excmd, level    for :Verbose Cmd
-    "     • excmd, msg      for :ListRepeatableMotions,
+    "     • excmd, lines    for :ListRepeatableMotions,
     "       │      │        or any command for which we manually build its output
     "       │      │
     "       │      └ lists of lines which we'll use as the output of the command
@@ -16,19 +16,19 @@ fu! lg#log#msg(what) abort "{{{1
     "         (inside the contents of the buffer displayed in the preview window)
     "
 "}}}
-    if  !(has_key(a:what, 'excmd') && has_key(a:what, 'msg')
+    if  !(has_key(a:what, 'excmd') && has_key(a:what, 'lines')
     \||   has_key(a:what, 'excmd') && has_key(a:what, 'level'))
         return
     endif
 
     let tempfile = tempname()
 
-    if has_key(a:what, 'msg')
+    if has_key(a:what, 'lines')
         let excmd = a:what.excmd
-        let msg = a:what.msg
+        let lines = a:what.lines
         let title = ':'.excmd
         call writefile([ title ], tempfile, 'b')
-        call writefile(msg, tempfile, 'a')
+        call writefile(lines, tempfile, 'a')
     else
         let excmd = a:what.excmd
         let level = a:what.level

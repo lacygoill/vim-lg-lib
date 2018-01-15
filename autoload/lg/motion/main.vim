@@ -129,32 +129,46 @@ fu! s:init() abort "{{{1
 endfu
 call s:init()
 
-fu! s:build_listing_for_all_axes(opt) abort "{{{1
-    " iterate over the 2 lists
-    let i = 0
-    for l in [get(b:, 'repeatable_motions', []), s:repeatable_motions]
-        let scope = ['local', 'global'][i]
-        " iterate over motions in a list
-        for m in l
-            let n = m.axis
-            let line = s:get_line_in_listing(m,n)
-            let line .= a:opt.verbose1
-            \?              '    '.m['original mapping']
-            \:              ''
+fu! s:build_final_listing(...) abort "{{{1
+    " when the function is called for the 1st time, it's not passed any argument
+    if !a:0
+        "                    ┌ necessary to force `lg#log#lines()` to add a newline
+        "                    │ after the title of the buffer;
+        "                    │
+        "                    │ otherwise `Motions on axis:  1` would be on the same line as the title
+        let final_listing = ['']
 
-            let listing = s:listing_for_axis_{n}[scope]
-            " populate `motions_on_axis_123`
-            call add(listing, '  '.line)
-            if a:opt.verbose2
-                call extend(listing,
-                \                    (!empty(m['original mapping']) ? ['       '.m['original mapping']] : [])
-                \                   +['       Made repeatable from '.m['made repeatable from']]
-                \                   +['']
-                \)
+        for n in range(1, s:N_AXES)
+            let final_listing += s:build_final_listing(n, s:listing_for_axis_{n})
+            unlet! s:listing_for_axis_{n}
+        endfor
+
+        return final_listing
+    endif
+
+    " when the function is called afterwards (recursively),
+    " it's passed 2 arguments:  the index of an axis + ???
+    let n = a:1
+    let listing_for_this_axis = a:2
+
+    let lines = []
+    if n > 1
+        let lines += ['']
+    endif
+    let lines += ['Motions on axis:  '.n]
+    if empty(listing_for_this_axis.global) && empty(listing_for_this_axis.local)
+        let lines += ['  no repeatable motions on axis '.n]
+    else
+        for scope in ['global', 'local']
+            if !empty(listing_for_this_axis[scope])
+                let lines += ['', scope]
+                for a_line in listing_for_this_axis[scope]
+                    let lines += [a_line]
+                endfor
             endif
         endfor
-        let i += 1
-    endfor
+    endif
+    return lines
 endfu
 
 fu! s:customize_preview_window() abort "{{{1
@@ -382,28 +396,14 @@ fu! lg#motion#main#list_all_motions(...) abort "{{{1
     \           'verbose2': index(cmd_args, '-vv') >= 0,
     \         }
 
+    " initialize each listing scoped to a given axis
     for i in range(1, s:N_AXES)
-        " initialize `motions_on_axis_123`;
-        " it's a dictionary containing 2 lists:
-        "
-        "     • one with info about global motions
-        "     • the other for local ones
         let s:listing_for_axis_{i} = {'global': [], 'local': []}
     endfor
+    call s:populate_listings_for_all_axes(opt)
 
-    call s:build_listing_for_all_axes(opt)
-
-    "          ┌ necessary to force `lg#log#msg()` to add a newline
-    "          │ after the title of the buffer;
-    "          │
-    "          │ otherwise `Motions on axis:  1` would be on the same line as the title
-    let msg = ['']
-
-    for n in range(1, s:N_AXES)
-        let msg += s:list_motions_on_this_axis(n, s:listing_for_axis_{n})
-        unlet! s:listing_for_axis_{n}
-    endfor
-    call lg#log#msg({'excmd': 'ListRepeatableMotions', 'msg': msg})
+    let final_listing = s:build_final_listing()
+    call lg#log#lines({'excmd': 'ListRepeatableMotions', 'lines': final_listing})
     call s:customize_preview_window()
 endfu
 
@@ -444,27 +444,6 @@ fu! lg#motion#main#list_complete(arglead, cmdline, _p) abort "{{{1
     endif
 
     return ''
-endfu
-
-fu! s:list_motions_on_this_axis(n, motions_on_this_axis) abort "{{{1
-    let msg = []
-    if a:n > 1
-        let msg += ['']
-    endif
-    let msg += ['Motions on axis:  '.a:n]
-    if empty(a:motions_on_this_axis.global) && empty(a:motions_on_this_axis.local)
-        let msg += ['  no repeatable motions on axis '.a:n]
-    else
-        for scope in ['global', 'local']
-            if !empty(a:motions_on_this_axis[scope])
-                let msg += ['', scope]
-                for m in a:motions_on_this_axis[scope]
-                    let msg += [m]
-                endfor
-            endif
-        endfor
-    endif
-    return msg
 endfu
 
 fu! s:make_keys_feedable(seq) abort "{{{1
@@ -1016,6 +995,33 @@ fu! s:populate(motion, mode, lhs, is_fwd, ...) abort "{{{1
         let a:motion[dir].lhs = a:lhs
         let a:motion[dir].rhs = a:lhs
     endif
+endfu
+
+fu! s:populate_listings_for_all_axes(opt) abort "{{{1
+    " iterate over the 2 lists
+    let i = 0
+    for a_list in [get(b:, 'repeatable_motions', []), s:repeatable_motions]
+        let scope = ['local', 'global'][i]
+        " iterate over motions in a list
+        for m in a_list
+            let n = m.axis
+            let line = s:get_line_in_listing(m,n)
+            let line .= a:opt.verbose1
+            \?              '    '.m['original mapping']
+            \:              ''
+
+            let listing = s:listing_for_axis_{n}[scope]
+            " populate `motions_on_axis_123`
+            call add(listing, '  '.line)
+            if a:opt.verbose2
+                call extend(listing,
+                \                    (!empty(m['original mapping']) ? ['       '.m['original mapping']] : [])
+                \                   +['       Made repeatable from '.m['made repeatable from']]
+                \                   +[''])
+            endif
+        endfor
+        let i += 1
+    endfor
 endfu
 
 fu! lg#motion#main#tfs_workaround(cmd) abort "{{{1

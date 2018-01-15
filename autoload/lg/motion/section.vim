@@ -5,6 +5,8 @@ fu! lg#motion#section#go(kwd, is_fwd, mode) abort "{{{1
     \               '#':     '^#\|^=',
     \               'fu':    '^\s*fu\%[nction]!\s\+',
     \               'endfu': '^\s*endfu\%[nction]\s*$',
+    \               'path':  '\v%(\s\.%(\=|,))@!&%(^|\s)\zs[./~]\f+',
+    \               'url':   '\vhttps?://',
     \             }, a:kwd, '')
 
     if empty(pat)
@@ -34,7 +36,7 @@ fu! lg#motion#section#go(kwd, is_fwd, mode) abort "{{{1
     endif
 endfu
 
-fu! lg#motion#section#rhs(is_fwd, kwd) abort "{{{1
+fu! lg#motion#section#rhs(kwd, is_fwd) abort "{{{1
     "               ┌ necessary to get the full  name of the mode, otherwise in
     "               │ operator-pending mode, we would get 'n' instead of 'no'
     "               │
