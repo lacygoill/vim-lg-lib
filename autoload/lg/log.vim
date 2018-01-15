@@ -1,5 +1,9 @@
 fu! lg#log#msg(what) abort "{{{1
-    if  !(has_key(a:what, 'excmd') && has_key(a:what, 'msg') && has_key(a:what, 'title')
+    " The dictionary passed to this function should have one of those set of keys:
+    "
+    "     • excmd, level    (for :Verbose Cmd)
+    "     • excmd, msg      (for :ListRepeatableMotions)
+    if  !(has_key(a:what, 'excmd') && has_key(a:what, 'msg')
     \||   has_key(a:what, 'excmd') && has_key(a:what, 'level'))
         return
     endif
@@ -9,7 +13,7 @@ fu! lg#log#msg(what) abort "{{{1
     if has_key(a:what, 'msg')
         let excmd = a:what.excmd
         let msg = a:what.msg
-        let title = a:what.title
+        let title = ':'.excmd
         call writefile([ title ], tempfile, 'b')
         call writefile(msg, tempfile, 'a')
     else

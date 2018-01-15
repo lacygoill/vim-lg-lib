@@ -355,7 +355,7 @@ fu! lg#motion#main#list_all_motions(...) abort "{{{1
     for n in range(1, s:N_AXES)
         let msg += s:list_motions_on_this_axis(n, motions_on_axis_{n})
     endfor
-    call lg#log#msg({'excmd': 'some cmd', 'msg': msg, 'title': 'a title'})
+    call lg#log#msg({'excmd': ':ListRepeatableMotions', 'msg': msg})
 endfu
 
 fu! lg#motion#main#list_complete(arglead, cmdline, _p) abort "{{{1
