@@ -2,7 +2,7 @@
 "
 " We need to assign values to some variables, for the functions to work.
 "
-" Big deal (/s) … So what?
+" Big deal … So what?
 "
 " Rule: Any  interface element  (mapping, autocmd,  command), or  anything which
 " initialize the plugin totally or  partially (assignment, call to function like
@@ -30,10 +30,10 @@
 " This is unexpected, and we don't want that.
 "}}}
 
-if exists('g:autoloaded_lg#motions#main')
+if exists('g:autoloaded_lg#motion#repeatable#main')
     finish
 endif
-let g:autoloaded_lg#motions#main = 1
+let g:autoloaded_lg#motion#repeatable#main = 1
 
 " TODO:
 " create a function in the plugin which makes motions repeatable
@@ -124,26 +124,6 @@ fu! s:init() abort "{{{1
     endfor
 endfu
 call s:init()
-
-fu! s:customize_preview_window() abort "{{{1
-    if &l:pvw
-        call matchadd('Title', '^Motions on axis:  \d\+$')
-        call matchadd('SpecialKey', '^global\|local$')
-        " Why?{{{
-        "
-        " If we  press `gf` on a  filepath, it will replace  the preview buffer.
-        " After that, we won't be able  to load the preview buffer back, because
-        " we've set 'bt=nofile'.
-        "
-        " To avoid  this accident, we  remap `gf` so  that it splits  the window
-        " before reading another file.
-        "}}}
-        nno  <buffer><nowait><silent>  gf  <c-w>Fzv
-        "                                       │└┤
-        "                                       │ └ open possible folds
-        "                                       └── go to line number after colon
-    endif
-endfu
 
 fu! s:get_direction(lhs) abort "{{{1
     let motion = s:get_motion_info(a:lhs)
@@ -303,22 +283,6 @@ fu! s:get_motion_info(lhs) abort "{{{1
     endfor
 endfu
 
-fu! s:get_line_in_listing(m,n,desired_mode) abort "{{{1
-    let motion_mode = a:m.bwd.mode
-    if !empty(a:desired_mode) && motion_mode !=# a:desired_mode
-        return ''
-    endif
-    let line  = a:m.bwd.mode.'  '
-    let line .= a:m.bwd.lhs
-    let line .= ' : '.a:m.fwd.lhs
-    " make last motion  used on this axis visible, by  prefixing it with
-    " an asterisk
-    if index([a:m.bwd.lhs, a:m.fwd.lhs], s:last_motion_on_axis_{a:n}) >= 0
-        let line = '* '.line
-    endif
-    return line
-endfu
-
 fu! s:install_wrapper(mode, m, maparg) abort "{{{1
     let mapcmd = s:get_mapcmd(a:mode, a:maparg)
     exe mapcmd.'  '.a:m.bwd.'  <sid>move('.string(a:m.bwd).', '.get(a:maparg, 'buffer', 0).', 1)'
@@ -347,68 +311,6 @@ fu! s:is_inconsistent(motion) abort "{{{1
     return 0
 endfu
 
-fu! lg#motion#main#list_motions(...) abort "{{{1
-    let cmd_args = split(a:1)
-    let opt = {
-    \           'axis':     matchstr(a:1, '-axis\s\+\zs\d\+'),
-    \           'mode':     matchstr(a:1, '\v-mode\s+\zs%(\w|-)+'),
-    \           'scope':    matchstr(a:1, '\v-scope\s+\zs\w+'),
-    \           'verbose1': index(cmd_args, '-v') >= 0,
-    \           'verbose2': index(cmd_args, '-vv') >= 0,
-    \         }
-
-    let opt.mode = substitute(opt.mode, 'nvo', ' ', '')
-
-    " initialize each listing scoped to a given axis
-    for i in range(1, s:N_AXES)
-        let s:listing_for_axis_{i} = {'global': [], 'local': []}
-    endfor
-    call s:populate_listings_for_all_axes(opt)
-    let total_listing = s:merge_listings(opt)
-
-    call lg#log#lines({'excmd': 'ListRepeatableMotions', 'lines': total_listing})
-    call s:customize_preview_window()
-endfu
-
-fu! lg#motion#main#list_complete(arglead, cmdline, _p) abort "{{{1
-    let opt = [
-    \           '-axis ',
-    \           '-mode',
-    \           '-scope ',
-    \           '-v ',
-    \           '-vv ',
-    \         ]
-
-    if  a:arglead[0] ==# '-'
-    \|| empty(a:arglead)
-    \&& a:cmdline !~# '-\%(axis\|scope\)\s\+$'
-    \&& a:cmdline !~# '-mode\s\+\w*$'
-        " Why not filtering the options?{{{
-        "
-        " We don't need to, because the command invoking this completion function is
-        " defined with the attribute `-complete=custom`, not `-complete=customlist`,
-        " which means Vim performs a basic filtering automatically.
-        " }}}
-        return join(opt, "\n")
-
-    elseif a:cmdline =~# '-axis\s\+$'
-        return join(keys(s:AXES), "\n")
-
-    elseif a:cmdline =~# '-mode \w*$'
-        let modes = [
-        \             'normal',
-        \             'visual',
-        \             'operator-pending',
-        \           ]
-        return join(modes, "\n")
-
-    elseif a:cmdline =~# '-scope\s\+\w*$'
-        return "local\nglobal"
-    endif
-
-    return ''
-endfu
-
 fu! s:make_keys_feedable(seq) abort "{{{1
     let m = escape(a:seq, '\')
     let m = escape(m, '"')
@@ -435,7 +337,7 @@ fu! s:make_keys_feedable(seq) abort "{{{1
     sil exe 'return "'.m.'"'
 endfu
 
-fu! lg#motion#main#make_repeatable(what) abort "{{{1
+fu! lg#motion#repeatable#main#make_repeatable(what) abort "{{{1
     " can make several motions repeatable
 
     let from     = a:what.from
@@ -650,55 +552,6 @@ fu! s:make_repeatable(mode, is_local, m, from) abort "{{{1
     endif
 endfu
 
-fu! s:merge_listings(opt, ...) abort "{{{1
-    " when the function is called for the 1st time, it's not passed any optional argument
-    if !a:0
-        "                    ┌ necessary to force `lg#log#lines()` to add a newline
-        "                    │ after the title of the buffer;
-        "                    │
-        "                    │ otherwise `Motions on axis:  1` would be on the same line as the title
-        let total_listing = ['']
-
-        for n in range(1, s:N_AXES)
-            let total_listing += s:merge_listings(a:opt, n, s:listing_for_axis_{n})
-            unlet! s:listing_for_axis_{n}
-        endfor
-
-        return total_listing
-    endif
-
-    " when the function is called afterwards (by itself, i.e. recursively),
-    " it's passed 2 additional arguments:
-    "
-    "     • the index of an axis
-    "     • the listing of the latter
-    let n = a:1
-    let listing_for_this_axis = a:2
-
-    if !empty(a:opt.axis) && n != a:opt.axis
-        return []
-    endif
-
-    let lines = []
-    if n > 1
-        let lines += ['']
-    endif
-    let lines += ['Motions on axis:  '.n]
-    if empty(listing_for_this_axis.global) && empty(listing_for_this_axis.local)
-        let lines += ['  ∅']
-    else
-        for scope in ['global', 'local']
-            if !empty(listing_for_this_axis[scope])
-                let lines += ['', scope]
-                for a_line in listing_for_this_axis[scope]
-                    let lines += [a_line]
-                endfor
-            endif
-        endfor
-    endif
-    return lines
-endfu
-
 fu! s:motion_already_repeatable(motion, repeatable_motions) abort "{{{1
     let bwd = a:motion.bwd.lhs
     let fwd = a:motion.fwd.lhs
@@ -797,7 +650,7 @@ fu! s:move(lhs, buffer, update_last_motion, ...) abort "{{{1
     \:         a:0 ? motion[dir_key].rhs : s:make_keys_feedable(motion[dir_key].rhs)
 endfu
 
-fu! lg#motion#main#move_again(axis, dir) abort "{{{1
+fu! lg#motion#repeatable#main#move_again(axis, dir) abort "{{{1
     " This function is called by various mappings whose suffix is `,` or `;`.
 
     " make sure the arguments are valid,
@@ -1009,42 +862,13 @@ fu! s:populate(motion, mode, lhs, is_fwd, ...) abort "{{{1
     endif
 endfu
 
-fu! s:populate_listings_for_all_axes(opt) abort "{{{1
-    let lists = a:opt.scope ==# 'local'
-    \?              [get(b:, 'repeatable_motions', [])]
-    \:          a:opt.scope ==# 'global'
-    \?              [s:repeatable_motions]
-    \:              [get(b:, 'repeatable_motions', []), s:repeatable_motions]
-
-    for a_list in lists
-        let scope = a_list is# s:repeatable_motions ? 'global' : 'local'
-        for m in a_list
-            let n = m.axis
-            if !empty(a:opt.axis) && n != a:opt.axis
-                continue
-            endif
-            let line = s:get_line_in_listing(m,n,a:opt.mode)
-            if empty(line)
-                continue
-            endif
-            let line .= a:opt.verbose1
-            \?              '    '.m['original mapping']
-            \:              ''
-
-            let listing = s:listing_for_axis_{n}[scope]
-            " populate `motions_on_axis_123`
-            call add(listing, '  '.line)
-            if a:opt.verbose2
-                call extend(listing,
-                \                    (!empty(m['original mapping']) ? ['       '.m['original mapping']] : [])
-                \                   +['       Made repeatable from '.m['made repeatable from']]
-                \                   +[''])
-            endif
-        endfor
-    endfor
+fu! lg#motion#repeatable#main#share_env() abort "{{{1
+    return { 's:AXES': s:AXES,
+    \        's:repeatable_motions': s:repeatable_motions,
+    \}
 endfu
 
-fu! lg#motion#main#tfs_workaround(cmd) abort "{{{1
+fu! lg#motion#repeatable#main#tfs_workaround(cmd) abort "{{{1
     " TODO:{{{
     " We don't need to call this function to make `)` repeatable,
     " so why do we need to call it to make `fx` repeatable?
