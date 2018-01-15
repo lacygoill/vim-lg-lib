@@ -350,15 +350,12 @@ fu! lg#motion#main#list_all_motions(...) abort "{{{1
         endfor
     endfor
 
-    " TODO:
-    " Instead of simply echo'ing the list, try to display it in the preview window.
-    "
-    "     gives us persistence
-    "     make it easier to copy some information
-    "     make it easier to create some custom syntax highlighting
+    let msg = []
+
     for n in range(1, s:N_AXES)
-        call s:list_motions_on_this_axis(n, motions_on_axis_{n})
+        let msg += s:list_motions_on_this_axis(n, motions_on_axis_{n})
     endfor
+    call lg#log#msg({'excmd': 'some cmd', 'msg': msg, 'title': 'a title'})
 endfu
 
 fu! lg#motion#main#list_complete(arglead, cmdline, _p) abort "{{{1
@@ -399,26 +396,24 @@ fu! lg#motion#main#list_complete(arglead, cmdline, _p) abort "{{{1
 endfu
 
 fu! s:list_motions_on_this_axis(n, motions_on_this_axis) abort "{{{1
+    let msg = []
     if a:n > 1
-        echo "\n"
+        let msg += ['']
     endif
-    echohl Title
-    echo 'Motions on axis:  '.a:n
-    echohl NONE
+    let msg += ['Motions on axis:  '.a:n]
     if empty(a:motions_on_this_axis.global) && empty(a:motions_on_this_axis.buffer_local)
-        echo '  no repeatable motions on axis '.a:n
+        let msg += ['  no repeatable motions on axis '.a:n]
     else
         for scope in ['global', 'buffer_local']
             if !empty(a:motions_on_this_axis[scope])
-                echohl Visual
-                echo "\n".substitute(scope, '_', '-', '')
-                echohl NONE
+                let msg += ['', substitute(scope, '_', '-', '')]
                 for m in a:motions_on_this_axis[scope]
-                    echo m
+                    let msg += [m]
                 endfor
             endif
         endfor
     endif
+    return msg
 endfu
 
 fu! s:make_keys_feedable(seq) abort "{{{1
