@@ -1,3 +1,35 @@
+" Why a guard?{{{
+"
+" We need to assign values to some variables, for the functions to work.
+"
+" Big deal (/s) … So what?
+"
+" Rule: Any  interface element  (mapping, autocmd,  command), or  anything which
+" initialize the plugin totally or  partially (assignment, call to function like
+" `call s:init()`), should be sourced only once.
+"
+" What's the reasoning behind this rule?
+"
+" Changing the  state of the plugin  during runtime may have  undesired effects,
+" including bugs. Same thing  for the interface.
+"}}}
+" How could this file be sourced twice?{{{
+"
+" Suppose you call a function defined in this file from somewhere.
+" You write the name of the function correctly, except you make a small typo
+" in the last component (i.e. the text after the last #).
+"
+" Now suppose the file has already been sourced because another function from it
+" has been called.
+" Later, when Vim  will have to call  the misspelled function, it  will see it's
+" not defined.   So, it will look  for its definition. The name  before the last
+" component being correct, it will find this file, and source it AGAIN.  Because
+" of the typo, it won't find the function,  but the damage is done: the file has
+" been sourced twice.
+"
+" This is unexpected, and we don't want that.
+"}}}
+
 if exists('g:autoloaded_lg#motions#main')
     finish
 endif
@@ -37,13 +69,6 @@ let g:autoloaded_lg#motions#main = 1
 " In which file it was installed.
 
 " TODO:
-" Try to move all mappings in ~/.vim/autoload/slow_mappings/repeatable_motions.vim.
-" This plugin should only propose custom functions.
-" Make `s:move_again()` a public function.
-"
-" And what about the command?
-
-" TODO:
 " We invoke `maparg()` too many times.
 " To optimize. (What about `type()`?)
 "
@@ -55,7 +80,7 @@ let g:autoloaded_lg#motions#main = 1
 "
 " `s:get_motion_info()` is called in:
 "
-"         s:move_again()
+"         move_again()
 "         s:move()
 "         s:get_direction()
 "         s:update_last_motion()
@@ -118,16 +143,12 @@ fu! s:init() abort "{{{1
     for i in range(1, s:n_axes)
         " Used to mark the last motion in the output of `:ListRepeatableMotions`.
         let s:last_motion_on_axis_{i} = ''
-        " See :h repeatable-motions-relative-direction, and `s:tfs_workaround()`
+        " See :h repeatable-motions-relative-direction, and `tfs_workaround()`
         " for a use of this variable.
         let s:repeating_motion_on_axis_{i} = 0
     endfor
 endfu
 call s:init()
-
-" Command {{{1
-
-com!  ListRepeatableMotions  call s:list_all_motions()
 
 fu! s:get_direction(lhs) abort "{{{1
     let motion = s:get_motion_info(a:lhs)
@@ -315,7 +336,7 @@ fu! s:is_inconsistent(motion) abort "{{{1
     return 0
 endfu
 
-fu! s:list_all_motions() abort "{{{1
+fu! lg#motion#main#list_all_motions() abort "{{{1
     for i in range(1, s:n_axes)
         let motions_on_axis_{i} = {'global': [], 'buffer_local': []}
     endfor
@@ -646,7 +667,7 @@ fu! s:move(lhs, buffer, update_last_motion, ...) abort "{{{1
     " When `s:move()` is called from a  wrapper, the keys are directly typed. In
     " this case, `<plug>` must be translated.
     "
-    " But when `s:move()` is called  from `s:move_again()`, and the latter can't
+    " But when `s:move()` is called  from `move_again()`, and the latter can't
     " type the  keys directly  because the  original motion  is silent,  it must
     " install a temporary mapping. Something like:
     "
@@ -665,13 +686,13 @@ fu! s:move(lhs, buffer, update_last_motion, ...) abort "{{{1
     "}}}
     " When is it useless to update it?{{{
     "
-    " `s:move()` is called  by `s:move_again()` to know which keys  to type when
+    " `s:move()` is called  by `move_again()` to know which keys  to type when
     " we press `;`  (&friends).  When that happens, we don't  need to update the
     " last motion: it didn't change. Only the  direction may change, but not the
     " motion.
     "
     " So we pass a zero flag as the last argument for `s:move()` when we call it
-    " from `s:move_again()`. The  rest of the  time, in the wrappers  around the
+    " from `move_again()`. The  rest of the  time, in the wrappers  around the
     " motions, we pass a zero flag.
     "}}}
     if a:update_last_motion
@@ -703,7 +724,7 @@ fu! s:move(lhs, buffer, update_last_motion, ...) abort "{{{1
     \:         a:0 ? motion[dir_key].rhs : s:make_keys_feedable(motion[dir_key].rhs)
 endfu
 
-fu! s:move_again(axis, dir) abort "{{{1
+fu! lg#motion#main#move_again(axis, dir) abort "{{{1
     " This function is called by various mappings whose suffix is `,` or `;`.
 
     " make sure the arguments are valid,
@@ -748,9 +769,9 @@ fu! s:move_again(axis, dir) abort "{{{1
     " the function. But if the mapping uses the `<expr>` argument, we EVALUATE
     " the rhs. Besides, if we have previously pressed `fx`, the rhs is:
     "
-    "     <sid>tfs_workaround('f')
+    "     tfs_workaround('f')
     "
-    " And the code in `s:tfs_workaround()` IS influenced by
+    " And the code in `tfs_workaround()` IS influenced by
     " `s:repeating_motion_on_axis_1`.
     "}}}
     let s:repeating_motion_on_axis_{a:axis} = a:dir ==# 'fwd' ? 1 : -1
@@ -767,7 +788,7 @@ fu! s:move_again(axis, dir) abort "{{{1
     " TODO: Why do we reset all these variables?
     " Update:
     " I think it's for a custom function which we could define to implement
-    " a special motion like `fFtT`. Similar to `s:tfs_workaround()`.
+    " a special motion like `fFtT`. Similar to `tfs_workaround()`.
     " `fFtT` are special because the lhs, which is saved for repetition, doesn't
     " contain the necessary character which must be passed to the command.
     "
@@ -915,7 +936,7 @@ fu! s:populate(motion, mode, lhs, is_fwd, ...) abort "{{{1
     endif
 endfu
 
-fu! s:tfs_workaround(cmd) abort "{{{1
+fu! lg#motion#main#tfs_workaround(cmd) abort "{{{1
     " TODO:{{{
     " We don't need to call this function to make `)` repeatable,
     " so why do we need to call it to make `fx` repeatable?
@@ -923,7 +944,7 @@ fu! s:tfs_workaround(cmd) abort "{{{1
     " What is special about making `fx` repeatable, compared to `)`?
     "
     " Update:
-    " `s:move_again()` → `s:move()` → `s:tfs_workaround()`
+    " `move_again()` → `s:move()` → `tfs_workaround()`
     "                     │
     "                     └ something different happens here depending on whether
     "                       the last motion is a simple `)` or a special `fx`
@@ -985,7 +1006,7 @@ fu! s:tfs_workaround(cmd) abort "{{{1
     "     •   directly from a  [ftFT]  mapping
     "     • indirectly from a  [;,]    mapping
     "       │
-    "       └ s:move_again()  →  s:move()  →  s:tfs_workaround()
+    "       └ move_again()  →  s:move()  →  tfs_workaround()
     "
     " It needs to distinguish from where it was called.
     " Because in  the first  case, it  needs to  ask the  user for  a character,
@@ -1006,7 +1027,7 @@ fu! s:tfs_workaround(cmd) abort "{{{1
         "   Update: It's `f`.
         "   Here's what happens approximately:
         "
-        "   ;  →  s:move_again(1,'fwd'))
+        "   ;  →  move_again(1,'fwd'))
         "
         "                 s:get_motion_info(s:last_motion_on_axis_1)  saved in `motion`
         "                                   │
@@ -1026,9 +1047,9 @@ fu! s:tfs_workaround(cmd) abort "{{{1
         "
         "         eval(motion[dir_key].rhs)
         "              └─────────────────┤
-        "                                └ s:tfs_workaround('f')
-        "                                                    │
-        "                                                    └ !!! a:cmd !!!
+        "                                └ tfs_workaround('f')
+        "                                                  │
+        "                                                  └ !!! a:cmd !!!
         "
         "          Consequence of all of this:
         "          our plugin normalizes the direction of the motions `,` and `;`
@@ -1086,72 +1107,3 @@ fu! s:update_undo_ftplugin() abort "{{{1
     endif
 endfu
 
-" Mappings {{{1
-
-" Why `:noremap` instead of `:nno`?{{{
-"
-" To also support visual mode + operator pending mode.
-"}}}
-" Why no `<unique>` for `,` and `;`?{{{
-"
-" Because `vim-sneak` has already remapped them.
-" `<unique>` would prevent our needed custom mappings to overwrite
-" the old definition.
-"}}}
-noremap  <expr>            ,  <sid>move_again(1,'bwd')
-noremap  <expr>            ;  <sid>move_again(1,'fwd')
-
-noremap  <expr><unique>   z,  <sid>move_again(2,'bwd')
-noremap  <expr><unique>   z;  <sid>move_again(2,'fwd')
-noremap  <expr><unique>   +,  <sid>move_again(3,'bwd')
-noremap  <expr><unique>   +;  <sid>move_again(3,'fwd')
-nno      <expr><unique>  co,  <sid>move_again(4,'bwd')
-nno      <expr><unique>  co;  <sid>move_again(4,'fwd')
-
-noremap  <expr>  <plug>(z_semicolon)     <sid>move_again(2,'fwd')
-noremap  <expr>  <plug>(z_comma)         <sid>move_again(2,'bwd')
-noremap  <expr>  <plug>(plus_semicolon)  <sid>move_again(3,'fwd')
-noremap  <expr>  <plug>(plus_comma)      <sid>move_again(3,'bwd')
-nno      <expr>  <plug>(co_semicolon)    <sid>move_again(4,'fwd')
-nno      <expr>  <plug>(co_comma)        <sid>move_again(4,'bwd')
-
-noremap  <expr><unique>  t   <sid>tfs_workaround('t')
-noremap  <expr><unique>  T   <sid>tfs_workaround('T')
-noremap  <expr><unique>  f   <sid>tfs_workaround('f')
-noremap  <expr><unique>  F   <sid>tfs_workaround('F')
-noremap  <expr><unique>  ss  <sid>tfs_workaround('s')
-noremap  <expr><unique>  SS  <sid>tfs_workaround('S')
-
-" Why here, and not in `vimrc`?{{{
-"
-" Because every time we would resource it, it would overwrite the wrapper,
-" and we would lose the ability to repeat.
-" Alternatively, we could use a guard `if has('vim_starting')`.
-"}}}
-nno  <unique>  g;  g,zv
-nno  <unique>  g,  g;zv
-
-" Why?{{{
-"
-" When I press `]s` to move the cursor to the next wrongly spelled
-" word, I want to ignore rare words / words for another region, which
-" is what `]S` does.
-"}}}
-nno  <unique>  [s  [S
-nno  <unique>  ]s  ]S
-
-" Why? {{{
-"
-" By default, `zh` and `zl` move the cursor on a long non-wrapped line.
-" But at the same time, we use `zj` and `zk` to split the window.
-" I don't like  the `hjkl` being used  with a same prefix (`z`)  for 2 different
-" purposes. So, instead we'll use `[S` and `]S`.
-" Warning:
-" This  shadows the  default `]S`  which moves  the cursor  to the  next wrongly
-" spelled word (ignoring rare words and words for other regions).
-"
-"}}}
-nno  <unique>  [S  5zh
-nno  <unique>  ]S  5zl
-"               │
-"               └ mnemonics: Scroll
