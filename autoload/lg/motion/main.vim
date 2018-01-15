@@ -35,19 +35,13 @@ if exists('g:autoloaded_lg#motions#main')
 endif
 let g:autoloaded_lg#motions#main = 1
 
-" Warning:{{{
-"
-" The mode you give to the function  which makes a motion repeatable must be
-" EXACTLY the same as the original one.
-"
-" In particular, don't use '' if your motion is defined in normal mode.
-" Yes `nvo` includes `n`, but it doesn't matter:  n != nvo
-"
-" If you don't respect this rule, you will break the motion, because the wrapper
-" installed around it will fail to retrieve it from the db (wrong mode).
-"
-" Use '' only for a motion defined explicitly with `:noremap` or `:map`.
-"}}}
+" TODO:
+" more granular listing
+" :ListRepeatableMotions -this_axis -this_scope -this_mode
+
+" TODO:
+" Customize the listing, so that it can display the origin of a motion.
+" In which file it was installed (-verbose).
 
 " TODO:
 " create a function in the plugin which makes motions repeatable
@@ -65,18 +59,14 @@ let g:autoloaded_lg#motions#main = 1
 " Remove `g:motion_to_repeat` everywhere.
 
 " TODO:
-" Customize :ListRepeatableMotions, so that it can display the origin of a motion.
-" In which file it was installed.
-
-" TODO:
 " We invoke `maparg()` too many times.
 " To optimize. (What about `type()`?)
 "
 " It's called in:
 "
-"     lg#motion#main#make_repeatable()  (unavoidable, because initial)
-"     s:populate()                      (unavoidable, because we need maparg but for another direction)
-"     s:get_motion_info()               (avoidable?)
+"     make_repeatable()      (unavoidable, because initial)
+"     s:populate()           (unavoidable, because we need maparg but for another direction)
+"     s:get_motion_info()    (avoidable?)
 "
 " `s:get_motion_info()` is called in:
 "
@@ -89,21 +79,14 @@ let g:autoloaded_lg#motions#main = 1
 " Split the code in several files if needed.
 " Also, make the signature of the main function similar to `submode#map()`;
 " which means we shouldn't use a dictionary of arguments, just plain arguments.
-" This would allow us to eliminate `lg#motion#main#make_repeatable()`.
+" This would allow us to eliminate `make_repeatable()`.
 "
 " Also, I'm not satisfied with the current architecture of files for this plugin.
 " Also, maybe we should move it back to its own plugin.
 
-" TODO:
-" more granular listing
-" :ListRepeatableMotions -this_axis -this_scope -this_mode
-
-" TODO:
-" In the listing, the mode should be printed.
-
 fu! s:init() abort "{{{1
     let s:repeatable_motions = []
-    let s:default_maparg     = {'buffer': 0, 'expr': 0, 'mode': ' ', 'noremap': 1, 'nowait': 0, 'silent': 0}
+    let s:DEFAULT_MAPARG     = {'buffer': 0, 'expr': 0, 'mode': ' ', 'noremap': 1, 'nowait': 0, 'silent': 0}
     "                                                       Why? ┘{{{
     "
     " This variable will be used to populate information about a default motion,
@@ -117,30 +100,30 @@ fu! s:init() abort "{{{1
     " We need to be consistent with the output of `maparg()`. So, we choose
     " an empty space.
 "}}}
-    let s:axes = {
+    let s:AXES = {
     \              '1': 1,
     \              '2': 2,
     \              '3': 3,
     \              '4': 4,
     \            }
 
-    let s:n_axes = len(s:axes)
+    let s:N_AXES = len(s:AXES)
 
-    let s:recursive_mapcmd = {
+    let s:RECURSIVE_MAPCMD = {
     \                          'n': 'nmap',
     \                          'x': 'xmap',
     \                          'o': 'omap',
     \                          '' : 'map',
     \                        }
 
-    let s:non_recursive_mapcmd = {
+    let s:NON_RECURSIVE_MAPCMD = {
     \                              'n': 'nnoremap',
     \                              'x': 'xnoremap',
     \                              'o': 'onoremap',
     \                              '' : 'noremap',
     \                            }
 
-    for i in range(1, s:n_axes)
+    for i in range(1, s:N_AXES)
         " Used to mark the last motion in the output of `:ListRepeatableMotions`.
         let s:last_motion_on_axis_{i} = ''
         " See :h repeatable-motions-relative-direction, and `tfs_workaround()`
@@ -165,7 +148,7 @@ fu! s:get_mapcmd(mode, maparg) abort "{{{1
     "                                            └ by default, we don't want
     "                                              a recursive wrapper mapping
 
-    let mapcmd = s:{is_recursive ? '' : 'non_'}recursive_mapcmd[a:mode]
+    let mapcmd = s:{is_recursive ? '' : 'NON_'}RECURSIVE_MAPCMD[a:mode]
 
     let mapcmd .= '  <expr>'
     if get(a:maparg, 'buffer', 0)
@@ -315,7 +298,7 @@ fu! s:install_wrapper(mode, m, maparg) abort "{{{1
 endfu
 
 fu! s:invalid_axis_or_direction(axis, direction) abort "{{{1
-    let is_valid_axis = index(values(s:axes), a:axis) >= 0
+    let is_valid_axis = index(values(s:AXES), a:axis) >= 0
     let is_valid_direction = index(['bwd', 'fwd'], a:direction) >= 0
     return !is_valid_axis || !is_valid_direction
 endfu
@@ -337,13 +320,13 @@ fu! s:is_inconsistent(motion) abort "{{{1
 endfu
 
 fu! lg#motion#main#list_all_motions() abort "{{{1
-    for i in range(1, s:n_axes)
+    for i in range(1, s:N_AXES)
         let motions_on_axis_{i} = {'global': [], 'buffer_local': []}
     endfor
 
     for l in [s:repeatable_motions, get(b:, 'repeatable_motions', [])]
         for m in l
-            let text = ''
+            let text = m.bwd.mode.' '
             let text .= m.bwd.lhs
             let text .= ' : '.m.fwd.lhs
 
@@ -366,7 +349,7 @@ fu! lg#motion#main#list_all_motions() abort "{{{1
     "     gives us persistence
     "     make it easier to copy some information
     "     make it easier to create some custom syntax highlighting
-    for n in range(1, s:n_axes)
+    for n in range(1, s:N_AXES)
         call s:list_motions_on_this_axis(n, motions_on_axis_{n})
     endfor
 endfu
@@ -420,7 +403,39 @@ fu! s:make_keys_feedable(seq) abort "{{{1
     sil exe 'return "'.m.'"'
 endfu
 
-fu! s:make_it_repeatable(mode, is_local, m) abort "{{{1
+fu! lg#motion#main#make_repeatable(what) abort "{{{1
+    " can make several motions repeatable
+
+    let mode     = a:what.mode
+    let is_local = a:what.buffer
+
+    " try to make all the motions received repeatable
+    for m in a:what.motions
+        " Warning: `execute()` is buggy in Neovim{{{
+        "
+        " It sometimes fail to capture anything. It  has been fixed in a Vim
+        " patch.  For this code to work in  Neovim, you need to wait for the
+        " patch to be merged there, or use `:redir`.
+       "}}}
+        if !is_local && execute(mode.'map <buffer> '.m.bwd) !~# '^\n\nNo mapping found$'
+            " Why?{{{
+            "
+            " If the  motion is global, it  could be shadowed by  a buffer-local
+            " mapping  using the  same lhs. We  handle this  particular case  by
+            " temporarily removing the latter.
+            "}}}
+            let map_save = s:unshadow(mode, m)
+            call s:make_repeatable(mode, is_local, m)
+            call lg#map#restore(map_save)
+        else
+            call s:make_repeatable(mode, is_local, m)
+        endif
+    endfor
+endfu
+
+fu! s:make_repeatable(mode, is_local, m) abort "{{{1
+    " can make only ONE motion repeatable
+
     let bwd    = a:m.bwd
     let fwd    = a:m.fwd
     let axis   = a:m.axis
@@ -495,7 +510,7 @@ fu! s:make_it_repeatable(mode, is_local, m) abort "{{{1
     " Install a buffer-local mapping in the other:    <right>
     " Then:
     "
-    "         call s:make_it_repeatable({'mode': '',
+    "         call s:make_repeatable({'mode': '',
     "         \                          'buffer': 0,
     "         \                          'motions': {'bwd': '<left>', 'fwd': '<right>', 'axis': 1})
     " TODO:
@@ -596,34 +611,6 @@ fu! s:make_it_repeatable(mode, is_local, m) abort "{{{1
         "}}}
         call s:update_undo_ftplugin()
     endif
-endfu
-
-fu! lg#motion#main#make_repeatable(what) abort "{{{1
-    let mode     = a:what.mode
-    let is_local = a:what.buffer
-
-    " try to make all the motions received repeatable
-    for m in a:what.motions
-        " Warning: `execute()` is buggy in Neovim{{{
-        "
-        " It sometimes fail to capture anything. It  has been fixed in a Vim
-        " patch.  For this code to work in  Neovim, you need to wait for the
-        " patch to be merged there, or use `:redir`.
-       "}}}
-        if !is_local && execute(mode.'map <buffer> '.m.bwd) !~# '^\n\nNo mapping found$'
-            " Why?{{{
-            "
-            " If the  motion is global, it  could be shadowed by  a buffer-local
-            " mapping  using the  same lhs. We  handle this  particular case  by
-            " temporarily removing the latter.
-            "}}}
-            let map_save = s:unshadow(mode, m)
-            call s:make_it_repeatable(mode, is_local, m)
-            call lg#map#restore(map_save)
-        else
-            call s:make_it_repeatable(mode, is_local, m)
-        endif
-    endfor
 endfu
 
 fu! s:motion_already_repeatable(motion, repeatable_motions) abort "{{{1
@@ -795,7 +782,7 @@ fu! lg#motion#main#move_again(axis, dir) abort "{{{1
     " Note that `fFtT` are specific to the axis 1, but we could want to define
     " special motions on other axes. That's why, I think, we need to reset
     " ALL variables.
-    for i in range(1, s:n_axes)
+    for i in range(1, s:N_AXES)
         let s:repeating_motion_on_axis_{i} = 0
     endfor
 
@@ -912,7 +899,7 @@ fu! s:populate(motion, mode, lhs, is_fwd, ...) abort "{{{1
         let a:motion[dir] = maparg
     " make a default motion repeatable
     else
-        let a:motion[dir] = extend(deepcopy(s:default_maparg),
+        let a:motion[dir] = extend(deepcopy(s:DEFAULT_MAPARG),
         \                          {'mode': empty(a:mode) ? ' ' : a:mode })
         "                                Why? ┘{{{
         "
