@@ -129,48 +129,6 @@ fu! s:init() abort "{{{1
 endfu
 call s:init()
 
-fu! s:build_final_listing(...) abort "{{{1
-    " when the function is called for the 1st time, it's not passed any argument
-    if !a:0
-        "                    ┌ necessary to force `lg#log#lines()` to add a newline
-        "                    │ after the title of the buffer;
-        "                    │
-        "                    │ otherwise `Motions on axis:  1` would be on the same line as the title
-        let final_listing = ['']
-
-        for n in range(1, s:N_AXES)
-            let final_listing += s:build_final_listing(n, s:listing_for_axis_{n})
-            unlet! s:listing_for_axis_{n}
-        endfor
-
-        return final_listing
-    endif
-
-    " when the function is called afterwards (recursively),
-    " it's passed 2 arguments:  the index of an axis + ???
-    let n = a:1
-    let listing_for_this_axis = a:2
-
-    let lines = []
-    if n > 1
-        let lines += ['']
-    endif
-    let lines += ['Motions on axis:  '.n]
-    if empty(listing_for_this_axis.global) && empty(listing_for_this_axis.local)
-        let lines += ['  no repeatable motions on axis '.n]
-    else
-        for scope in ['global', 'local']
-            if !empty(listing_for_this_axis[scope])
-                let lines += ['', scope]
-                for a_line in listing_for_this_axis[scope]
-                    let lines += [a_line]
-                endfor
-            endif
-        endfor
-    endif
-    return lines
-endfu
-
 fu! s:customize_preview_window() abort "{{{1
     if &l:pvw
         call matchadd('Title', '^Motions on axis:  \d\+$')
@@ -401,9 +359,9 @@ fu! lg#motion#main#list_all_motions(...) abort "{{{1
         let s:listing_for_axis_{i} = {'global': [], 'local': []}
     endfor
     call s:populate_listings_for_all_axes(opt)
+    let total_listing = s:merge_listings()
 
-    let final_listing = s:build_final_listing()
-    call lg#log#lines({'excmd': 'ListRepeatableMotions', 'lines': final_listing})
+    call lg#log#lines({'excmd': 'ListRepeatableMotions', 'lines': total_listing})
     call s:customize_preview_window()
 endfu
 
@@ -685,6 +643,51 @@ fu! s:make_repeatable(mode, is_local, m, from) abort "{{{1
         "}}}
         call s:update_undo_ftplugin()
     endif
+endfu
+
+fu! s:merge_listings(...) abort "{{{1
+    " when the function is called for the 1st time, it's not passed any argument
+    if !a:0
+        "                    ┌ necessary to force `lg#log#lines()` to add a newline
+        "                    │ after the title of the buffer;
+        "                    │
+        "                    │ otherwise `Motions on axis:  1` would be on the same line as the title
+        let total_listing = ['']
+
+        for n in range(1, s:N_AXES)
+            let total_listing += s:merge_listings(n, s:listing_for_axis_{n})
+            unlet! s:listing_for_axis_{n}
+        endfor
+
+        return total_listing
+    endif
+
+    " when the function is called afterwards (by itself, i.e. recursively),
+    " it's passed 2 arguments:
+    "
+    "     • the index of an axis
+    "     • the listing of the latter
+    let n = a:1
+    let listing_for_this_axis = a:2
+
+    let lines = []
+    if n > 1
+        let lines += ['']
+    endif
+    let lines += ['Motions on axis:  '.n]
+    if empty(listing_for_this_axis.global) && empty(listing_for_this_axis.local)
+        let lines += ['  no repeatable motions on axis '.n]
+    else
+        for scope in ['global', 'local']
+            if !empty(listing_for_this_axis[scope])
+                let lines += ['', scope]
+                for a_line in listing_for_this_axis[scope]
+                    let lines += [a_line]
+                endfor
+            endif
+        endfor
+    endif
+    return lines
 endfu
 
 fu! s:motion_already_repeatable(motion, repeatable_motions) abort "{{{1
