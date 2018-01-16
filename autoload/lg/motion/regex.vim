@@ -1,4 +1,4 @@
-fu! lg#motion#section#go(kwd, is_fwd, mode) abort "{{{1
+fu! lg#motion#regex#go(kwd, is_fwd, mode) abort "{{{1
     let cnt = v:count1
     let pat = get({
     \               '{{':    '\v\{{3}%(\d+)?\s*$',
@@ -36,11 +36,11 @@ fu! lg#motion#section#go(kwd, is_fwd, mode) abort "{{{1
     endif
 endfu
 
-fu! lg#motion#section#rhs(kwd, is_fwd) abort "{{{1
+fu! lg#motion#regex#rhs(kwd, is_fwd) abort "{{{1
     "               ┌ necessary to get the full  name of the mode, otherwise in
     "               │ operator-pending mode, we would get 'n' instead of 'no'
     "               │
     let mode = mode(1)
-    return printf(":\<c-u>call lg#motion#section#go(%s,%d,%s)\<cr>",
+    return printf(":\<c-u>call lg#motion#regex#go(%s,%d,%s)\<cr>",
     \             string(a:kwd), a:is_fwd, string(mode))
 endfu

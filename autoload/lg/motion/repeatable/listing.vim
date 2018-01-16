@@ -52,7 +52,7 @@ endfu
 
 fu! s:customize_preview_window() abort "{{{1
     if &l:pvw
-        call matchadd('Title', '^Motions on axis:  \d\+$')
+        call matchadd('Title', '^Axis:  \d\+$')
         call matchadd('SpecialKey', '^global\|local$')
         " Why?{{{
         "

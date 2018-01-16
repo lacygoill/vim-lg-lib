@@ -50,6 +50,11 @@ let g:autoloaded_lg#motion#repeatable#main = 1
 "
 "                     • option values
 "
+"     database (db)
+"
+"             dictionary `[s:|b:]repeatable_motions`
+"             contains the information relative to all repeatable motions
+"
 "     motion
 "
 "             dictionary containing 3 keys:
@@ -144,7 +149,7 @@ fu! s:init() abort "{{{1
     for i in range(1, s:N_AXES)
         " Used to mark the last motion in the output of `:ListRepeatableMotions`.
         let s:last_motion_on_axis_{i} = ''
-        " See :h repeatable-motions-relative-direction, and `tfs_workaround()`
+        " See :h repeatable-motions-relative-direction, and `fts_workaround()`
         " for a use of this variable.
         let s:repeating_motion_on_axis_{i} = 0
     endfor
@@ -198,10 +203,18 @@ fu! s:get_current_mode() abort "{{{1
 endfu
 
 fu! s:get_motion_info(lhs) abort "{{{1
-    " return any motion which:
+    " Purpose:{{{
+    " return the info about the motion in the db which:
     "
-    "     • is registered as repeatable  (i.e. is present inside [s:|b:]repeatable_motions)
-    "     • contains a lhs (forward or backward) equal to the one received by the function
+    "     • contains `a:lhs` (no matter for which direction)
+    "     • has the same mode as the current one
+    "}}}
+    " Why don't you check the axis too?{{{
+    "
+    " Because, in practice, it doesn't make much sense to repeat the same
+    " motion on 2 axes.
+    "
+"}}}
 
     let mode = s:get_current_mode()
     let motions = get(maparg(a:lhs, mode, 0, 1), 'buffer', 0)
@@ -213,7 +226,8 @@ fu! s:get_motion_info(lhs) abort "{{{1
         \          s:translate_lhs(a:lhs)) >= 0
         \&& index([mode, ' '], m.bwd.mode) >= 0
         "                      └────────┤
-        "                               └ this flag was originally obtained with `maparg()`
+        "                               └ mode of the motion:
+        "                                 originally obtained with `maparg()`
         "
         " Why this last condition? {{{
         "
@@ -246,9 +260,13 @@ fu! s:get_motion_info(lhs) abort "{{{1
         "}}}
         " Why a single space?{{{
         "
-        " For `maparg()`,  a single space matches  all the modes in  which we're
-        " interested: normal, visual, operator-pending.  So, it should always be
-        " right for the motion we're looking for.
+        " `m.bwd.mode` could  be a  space, if the  original mapping  was defined
+        " with `:noremap` or  `:map`. But `mode` will never be  a space, because
+        " it gets its value from `mode(1)`, which will return:
+        "
+        "     'n', 'v', 'V', 'C-v' or 'no'
+        "
+        " So, we need to compare `m.bwd.mode` to the current mode, AND to a space.
         "}}}
         " Note that there's an inconsistency in  maparg(){{{
         "
@@ -300,18 +318,28 @@ endfu
 fu! s:make_keys_feedable(seq) abort "{{{1
     let m = escape(a:seq, '"\')
     let special_chars = [
-    \                     '<BS>',      '<Tab>',     '<FF>',         '<t_',
-    \                     '<cr>',      '<Return>',  '<Enter>',      '<Esc>',
-    \                     '<Space>',   '<lt>',      '<Bslash>',     '<Bar>',
-    \                     '<Del>',     '<CSI>',     '<xCSI>',       '<EOL>',
-    \                     '<Up>',      '<Down>',    '<Left>',       '<Right>',
-    \                     '<F',        '<Help>',    '<Undo>',       '<Insert>',
-    \                     '<Home>',    '<End>',     '<PageUp>',     '<PageDown>',
-    \                     '<kHome>',   '<kEnd>',    '<kPageUp>',    '<kPageDown>',
-    \                     '<kPlus>',   '<kMinus>',  '<kMultiply>',  '<kDivide>',
-    \                     '<kEnter>',  '<kPoint>',  '<k0>',         '<S-',
-    \                     '<C-',       '<M-',       '<A-',          '<D-',
-    \                     '<Plug>',
+    \                    '<BS>',
+    \                    '<Bar>',
+    \                    '<Bslash>',
+    \                    '<C-',
+    \                    '<CR>',
+    \                    '<Del>',
+    \                    '<Down>',
+    \                    '<End>',
+    \                    '<Esc>',
+    \                    '<F',
+    \                    '<Home>',
+    \                    '<Left>',
+    \                    '<M-',
+    \                    '<PageDown>',
+    \                    '<PageUp>',
+    \                    '<Plug>',
+    \                    '<Right>',
+    \                    '<S-',
+    \                    '<Space>',
+    \                    '<Tab>',
+    \                    '<Up>',
+    \                    '<lt>',
     \                   ]
     for s in special_chars
         let m = substitute(m, '\c\('.s.'\)', '\\\1', 'g')
@@ -498,7 +526,7 @@ fu! s:make_repeatable(mode, is_local, m, from) abort "{{{1
     " But it feels wrong to wait so late.
     " I would prefer to reset the variable early.
     " Besides, it may write something in the log messages (type coD, then :e).
-    if s:motion_already_repeatable(motion, repeatable_motions)
+    if s:collides_with_db(motion, repeatable_motions)
         return
     endif
 
@@ -537,24 +565,54 @@ fu! s:make_repeatable(mode, is_local, m, from) abort "{{{1
     endif
 endfu
 
-fu! s:motion_already_repeatable(motion, repeatable_motions) abort "{{{1
-    let bwd = a:motion.bwd.lhs
-    let fwd = a:motion.fwd.lhs
-    let mode_bwd = a:motion.bwd.mode
-    let mode_fwd = a:motion.fwd.mode
+fu! s:collides_with_db(motion, repeatable_motions) abort "{{{1
+    " Purpose:{{{
+    " Detect whether the motion we're trying  to make repeatable collides with
+    " a motion in the db.
+    "}}}
+    " When does a collision occur?{{{
+    "
+    " When `a:motion` is already in the db (TOTAL collision).
+    " Or when a motion in the db has the same mode as `a:motion`, and one of its
+    " `lhs` key has the same value as one of `a:motion` (PARTIAL collision).
+    "}}}
+    " Why is a collision an issue?{{{
+    "
+    " If you try to install a wrapper around a key which has already been wrapped,
+    " you'll probably end up losing the original definition:
+    " in the db, it may be replaced with the 1st wrapper.
+    "
+    " Besides:
+    " Vim shouldn't make a motion repeatable twice (total collision):
+    "
+    "     Because it means we have a useless invocation of
+    "     `lg#motion#repeatable#main#make_repeatable()`
+    "     somewhere in our config, it should be removed.
+    "
+    " Vim shouldn't change the motion to which a lhs belongs (partial collision):
+    "
+    "     we define the motion:    [m  ]m  (normal mode)    ✔
+    "     we define the motion:    [m  ]]  (normal mode)    ✘
+    "
+    "     We probably have made an error. We should be warned to fix it.
+    "}}}
 
     "   ┌ Motion
     "   │
     for m in a:repeatable_motions
-        " TODO:
-        " Are both conditions necessary?
-        " A single one wouldn't be enough?
-        if  (bwd ==# m.bwd.lhs && mode_bwd ==# m.bwd.mode)
-        \|| (fwd ==# m.fwd.lhs && mode_fwd ==# m.fwd.mode)
+        if  a:motion.bwd.lhs ==# m.bwd.lhs && a:motion.bwd.mode ==# m.bwd.mode
+        \|| a:motion.fwd.lhs ==# m.fwd.lhs && a:motion.fwd.mode ==# m.fwd.mode
             try
-                throw printf("[repeatable motion] '%s : %s' already defined",
-                \            m.bwd.lhs, m.fwd.lhs)
+                throw printf("[repeatable motion] can't process '%s : %s'
+                \    for more info:  :messages",
+                \             m.bwd.lhs, m.fwd.lhs)
             catch
+                echohl ErrorMsg
+                echom 'one of the key is already used in a motion'
+                echom 'the error comes from this file:'
+                echom a:motion['made repeatable from']
+                echom ' '
+                echohl NONE
                 call lg#catch_error()
             finally
                 return 1
@@ -570,25 +628,6 @@ fu! s:move(lhs, buffer, update_last_motion, ...) abort "{{{1
     " When it's passed, it means we don't want the function to translate
     " special keys at the end.
     " If we let the function translate them, it will translate `<plug>`.
-    "}}}
-    " So… We don't want `<plug>` to be translated?{{{
-    "
-    " It depends.
-    "
-    " When `s:move()` is called from a  wrapper, the keys are directly typed. In
-    " this case, `<plug>` must be translated.
-    "
-    " But when `s:move()` is called  from `move_again()`, and the latter can't
-    " type the  keys directly  because the  original motion  is silent,  it must
-    " install a temporary mapping. Something like:
-    "
-    "     nmap  <plug>(repeat-silently)  rhs_containing_a_plug
-    "                                                     ^
-    "                                                     must NOT be translated
-    "
-    " We  won't   be  able  to  install   it  properly  if  `<plug>`   has  been
-    " translated. The rhs will be wrong, and  I can't undo the translation, even
-    " with a substitution.
     "}}}
 
     " Why?{{{
@@ -626,10 +665,39 @@ fu! s:move(lhs, buffer, update_last_motion, ...) abort "{{{1
         \    substitute(motion[dir_key].rhs, '\c<sid>', '<snr>'.motion[dir_key].sid.'_', 'g')
     endif
 
-    " TODO:
-    " Shouldn't we invoke `s:make_keys_feedable()` in BOTH cases?
-    " What if there are special keys in the rhs of an expr mapping?
-    " Or does `eval()` translate them?
+    " Why don't we translate the special keys when the mapping uses `<expr>`?{{{
+    "
+    " I don't think there's a need to invoke `s:make_keys_feedable()` when the
+    " original mapping uses `<expr>`.
+    "
+    " Because, the rhs is an EXPRESSION whose value is keys which will be FED
+    " directly to the typeahead buffer.
+    "}}}
+    " So, why do we need to translate them when the mapping doesn't use `<expr>`?{{{
+    "
+    " In this case, the rhs is NOT fed directly:
+    " Vim translates automatically any special key it may contain.
+    "
+    " We need to emulate this behavior, and that's why we invoke
+    " `s:make_keys_feedable()`.
+    "}}}
+    " Why don't we translate them when the function received an optional argument?{{{
+    "
+    " When `s:move()` is called from a  wrapper, the keys are directly typed. In
+    " this case, `<plug>` must be translated.
+    "
+    " But when `s:move()` is called  from `move_again()`, and the latter can't
+    " type the  keys directly  because the  original motion  is silent,  it must
+    " install a temporary mapping. Something like:
+    "
+    "     nmap  <plug>(repeat-silently)  rhs_containing_a_plug
+    "                                                     ^
+    "                                                     must NOT be translated
+    "
+    " We  won't   be  able  to  install   it  properly  if  `<plug>`   has  been
+    " translated. The rhs will be wrong, and  I can't undo the translation, even
+    " with a substitution.
+    "}}}
     return is_expr_mapping
     \?         eval(motion[dir_key].rhs)
     \:         a:0 ? motion[dir_key].rhs : s:make_keys_feedable(motion[dir_key].rhs)
@@ -680,9 +748,9 @@ fu! lg#motion#repeatable#main#move_again(axis, dir) abort "{{{1
     " the function. But if the mapping uses the `<expr>` argument, we EVALUATE
     " the rhs. Besides, if we have previously pressed `fx`, the rhs is:
     "
-    "     tfs_workaround('f')
+    "     fts_workaround('f')
     "
-    " And the code in `tfs_workaround()` IS influenced by
+    " And the code in `fts_workaround()` IS influenced by
     " `s:repeating_motion_on_axis_1`.
     "}}}
     let s:repeating_motion_on_axis_{a:axis} = a:dir ==# 'fwd' ? 1 : -1
@@ -696,16 +764,20 @@ fu! lg#motion#repeatable#main#move_again(axis, dir) abort "{{{1
     "                                        (because the motion must be silent), so `<plug>`
     "                                        must NOT be translated
 
-    " TODO: Why do we reset all these variables?
-    " Update:
-    " I think it's for a custom function which we could define to implement
-    " a special motion like `fFtT`. Similar to `tfs_workaround()`.
-    " `fFtT` are special because the lhs, which is saved for repetition, doesn't
-    " contain the necessary character which must be passed to the command.
+    " Why do we reset all these variables?{{{
     "
-    " Note that `fFtT` are specific to the axis 1, but we could want to define
-    " special motions on other axes. That's why, I think, we need to reset
-    " ALL variables.
+    " I think it's  for a custom function  which we could define  to implement a
+    " special motion like `fFtTssSS`. Similar to what we have to do in `fts()`.
+    "
+    " `tTfFssSS` are  special because  the lhs, which  is saved  for repetition,
+    " doesn't  contain the  necessary  character  which must  be  passed to  the
+    " command. IOW, when the last motion was `fx`, `f` is insufficient to know
+    " where to move.
+    "
+    " Note that  `fFtTssSS` are  specific to the  axis 1, but  we could  want to
+    " define special  motions on other  axes. That's why,  we need to  reset ALL
+    " variables.
+    "}}}
     for i in range(1, s:N_AXES)
         let s:repeating_motion_on_axis_{i} = 0
     endfor
@@ -857,7 +929,7 @@ fu! lg#motion#repeatable#main#share_env() abort "{{{1
     \}
 endfu
 
-fu! lg#motion#repeatable#main#tfs(cmd) abort "{{{1
+fu! lg#motion#repeatable#main#fts(cmd) abort "{{{1
     " TODO:{{{
     " We don't need to call this function to make `)` repeatable,
     " so why do we need to call it to make `fx` repeatable?
@@ -865,7 +937,7 @@ fu! lg#motion#repeatable#main#tfs(cmd) abort "{{{1
     " What is special about making `fx` repeatable, compared to `)`?
     "
     " Update:
-    " `move_again()` → `s:move()` → `tfs_workaround()`
+    " `move_again()` → `s:move()` → `fts_workaround()`
     "                     │
     "                     └ something different happens here depending on whether
     "                       the last motion is a simple `)` or a special `fx`
@@ -927,7 +999,7 @@ fu! lg#motion#repeatable#main#tfs(cmd) abort "{{{1
     "     •   directly from a  [ftFT]  mapping
     "     • indirectly from a  [;,]    mapping
     "       │
-    "       └ move_again()  →  s:move()  →  tfs_workaround()
+    "       └ move_again()  →  s:move()  →  fts_workaround()
     "
     " It needs to distinguish from where it was called.
     " Because in  the first  case, it  needs to  ask the  user for  a character,
@@ -939,7 +1011,7 @@ fu! lg#motion#repeatable#main#tfs(cmd) abort "{{{1
     "                             └ `[tfTF]x` motions are specific to the axis 1,
     "                                so there's no need to check `s:repeating_motion_on_axis_2,3,…`
 
-        let move_fwd = a:cmd =~# '\C[tfs]'
+        let move_fwd = a:cmd =~# '\C[fts]'
         "              │{{{
         "              └ TODO: What is this?
         "
@@ -968,7 +1040,7 @@ fu! lg#motion#repeatable#main#tfs(cmd) abort "{{{1
         "
         "         eval(motion[dir_key].rhs)
         "              └─────────────────┤
-        "                                └ tfs_workaround('f')
+        "                                └ fts_workaround('f')
         "                                                  │
         "                                                  └ !!! a:cmd !!!
         "
@@ -1017,6 +1089,8 @@ fu! s:update_last_motion(lhs) abort "{{{1
     "     │                └ result of the previous translation
     "     │
     "     └ automatically translates special keys
+    "
+    " Find an example where `s:translate_lhs()` is necessary.
     let s:last_motion_on_axis_{n} = s:translate_lhs(a:lhs)
 endfu
 
