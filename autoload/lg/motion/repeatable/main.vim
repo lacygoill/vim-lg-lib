@@ -35,20 +35,46 @@ if exists('g:autoloaded_lg#motion#repeatable#main')
 endif
 let g:autoloaded_lg#motion#repeatable#main = 1
 
-" TODO:
-" create a function in the plugin which makes motions repeatable
-" to manually set the last motion on a given axis
+" Terminology:{{{
 "
-" Not sure this is a good idea.
-" It's a bit unexpected to see that `;` has changed its behavior when
-" we execute some commands but not others.
+"     axis
 "
-" And if that makes us lose a previous motion…
+"             type of space in which we are moving:
 "
-" Don't know.
-
-" TODO:
-" Remove `g:motion_to_repeat` everywhere.
+"                     • buffer text
+"                     • filesystem
+"                     • versions of buffer
+"
+"                           in this particular case, the “motion” is in fact an edition
+"                           the edition makes us move from a version of the buffer to another
+"
+"                     • option values
+"
+"     motion
+"
+"             dictionary containing 3 keys:
+"
+"                 • bwd:     output of `maparg('<left>')` where '<left>' is
+"                            backward motion
+"
+"                 • fwd:     same thing for `<right>` as the forward motion
+"
+"                 • axis:    number which determines how the motion should be
+"                            repeated:
+"
+"                                1:  with a bare , ;
+"                                2:                         z
+"                                3:  same but prefixed with +
+"                                4:                         co
+"                                …
+"
+"                            the 2nd axis could be  reserved to motions moving the
+"                            focus across different files, or resizing a window
+"
+"                            the 3rd axis for editions which can be performed in 2 directions
+"
+"                            the 4th axis for cycling through options values
+"}}}
 
 " TODO:
 " We invoke `maparg()` too many times.
@@ -171,46 +197,6 @@ fu! s:get_current_mode() abort "{{{1
     return substitute(substitute(mode(1), "[vV\<c-v>]", 'x', ''), 'no', 'o', '')
 endfu
 
-" Terminology:{{{
-"
-"     axis
-"
-"             type of space in which we are moving:
-"
-"                     • buffer text
-"                     • filesystem
-"                     • versions of buffer
-"
-"                           in this particular case, the “motion” is in fact an edition
-"                           the edition makes us move from a version of the buffer to another
-"
-"                     • option values
-"
-"     motion
-"
-"             dictionary containing 3 keys:
-"
-"                 • bwd:     output of `maparg('<left>')` where '<left>' is
-"                            backward motion
-"
-"                 • fwd:     same thing for `<right>` as the forward motion
-"
-"                 • axis:    number which determines how the motion should be
-"                            repeated:
-"
-"                                1:  with a bare , ;
-"                                2:                         z
-"                                3:  same but prefixed with +
-"                                4:                         co
-"                                …
-"
-"                            the 2nd axis could be  reserved to motions moving the
-"                            focus across different files, or resizing a window
-"
-"                            the 3rd axis for editions which can be performed in 2 directions
-"
-"                            the 4th axis for cycling through options values
-"}}}
 fu! s:get_motion_info(lhs) abort "{{{1
     " return any motion which:
     "
@@ -312,8 +298,7 @@ fu! s:is_inconsistent(motion) abort "{{{1
 endfu
 
 fu! s:make_keys_feedable(seq) abort "{{{1
-    let m = escape(a:seq, '\')
-    let m = escape(m, '"')
+    let m = escape(a:seq, '"\')
     let special_chars = [
     \                     '<BS>',      '<Tab>',     '<FF>',         '<t_',
     \                     '<cr>',      '<Return>',  '<Enter>',      '<Esc>',
@@ -860,6 +845,10 @@ fu! s:populate(motion, mode, lhs, is_fwd, ...) abort "{{{1
         let a:motion[dir].lhs = a:lhs
         let a:motion[dir].rhs = a:lhs
     endif
+endfu
+
+fu! lg#motion#repeatable#main#set_last_used(lhs,n) abort "{{{1
+    let s:last_motion_on_axis_{a:n} = s:translate_lhs(a:lhs)
 endfu
 
 fu! lg#motion#repeatable#main#share_env() abort "{{{1
