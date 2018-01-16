@@ -868,7 +868,7 @@ fu! lg#motion#repeatable#main#share_env() abort "{{{1
     \}
 endfu
 
-fu! lg#motion#repeatable#main#tfs_workaround(cmd) abort "{{{1
+fu! lg#motion#repeatable#main#tfs(cmd) abort "{{{1
     " TODO:{{{
     " We don't need to call this function to make `)` repeatable,
     " so why do we need to call it to make `fx` repeatable?
