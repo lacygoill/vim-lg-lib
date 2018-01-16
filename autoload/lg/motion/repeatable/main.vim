@@ -303,11 +303,15 @@ fu! s:is_inconsistent(motion) abort "{{{1
     if   a:motion.bwd.buffer && !a:motion.fwd.buffer
     \|| !a:motion.bwd.buffer &&  a:motion.fwd.buffer
         try
-            throw printf('%s and %s must be buffer or global mappings',
+            throw printf('%s and %s must be buffer or global mappings    for more info:  :messages',
             \             a:motion.bwd.lhs,
             \             a:motion.fwd.lhs)
         catch
-            return lg#catch_error()
+            echohl ErrorMsg
+            echom a:motion['made repeatable from']
+            echom ' '
+            echohl NONE
+            call lg#catch_error()
         finally
             return 1
         endtry
@@ -365,13 +369,14 @@ fu! lg#motion#repeatable#main#make_repeatable(what) abort "{{{1
         " patch.  For this code to work in  Neovim, you need to wait for the
         " patch to be merged there, or use `:redir`.
        "}}}
-        if !is_local && execute(mode.'map <buffer> '.m.bwd) !~# '^\n\nNo mapping found$'
-            " Why?{{{
-            "
-            " If the  motion is global, it  could be shadowed by  a buffer-local
-            " mapping  using the  same lhs. We  handle this  particular case  by
-            " temporarily removing the latter.
-            "}}}
+        " Why?{{{
+        "
+        " If  the motion  is global,  one  of its  lhs  could be  shadowed by  a
+        " buffer-local  mapping using  the same  lhs. We handle  this particular
+        " case by temporarily removing the latter.
+        "}}}
+        if !is_local && (execute(mode.'map <buffer> '.m.bwd) !~# '^\n\nNo mapping found$'
+                    \||  execute(mode.'map <buffer> '.m.fwd) !~# '^\n\nNo mapping found$')
             let map_save = s:unshadow(mode, m)
             call s:make_repeatable(mode, is_local, m, from)
             call lg#map#restore(map_save)
@@ -458,17 +463,22 @@ fu! s:make_repeatable(mode, is_local, m, from) abort "{{{1
 
     " How could we get an inconsistent motion?{{{
     "
-    " Install a global mapping in one direction:      <left>
-    " Install a buffer-local mapping in the other:    <right>
-    " Then:
+    "     nno            <left>     <left>
+    "     nno            <right>    <right>
+    "     nno  <buffer>  <right>   3<right>
     "
-    "         call s:make_repeatable({'mode': '',
-    "         \                          'buffer': 0,
-    "         \                          'motions': {'bwd': '<left>', 'fwd': '<right>', 'axis': 1})
+    "     call lg#motion#repeatable#main#make_repeatable(
+    "     \        {'mode':   'n',
+    "     \         'buffer':  0 ,
+    "     \         'from':    '',
+    "     \         'motions': [{'bwd': '<left>', 'fwd': '<right>', 'axis': 1}]})
+    "
     " TODO:
     " Are you sure this explanation is still valid?
     "
     " Update:
+    " Here's another issue.
+    "
     " Open dirvish right after opening a Vim session (with no files).
     " You'll see the plugin complain because of T (global) + t (local).
     " How can that happen?
@@ -482,14 +492,28 @@ fu! s:make_repeatable(mode, is_local, m, from) abort "{{{1
     "     2. the dirvish ftplugin installs a buffer local `t` mapping
     "
     "     3. the timer sources ~/.vim/autoload/slow_mappings/repeatable_motions.vim
-    "        which installs the global motion `Tt`
+    "        which tries to make the global motion `Tt` repeatable
     "        but the previous buffer-local mapping probably interferes
     "
     "        Because of this, the `[tT]x` motion isn't repeatable.
+    "
+    " Update:
+    " I've commented the code thinking that it's useless now that we modified.
+    " `lg#motion#repeatable#main#make_repeatable()`.
+    " However is it really?
+    " We can ask for a global motion or a local one (2 possibilities).
+    " We can pass a global / local / hybrid motion (3 possibilities).
+    "
+    " Does the current code work as expected no matter what (6 possibilities)?
+    " What happens when we ask for:
+    "
+    "     a local  motion, and pass a global one:   ???
+    "     a global motion, and pass a hybrid one:  ???
+    "     a local  motion, and pass a hybrid one:   ???
     "}}}
-    if  s:is_inconsistent(motion)
-        return
-    endif
+    " if  s:is_inconsistent(motion)
+    "     return
+    " endif
 
     " Why?{{{
     "
@@ -1064,8 +1088,8 @@ endfu
 
 fu! s:unshadow(mode, m) abort "{{{1
     let map_save = lg#map#save(a:mode, 1, [a:m.bwd, a:m.fwd])
-    exe a:mode.'unmap <buffer> '.a:m.bwd
-    exe a:mode.'unmap <buffer> '.a:m.fwd
+    exe 'sil! '.a:mode.'unmap <buffer> '.a:m.bwd
+    exe 'sil! '.a:mode.'unmap <buffer> '.a:m.fwd
     return map_save
 endfu
 

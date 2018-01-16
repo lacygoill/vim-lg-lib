@@ -65,7 +65,9 @@ fu! s:restore(map_save) abort "{{{1
             \. (maparg.silent  ? ' <silent> ' : '')
             \.  maparg.lhs
             \. ' '
-            \. substitute(maparg.rhs, '<SID>', '<SNR>'.maparg.sid.'_', 'g')
+            \. substitute(
+            \             substitute(maparg.rhs, '<SID>', '<SNR>'.maparg.sid.'_', 'g'),
+            \             '|', '<bar>', 'g')
         endif
     endfor
 endfu
