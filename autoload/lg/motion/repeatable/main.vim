@@ -395,7 +395,11 @@ fu! s:make_repeatable(mode, is_local, m, from) abort "{{{1
     let maparg = maparg(bwd, a:mode, 0, 1)
 
     if a:is_local && !get(maparg, 'buffer', 0)
-        return
+        try
+            throw 'E8000 [repeatable motion] inconsistent motion: '.a:from
+        catch
+            return lg#catch_error()
+        endtry
     endif
 
     " Purpose:{{{
@@ -508,8 +512,12 @@ fu! s:make_repeatable(mode, is_local, m, from) abort "{{{1
     " What happens when we ask for:
     "
     "     a local  motion, and pass a global one:   ???
+    "
     "     a global motion, and pass a hybrid one:  ???
     "     a local  motion, and pass a hybrid one:   ???
+    "
+    " Update:
+    " Remove `s:is_inconsistent()` if you don't use it anymore.
     "}}}
     " if  s:is_inconsistent(motion)
     "     return
@@ -627,16 +635,9 @@ fu! s:collides_with_db(motion, repeatable_motions) abort "{{{1
         if  a:motion.bwd.lhs ==# m.bwd.lhs && a:motion.bwd.mode ==# m.bwd.mode
         \|| a:motion.fwd.lhs ==# m.fwd.lhs && a:motion.fwd.mode ==# m.fwd.mode
             try
-                throw printf("[repeatable motion] can't process '%s : %s'
-                \    for more info:  :messages",
+                throw printf("E8001 [repeatable motion] cannot process motion '%s : %s'",
                 \             m.bwd.lhs, m.fwd.lhs)
             catch
-                echohl ErrorMsg
-                echom 'one of the key is already used in a motion'
-                echom 'the error comes from this file:'
-                echom a:motion['made repeatable from']
-                echom ' '
-                echohl NONE
                 call lg#catch_error()
             finally
                 return 1
