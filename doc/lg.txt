@@ -8,6 +8,6 @@ is not used in a local mapping.
 The motion  you're trying to make  repeatable (M), is already  repeatable:
 total collision
 
-Or, a motion in a database of repeatable motions has the same mode as (M),
-the same scope, and one of its {lhs} has the same value as one of (M):
-partial collision
+Or, a motion in a database of  repeatable motions (global or local) has the same
+mode as (M), the same  scope, and one of its {lhs} has the  same value as one of
+(M): partial collision

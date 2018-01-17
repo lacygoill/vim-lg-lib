@@ -35,7 +35,7 @@ fu! lg#log#output(what) abort "{{{1
         "                                    └─ use binary mode to NOT add a linefeed after the title
         " How do you know Vim adds a linefeed?{{{
         "
-        " Watch:
+        " MWE:
         "         :!touch /tmp/file
         "         :call writefile(['text'], '/tmp/file')
         "         :!xxd /tmp/file
@@ -91,7 +91,7 @@ fu! s:redirect_to_tempfile(tempfile, level, excmd) abort "{{{1
         " └─ even though verbose messages are redirected to a file,
         "    regular messages are  still displayed on the  command-line;
         "    we don't want that
-        "    Watch:
+        "    MWE:
         "           Verbose ls
     catch
         return lg#catch_error()

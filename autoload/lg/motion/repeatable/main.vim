@@ -511,10 +511,15 @@ fu! s:make_repeatable(mode, is_local, m, from) abort "{{{1
     " Does the current code work as expected no matter what (6 possibilities)?
     " What happens when we ask for:
     "
-    "     a local  motion, and pass a global one:   ???
+    "     a local  motion, and pass a global one:  ???
+    "         not possible
     "
     "     a global motion, and pass a hybrid one:  ???
-    "     a local  motion, and pass a hybrid one:   ???
+    "     a local  motion, and pass a hybrid one:  ???
+    "
+    " We should forbid a hybrid motion; doesn't make much sense in practice.
+    " Besides, where would  you store its information: in the  global db, or the
+    " local one?
     "
     " Update:
     " Remove `s:is_inconsistent()` if you don't use it anymore.
@@ -571,7 +576,7 @@ fu! s:make_repeatable(mode, is_local, m, from) abort "{{{1
     if a:is_local
         " Why?{{{
         "
-        " Watch:
+        " MWE:
         "
         "     coD
         "     :e foo.vim
