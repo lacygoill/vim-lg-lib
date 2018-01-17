@@ -1,13 +1,19 @@
                                         *E8000*
 
-You asked for a local motion to be  made repeatable, but at least 1 of its {lhs}
-is not used in a local mapping.
+You asked  for a local motion  to be made  repeatable: both its {lhs}  should be
+used in local mappings. But here, at least 1 of them is not.
+
 
                                         *E8001*
 
-The motion  you're trying to make  repeatable (M), is already  repeatable:
-total collision
+Either the motion you're trying to make repeatable (M), is already repeatable:
 
-Or, a motion in a database of  repeatable motions (global or local) has the same
-mode as (M), the same  scope, and one of its {lhs} has the  same value as one of
-(M): partial collision
+                               total collision
+
+Or, a motion in a database of repeatable motions (global or local) has:
+
+    • the same mode as (M)
+    • the same scope as (M)
+    • one of its {lhs} has the same value as one of (M)
+
+                              partial collision

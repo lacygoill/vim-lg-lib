@@ -394,9 +394,13 @@ fu! s:make_repeatable(mode, is_local, m, from) abort "{{{1
     let axis   = a:m.axis
     let maparg = maparg(bwd, a:mode, 0, 1)
 
-    if a:is_local && !get(maparg, 'buffer', 0)
+    " if we ask for a local motion to be made repeatable,
+    " both lhs should be used in local mappings
+    if   a:is_local
+    \&& (!get(maparg, 'buffer', 0)
+    \||  !get(maparg(fwd, a:mode, 0, 1), 'buffer', 0))
         try
-            throw 'E8000 [repeatable motion] inconsistent motion: '.a:from
+            throw 'E8000:  [repeatable motion]  invalid motion: '.a:from
         catch
             return lg#catch_error()
         endtry
@@ -506,20 +510,39 @@ fu! s:make_repeatable(mode, is_local, m, from) abort "{{{1
     " `lg#motion#repeatable#main#make_repeatable()`.
     " However is it really?
     " We can ask for a global motion or a local one (2 possibilities).
-    " We can pass a global / local / hybrid motion (3 possibilities).
+    " There can be a global / local / hybrid motion (3 possibilities).
     "
     " Does the current code work as expected no matter what (6 possibilities)?
     " What happens when we ask for:
     "
-    "     a local  motion, and pass a global one:  ???
-    "         not possible
+    "     a local  motion, and there exists a local one:   ✔
+    "     a global motion, and there's no local one:       ✔
     "
-    "     a global motion, and pass a hybrid one:  ???
-    "     a local  motion, and pass a hybrid one:  ???
+    "     a global motion, and there's a local one:        ✔
+    "         the plugin will unshadow the global motion
     "
-    " We should forbid a hybrid motion; doesn't make much sense in practice.
-    " Besides, where would  you store its information: in the  global db, or the
-    " local one?
+    "     a local  motion, and there's no local one:       ✔
+    "
+    "         the plugin will bail out because we check
+    "         that both lhs are used in local mappings
+    "         at the beginning of the function
+    "
+    "     a local  motion, and there's a hybrid one:       ✔
+    "
+    "         the plugin will bail out because we check
+    "         that both lhs are used in local mappings
+    "         at the beginning of the function
+    "
+    "     a global motion, and there's a hybrid one:       ✔
+    "
+    "         the plugin will install a wrapper around
+    "         the 2 global lhs (unshadowing the local one)
+    "
+    "
+    "         A consequence of all of this, is that the plugin doesn't process a
+    "         hybrid motion.  Which is good  because it wouldn't make much sense
+    "         in practice.  Besides,  where would you store  its information: in
+    "         the global db, or the local one?
     "
     " Update:
     " Remove `s:is_inconsistent()` if you don't use it anymore.
@@ -640,7 +663,7 @@ fu! s:collides_with_db(motion, repeatable_motions) abort "{{{1
         if  a:motion.bwd.lhs ==# m.bwd.lhs && a:motion.bwd.mode ==# m.bwd.mode
         \|| a:motion.fwd.lhs ==# m.fwd.lhs && a:motion.fwd.mode ==# m.fwd.mode
             try
-                throw printf("E8001 [repeatable motion] cannot process motion '%s : %s'",
+                throw printf("E8001:  [repeatable motion]  cannot process motion '%s : %s'",
                 \             m.bwd.lhs, m.fwd.lhs)
             catch
                 call lg#catch_error()
