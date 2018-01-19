@@ -32,7 +32,7 @@ fu! lg#motion#repeatable#listing#complete(arglead, cmdline, _p) abort "{{{1
         return join(opt, "\n")
 
     elseif a:cmdline =~# '-axis\s\+$'
-        return join(keys(s:AXES), "\n")
+        return join(values(s:AXES), "\n")
 
     elseif a:cmdline =~# '-mode \w*$'
         let modes = [

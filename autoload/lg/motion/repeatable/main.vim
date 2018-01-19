@@ -35,69 +35,6 @@ if exists('g:autoloaded_lg#motion#repeatable#main')
 endif
 let g:autoloaded_lg#motion#repeatable#main = 1
 
-" Terminology:{{{
-"
-"     axis
-"
-"             type of space in which we are moving:
-"
-"                     • buffer text
-"                     • filesystem
-"                     • versions of buffer
-"
-"                           in this particular case, the “motion” is in fact an edition
-"                           the edition makes us move from a version of the buffer to another
-"
-"                     • option values
-"
-"     database (db)
-"
-"             dictionary `[s:|b:]repeatable_motions`
-"             contains the information relative to all repeatable motions
-"
-"     motion
-"
-"             dictionary containing 3 keys:
-"
-"                 • bwd:     output of `maparg('<left>')` where '<left>' is
-"                            backward motion
-"
-"                 • fwd:     same thing for `<right>` as the forward motion
-"
-"                 • axis:    number which determines how the motion should be
-"                            repeated:
-"
-"                                1:  with a bare , ;
-"                                2:                         z
-"                                3:  same but prefixed with +
-"                                4:                         co
-"                                …
-"
-"                            the 2nd axis could be  reserved to motions moving the
-"                            focus across different files, or resizing a window
-"
-"                            the 3rd axis for editions which can be performed in 2 directions
-"
-"                            the 4th axis for cycling through options values
-"}}}
-
-" TODO:
-" We invoke `maparg()` too many times.
-" To optimize. (What about `type()`?)
-"
-" It's called in:
-"
-"     make_repeatable()      (unavoidable, because initial)
-"     s:populate()           (unavoidable, because we need maparg but for another direction)
-"     s:get_motion_info()    (avoidable?)
-"
-" `s:get_motion_info()` is called in:
-"
-"         move_again()
-"         s:move()
-"         s:get_direction()
-"         s:update_last_motion()
-
 " TODO:
 " Split the code in several files if needed.
 " Also, make the signature of the main function similar to `submode#map()`;
@@ -123,11 +60,24 @@ fu! s:init() abort "{{{1
     " We need to be consistent with the output of `maparg()`. So, we choose
     " an empty space.
 "}}}
+
+    " How are the keys and values used?{{{
+    "
+    " The names of the keys don't matter.
+    "
+    " But the values must match the ones used in the 1st argument
+    " passed to `move_again()`.
+    " They are used as a suffix in the names of the variables:
+    "
+    "     s:last_motion_on_axis_{suffix}
+    "
+    " `move_again()` is used in the rhs of mappings such as `,` and `z;`.
+    "}}}
     let s:AXES = {
-    \              '1': 1,
-    \              '2': 2,
-    \              '3': 3,
-    \              '4': 4,
+    \              'bare': 1,
+    \              'z':    2,
+    \              '+':    3,
+    \              'co':   4,
     \            }
 
     let s:N_AXES = len(s:AXES)
@@ -156,12 +106,187 @@ fu! s:init() abort "{{{1
 endfu
 call s:init()
 
-fu! s:get_direction(lhs) abort "{{{1
-    let motion = s:get_motion_info(a:lhs)
-    if type(motion) != type({})
-        return ''
+fu! s:collides_with_db(motion, repeatable_motions) abort "{{{1
+    " Purpose:{{{
+    " Detect whether the motion we're trying  to make repeatable collides with
+    " a motion in the db.
+    "}}}
+    " When does a collision occur?{{{
+    "
+    " When `a:motion` is already in the db (TOTAL collision).
+    " Or when a motion in the db has the same mode as `a:motion`, and one of its
+    " `lhs` key has the same value as one of `a:motion` (PARTIAL collision).
+    "}}}
+    " Why is a collision an issue?{{{
+    "
+    " If you try to install a wrapper around a key which has already been wrapped,
+    " you'll probably end up losing the original definition:
+    " in the db, it may be replaced with the 1st wrapper.
+    "
+    " Besides:
+    " Vim shouldn't make a motion repeatable twice (total collision):
+    "
+    "     Because it means we have a useless invocation of
+    "     `lg#motion#repeatable#main#make_repeatable()`
+    "     somewhere in our config, it should be removed.
+    "
+    " Vim shouldn't change the motion to which a lhs belongs (partial collision):
+    "
+    "     we define the motion:    [m  ]m  (normal mode)    ✔
+    "     we define the motion:    [m  ]]  (normal mode)    ✘
+    "
+    "     We probably have made an error. We should be warned to fix it.
+    "}}}
+
+    "   ┌ Motion
+    "   │
+    for m in a:repeatable_motions
+        if  a:motion.bwd.lhs ==# m.bwd.lhs && a:motion.bwd.mode ==# m.bwd.mode
+        \|| a:motion.fwd.lhs ==# m.fwd.lhs && a:motion.fwd.mode ==# m.fwd.mode
+            try
+                throw printf("E8001:  [repeatable motion]  cannot process motion '%s : %s'",
+                \             m.bwd.lhs, m.fwd.lhs)
+            catch
+                call lg#catch_error()
+            finally
+                return 1
+            endtry
+        endif
+    endfor
+    return 0
+endfu
+
+fu! lg#motion#repeatable#main#fts(cmd) abort "{{{1
+    " TODO:{{{
+    " We don't need to call this function to make `)` repeatable,
+    " so why do we need to call it to make `fx` repeatable?
+    "
+    " What is special about making `fx` repeatable, compared to `)`?
+    "
+    " Update:
+    " `move_again()` → `s:move()` → `fts_workaround()`
+    "                     │
+    "                     └ something different happens here depending on whether
+    "                       the last motion is a simple `)` or a special `fx`
+    "
+    "                       `s:move()` saves the last motion as being:
+    "
+    "                               `)` when we press `)`
+    "                               `f` when we press `fx`
+    "
+    "                       It fails to save the argument passed to the `f` command.
+    "
+    "                       Why?
+    "                       Because `s:move()` saves the lhs of the mapping used.
+    "                       `f` is the lhs of our mapping. Not `fx`.
+    "                       `x` is merely asked via `getchar()`.
+    "                       It doesn't explicitly belong to the lhs.
+    "
+    "                       So, there's an issue here.
+    "                       `f` is not a sufficient information to successfully repeat `fx`.
+    "                       2 solutions:
+    "
+    "                               1. save `x` to later repeat `fx`
+    "                               2. repeat `fx` by pressing `;`
+    "
+    "                       The 1st solution will work with `tx` and `Tx`, but only the 1st time.
+    "                       After that, the cursor won't move, because it will always be stopped
+    "                       by the same `x`.
+    "                       So we must use the 2nd solution, and press `;`.
+    "
+    "                       to finish
+"}}}
+
+    " Why not `call feedkeys('zv', 'int')`?{{{
+    "
+    " It  would interfere  with  `vim-sneak`,  when the  latter  asks for  which
+    " character we want to move on. `zv` would be interpreted like this:
+    "
+    "     zv
+    "     ││
+    "     │└ enter visual mode
+    "     └ move cursor to next/previous `z` character
+    "}}}
+    " How is this autocmd better?{{{
+    "
+    " `feedkeys('zv', 'int')` would IMMEDIATELY press `zv` (✘).
+    " The autocmd also presses `zv`, but only after a motion has occurred (✔).
+    "}}}
+    augroup sneak_open_folds
+        au!
+        au CursorMoved * exe 'norm! zv'
+        \|               exe 'au! sneak_open_folds '
+        \|               aug! sneak_open_folds
+    augroup END
+
+    " What's the purpose of this `if` conditional?{{{
+    "
+    " This function can be called:
+    "
+    "     •   directly from a  [ftFT]  mapping
+    "     • indirectly from a  [;,]    mapping
+    "       │
+    "       └ move_again()  →  s:move()  →  fts_workaround()
+    "
+    " It needs to distinguish from where it was called.
+    " Because in  the first  case, it  needs to  ask the  user for  a character,
+    " before returning the  keys to press. In the other, it  doesn't need to ask
+    " anything.
+    "}}}
+    if s:repeating_motion_on_axis_1
+    "                             │
+    "                             └ `[tfTF]x` motions are specific to the axis 1,
+    "                                so there's no need to check `s:repeating_motion_on_axis_2,3,…`
+
+        let move_fwd = a:cmd =~# '\C[fts]'
+        "              │{{{
+        "              └ TODO: What is this?
+        "
+        " When we press `;` after `fx`, how is `a:cmd` obtained?
+        "
+        "   Update: It's `f`.
+        "   Here's what happens approximately:
+        "
+        "   ;  →  move_again(1,'fwd'))
+        "
+        "                 s:get_motion_info(s:last_motion_on_axis_1)  saved in `motion`
+        "                                   │
+        "                                   └ 'f'
+        "
+        "         s:move(motion.fwd.lhs, 0, 0)
+        "                │
+        "                └ 'f'
+        "
+        "                 s:get_motion_info(a:lhs)  saved in `motion`
+        "                                   │
+        "                                   └ 'f'
+        "
+        "                 s:get_direction(a:lhs)  saved in `dir_key`
+        "                 │
+        "                 └ 'fwd'
+        "
+        "         eval(motion[dir_key].rhs)
+        "              └─────────────────┤
+        "                                └ fts_workaround('f')
+        "                                                  │
+        "                                                  └ !!! a:cmd !!!
+        "
+        "          Consequence of all of this:
+        "          our plugin normalizes the direction of the motions `,` and `;`
+        "          i.e. `;` always moves the cursor forward no matter whether
+        "          we previously used f or F or t or T
+        "          In fact, it seems the normalization applies also to non-f motions!
+        "          Document this automatic normalization somewhere.
+        "}}}
+        call feedkeys(move_fwd ? "\<plug>Sneak_;" : "\<plug>Sneak_,", 'i')
+    else
+        call feedkeys("\<plug>Sneak_".a:cmd, 'i')
     endif
-    let is_fwd = s:translate_lhs(a:lhs) ==# s:translate_lhs(motion.fwd.lhs)
+    return ''
+endfu
+
+fu! s:get_direction(lhs, motion) abort "{{{1
+    let is_fwd = s:translate_lhs(a:lhs) ==# s:translate_lhs(a:motion.fwd.lhs)
     return is_fwd ? 'fwd' : 'bwd'
 endfu
 
@@ -299,26 +424,6 @@ fu! s:invalid_axis_or_direction(axis, direction) abort "{{{1
     return !is_valid_axis || !is_valid_direction
 endfu
 
-fu! s:is_inconsistent(motion) abort "{{{1
-    if   a:motion.bwd.buffer && !a:motion.fwd.buffer
-    \|| !a:motion.bwd.buffer &&  a:motion.fwd.buffer
-        try
-            throw printf('%s and %s must be buffer or global mappings    for more info:  :messages',
-            \             a:motion.bwd.lhs,
-            \             a:motion.fwd.lhs)
-        catch
-            echohl ErrorMsg
-            echom a:motion['made repeatable from']
-            echom ' '
-            echohl NONE
-            call lg#catch_error()
-        finally
-            return 1
-        endtry
-    endif
-    return 0
-endfu
-
 fu! s:make_keys_feedable(seq) abort "{{{1
     let m = escape(a:seq, '"\')
     let special_chars = [
@@ -369,7 +474,7 @@ fu! lg#motion#repeatable#main#make_repeatable(what) abort "{{{1
         " patch.  For this code to work in  Neovim, you need to wait for the
         " patch to be merged there, or use `:redir`.
        "}}}
-        " Why?{{{
+        " Why this check?{{{
         "
         " If  the motion  is global,  one  of its  lhs  could be  shadowed by  a
         " buffer-local  mapping using  the same  lhs. We handle  this particular
@@ -392,13 +497,14 @@ fu! s:make_repeatable(mode, is_local, m, from) abort "{{{1
     let bwd    = a:m.bwd
     let fwd    = a:m.fwd
     let axis   = a:m.axis
-    let maparg = maparg(bwd, a:mode, 0, 1)
+    let b_maparg = maparg(bwd, a:mode, 0, 1)
+    let f_maparg = maparg(fwd, a:mode, 0, 1)
 
     " if we ask for a local motion to be made repeatable,
     " both lhs should be used in local mappings
     if   a:is_local
-    \&& (!get(maparg, 'buffer', 0)
-    \||  !get(maparg(fwd, a:mode, 0, 1), 'buffer', 0))
+    \&& (!get(b_maparg, 'buffer', 0)
+    \||  !get(f_maparg, 'buffer', 0))
         try
             throw 'E8000:  [repeatable motion]  invalid motion: '.a:from
         catch
@@ -453,7 +559,7 @@ fu! s:make_repeatable(mode, is_local, m, from) abort "{{{1
     "
     "         let motion = s:populate(motion, …)
     "}}}
-    call s:populate(motion, a:mode, bwd, 0, maparg)
+    call s:populate(motion, a:mode, bwd, 0, b_maparg)
     " `motion` value is now sth like:{{{
     "
     " { 'axis' : 1,
@@ -461,95 +567,13 @@ fu! s:make_repeatable(mode, is_local, m, from) abort "{{{1
     "                                                             │
     "                                                             └ nvo
     "}}}
-    call s:populate(motion, a:mode, fwd, 1)
+    call s:populate(motion, a:mode, fwd, 1, f_maparg)
     " `motion` value is now sth like:{{{
     "
     " { 'axis' : 1,
     "   'bwd'    : {'expr': 0, 'noremap': 1, 'lhs': '…', 'mode': ' ', … },
     "   'fwd'    : {'expr': 0, 'noremap': 1, 'lhs': '…', 'mode': ' ', … }}
     "}}}
-
-    " How could we get an inconsistent motion?{{{
-    "
-    "     nno            <left>     <left>
-    "     nno            <right>    <right>
-    "     nno  <buffer>  <right>   3<right>
-    "
-    "     call lg#motion#repeatable#main#make_repeatable(
-    "     \        {'mode':   'n',
-    "     \         'buffer':  0 ,
-    "     \         'from':    '',
-    "     \         'motions': [{'bwd': '<left>', 'fwd': '<right>', 'axis': 1}]})
-    "
-    " TODO:
-    " Are you sure this explanation is still valid?
-    "
-    " Update:
-    " Here's another issue.
-    "
-    " Open dirvish right after opening a Vim session (with no files).
-    " You'll see the plugin complain because of T (global) + t (local).
-    " How can that happen?
-    " Those are 2 different motions. Why does the plugin mixes them?
-    "
-    " Update:
-    " Here's what I think happen:
-    "
-    "     1. you start Vim, and immediately open dirvish
-    "
-    "     2. the dirvish ftplugin installs a buffer local `t` mapping
-    "
-    "     3. the timer sources ~/.vim/autoload/slow_mappings/repeatable_motions.vim
-    "        which tries to make the global motion `Tt` repeatable
-    "        but the previous buffer-local mapping probably interferes
-    "
-    "        Because of this, the `[tT]x` motion isn't repeatable.
-    "
-    " Update:
-    " I've commented the code thinking that it's useless now that we modified.
-    " `lg#motion#repeatable#main#make_repeatable()`.
-    " However is it really?
-    " We can ask for a global motion or a local one (2 possibilities).
-    " There can be a global / local / hybrid motion (3 possibilities).
-    "
-    " Does the current code work as expected no matter what (6 possibilities)?
-    " What happens when we ask for:
-    "
-    "     a local  motion, and there exists a local one:   ✔
-    "     a global motion, and there's no local one:       ✔
-    "
-    "     a global motion, and there's a local one:        ✔
-    "         the plugin will unshadow the global motion
-    "
-    "     a local  motion, and there's no local one:       ✔
-    "
-    "         the plugin will bail out because we check
-    "         that both lhs are used in local mappings
-    "         at the beginning of the function
-    "
-    "     a local  motion, and there's a hybrid one:       ✔
-    "
-    "         the plugin will bail out because we check
-    "         that both lhs are used in local mappings
-    "         at the beginning of the function
-    "
-    "     a global motion, and there's a hybrid one:       ✔
-    "
-    "         the plugin will install a wrapper around
-    "         the 2 global lhs (unshadowing the local one)
-    "
-    "
-    "         A consequence of all of this, is that the plugin doesn't process a
-    "         hybrid motion.  Which is good  because it wouldn't make much sense
-    "         in practice.  Besides,  where would you store  its information: in
-    "         the global db, or the local one?
-    "
-    " Update:
-    " Remove `s:is_inconsistent()` if you don't use it anymore.
-    "}}}
-    " if  s:is_inconsistent(motion)
-    "     return
-    " endif
 
     " Why?{{{
     "
@@ -590,7 +614,7 @@ fu! s:make_repeatable(mode, is_local, m, from) abort "{{{1
         return
     endif
 
-    call s:install_wrapper(a:mode, a:m, maparg)
+    call s:install_wrapper(a:mode, a:m, b_maparg)
 
     " add the motion in a db, so that we can retrieve info about it later;
     " in particular its rhs
@@ -625,56 +649,6 @@ fu! s:make_repeatable(mode, is_local, m, from) abort "{{{1
     endif
 endfu
 
-fu! s:collides_with_db(motion, repeatable_motions) abort "{{{1
-    " Purpose:{{{
-    " Detect whether the motion we're trying  to make repeatable collides with
-    " a motion in the db.
-    "}}}
-    " When does a collision occur?{{{
-    "
-    " When `a:motion` is already in the db (TOTAL collision).
-    " Or when a motion in the db has the same mode as `a:motion`, and one of its
-    " `lhs` key has the same value as one of `a:motion` (PARTIAL collision).
-    "}}}
-    " Why is a collision an issue?{{{
-    "
-    " If you try to install a wrapper around a key which has already been wrapped,
-    " you'll probably end up losing the original definition:
-    " in the db, it may be replaced with the 1st wrapper.
-    "
-    " Besides:
-    " Vim shouldn't make a motion repeatable twice (total collision):
-    "
-    "     Because it means we have a useless invocation of
-    "     `lg#motion#repeatable#main#make_repeatable()`
-    "     somewhere in our config, it should be removed.
-    "
-    " Vim shouldn't change the motion to which a lhs belongs (partial collision):
-    "
-    "     we define the motion:    [m  ]m  (normal mode)    ✔
-    "     we define the motion:    [m  ]]  (normal mode)    ✘
-    "
-    "     We probably have made an error. We should be warned to fix it.
-    "}}}
-
-    "   ┌ Motion
-    "   │
-    for m in a:repeatable_motions
-        if  a:motion.bwd.lhs ==# m.bwd.lhs && a:motion.bwd.mode ==# m.bwd.mode
-        \|| a:motion.fwd.lhs ==# m.fwd.lhs && a:motion.fwd.mode ==# m.fwd.mode
-            try
-                throw printf("E8001:  [repeatable motion]  cannot process motion '%s : %s'",
-                \             m.bwd.lhs, m.fwd.lhs)
-            catch
-                call lg#catch_error()
-            finally
-                return 1
-            endtry
-        endif
-    endfor
-    return 0
-endfu
-
 fu! s:move(lhs, buffer, update_last_motion, ...) abort "{{{1
     " What is the purpose of this optional argument?{{{
     "
@@ -683,11 +657,16 @@ fu! s:move(lhs, buffer, update_last_motion, ...) abort "{{{1
     " If we let the function translate them, it will translate `<plug>`.
     "}}}
 
-    " Why?{{{
+    let motion = s:get_motion_info(a:lhs)
+    if type(motion) != type({})
+        return ''
+    endif
+
+    " Why this check?{{{
     "
     " To be efficient. There's no need to always update the last motion.
     "}}}
-    " When is it useless to update it?{{{
+    " When is it useless to update last motion?{{{
     "
     " `s:move()` is called  by `move_again()` to know which keys  to type when
     " we press `;`  (&friends).  When that happens, we don't  need to update the
@@ -699,15 +678,23 @@ fu! s:move(lhs, buffer, update_last_motion, ...) abort "{{{1
     " motions, we pass a zero flag.
     "}}}
     if a:update_last_motion
-        call s:update_last_motion(a:lhs)
+        " Why don't we translate `a:lhs`?{{{
+        "
+        " There's probably no need to.
+        " This function is called at the beginning of `s:move()`.
+        " The  latter passes  to it  a keysequence,  which originally  comes from  a
+        " mapping. And Vim automatically translates special keys in a mapping.
+        "
+        "     mapping → s:move(lhs, …)
+        "     │                │
+        "     │                └ result of the previous translation
+        "     │
+        "     └ automatically translates special keys
+        "}}}
+        let s:last_motion_on_axis_{motion.axis} = a:lhs
     endif
 
-    let motion = s:get_motion_info(a:lhs)
-    if type(motion) != type({})
-        return ''
-    endif
-
-    let dir_key = s:get_direction(a:lhs)
+    let dir_key = s:get_direction(a:lhs, motion)
     if empty(dir_key)
         return ''
     endif
@@ -939,13 +926,12 @@ fu! lg#motion#repeatable#main#move_again(axis, dir) abort "{{{1
     return ''
 endfu
 
-fu! s:populate(motion, mode, lhs, is_fwd, ...) abort "{{{1
-    let maparg = a:0 ? a:1 : maparg(a:lhs, a:mode, 0, 1)
+fu! s:populate(motion, mode, lhs, is_fwd, maparg) abort "{{{1
     let dir = a:is_fwd ? 'fwd' : 'bwd'
 
     " make a custom mapping repeatable
-    if !empty(maparg)
-        let a:motion[dir] = maparg
+    if !empty(a:maparg)
+        let a:motion[dir] = a:maparg
     " make a default motion repeatable
     else
         let a:motion[dir] = extend(deepcopy(s:DEFAULT_MAPARG),
@@ -982,135 +968,6 @@ fu! lg#motion#repeatable#main#share_env() abort "{{{1
     \}
 endfu
 
-fu! lg#motion#repeatable#main#fts(cmd) abort "{{{1
-    " TODO:{{{
-    " We don't need to call this function to make `)` repeatable,
-    " so why do we need to call it to make `fx` repeatable?
-    "
-    " What is special about making `fx` repeatable, compared to `)`?
-    "
-    " Update:
-    " `move_again()` → `s:move()` → `fts_workaround()`
-    "                     │
-    "                     └ something different happens here depending on whether
-    "                       the last motion is a simple `)` or a special `fx`
-    "
-    "                       `s:move()` saves the last motion as being:
-    "
-    "                               `)` when we press `)`
-    "                               `f` when we press `fx`
-    "
-    "                       It fails to save the argument passed to the `f` command.
-    "
-    "                       Why?
-    "                       Because `s:move()` saves the lhs of the mapping used.
-    "                       `f` is the lhs of our mapping. Not `fx`.
-    "                       `x` is merely asked via `getchar()`.
-    "                       It doesn't explicitly belong to the lhs.
-    "
-    "                       So, there's an issue here.
-    "                       `f` is not a sufficient information to successfully repeat `fx`.
-    "                       2 solutions:
-    "
-    "                               1. save `x` to later repeat `fx`
-    "                               2. repeat `fx` by pressing `;`
-    "
-    "                       The 1st solution will work with `tx` and `Tx`, but only the 1st time.
-    "                       After that, the cursor won't move, because it will always be stopped
-    "                       by the same `x`.
-    "                       So we must use the 2nd solution, and press `;`.
-    "
-    "                       to finish
-"}}}
-
-    " Why not `call feedkeys('zv', 'int')`?{{{
-    "
-    " It  would interfere  with  `vim-sneak`,  when the  latter  asks for  which
-    " character we want to move on. `zv` would be interpreted like this:
-    "
-    "     zv
-    "     ││
-    "     │└ enter visual mode
-    "     └ move cursor to next/previous `z` character
-    "}}}
-    " How is this autocmd better?{{{
-    "
-    " `feedkeys('zv', 'int')` would IMMEDIATELY press `zv` (✘).
-    " The autocmd also presses `zv`, but only after a motion has occurred (✔).
-    "}}}
-    augroup sneak_open_folds
-        au!
-        au CursorMoved * exe 'norm! zv'
-        \|               exe 'au! sneak_open_folds '
-        \|               aug! sneak_open_folds
-    augroup END
-
-    " What's the purpose of this `if` conditional?{{{
-    "
-    " This function can be called:
-    "
-    "     •   directly from a  [ftFT]  mapping
-    "     • indirectly from a  [;,]    mapping
-    "       │
-    "       └ move_again()  →  s:move()  →  fts_workaround()
-    "
-    " It needs to distinguish from where it was called.
-    " Because in  the first  case, it  needs to  ask the  user for  a character,
-    " before returning the  keys to press. In the other, it  doesn't need to ask
-    " anything.
-    "}}}
-    if s:repeating_motion_on_axis_1
-    "                             │
-    "                             └ `[tfTF]x` motions are specific to the axis 1,
-    "                                so there's no need to check `s:repeating_motion_on_axis_2,3,…`
-
-        let move_fwd = a:cmd =~# '\C[fts]'
-        "              │{{{
-        "              └ TODO: What is this?
-        "
-        " When we press `;` after `fx`, how is `a:cmd` obtained?
-        "
-        "   Update: It's `f`.
-        "   Here's what happens approximately:
-        "
-        "   ;  →  move_again(1,'fwd'))
-        "
-        "                 s:get_motion_info(s:last_motion_on_axis_1)  saved in `motion`
-        "                                   │
-        "                                   └ 'f'
-        "
-        "         s:move(motion.fwd.lhs, 0, 0)
-        "                │
-        "                └ 'f'
-        "
-        "                 s:get_motion_info(a:lhs)  saved in `motion`
-        "                                   │
-        "                                   └ 'f'
-        "
-        "                 s:get_direction(a:lhs)  saved in `dir_key`
-        "                 │
-        "                 └ 'fwd'
-        "
-        "         eval(motion[dir_key].rhs)
-        "              └─────────────────┤
-        "                                └ fts_workaround('f')
-        "                                                  │
-        "                                                  └ !!! a:cmd !!!
-        "
-        "          Consequence of all of this:
-        "          our plugin normalizes the direction of the motions `,` and `;`
-        "          i.e. `;` always moves the cursor forward no matter whether
-        "          we previously used f or F or t or T
-        "          In fact, it seems the normalization applies also to non-f motions!
-        "          Document this automatic normalization somewhere.
-        "}}}
-        call feedkeys(move_fwd ? "\<plug>Sneak_;" : "\<plug>Sneak_,", 'i')
-    else
-        call feedkeys("\<plug>Sneak_".a:cmd, 'i')
-    endif
-    return ''
-endfu
-
 fu! s:translate_lhs(lhs) abort "{{{1
     return eval('"'.escape(substitute(a:lhs, '<\ze[^>]\+>', '\\<', 'g'), '"').'"')
 endfu
@@ -1120,31 +977,6 @@ fu! s:unshadow(mode, m) abort "{{{1
     exe 'sil! '.a:mode.'unmap <buffer> '.a:m.bwd
     exe 'sil! '.a:mode.'unmap <buffer> '.a:m.fwd
     return map_save
-endfu
-
-fu! s:update_last_motion(lhs) abort "{{{1
-    let motion = s:get_motion_info(a:lhs)
-    if type(motion) != type({})
-        return
-    endif
-    let n = motion.axis
-    " TODO:
-    " Should we translate `a:lhs`?
-    " I think yes. Why?
-    " Because this function is called at the beginning of `s:move()`.
-    " The  latter passes  to it  a keysequence,  which originally  comes from  a
-    " mapping:  Vim automatically translates it.
-    "
-    "     mapping → s:move(lhs, …) → s:update_last_motion(lhs)
-    "     │                │                              │
-    "     │                │                              └ same result
-    "     │                │
-    "     │                └ result of the previous translation
-    "     │
-    "     └ automatically translates special keys
-    "
-    " Find an example where `s:translate_lhs()` is necessary.
-    let s:last_motion_on_axis_{n} = s:translate_lhs(a:lhs)
 endfu
 
 fu! s:update_undo_ftplugin() abort "{{{1

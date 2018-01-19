@@ -1,19 +1,217 @@
+lg-lib.txt    lg-lib    Last change: January 19 2018
+LG-LIB - TABLE OF CONTENTS                                   *lg-lib* *lg-lib-toc*
+==============================================================================
+
+
+                                        *repeatable-motion-global-local*
+
+You can ask to make a global motion repeatable or a local one (2 possibilities).
+Besides, there can be (3 possibilities):
+
+    • a global motion    using the same 2 {lhs}
+
+    • a local motion     "
+
+    • a local motion     using one, and only one, identical {lhs}
+
+          its left  {lhs} is used  in a  local mapping, and  the right one  in a
+          global mapping, or the reverse
+
+That makes 6 possible combinations. Here's what happens for each of them.
+When you ask for:
+
+    • a local motion, and it exists
+
+              the motion is made repeatable
+
+    • a global motion, and there's no shadowing
+      local motion
+
+              the motion is made repeatable
+
+    • a global motion, and there's a shadowing
+      local motion
+
+            the motion is made repeatable
+            the function will temporarily unshadow the global motion,
+            for |maparg()| to return the information about the latter
+
+    • a local motion, but it doesn't exist
+
+            the function will bail out and raise |E8000| because
+            it checks that both {lhs} are used in local mappings
+
+    • a local  motion, but it only partially exists
+
+            the function will bail out and raise |E8000| because
+            it checks that both {lhs} are used in local mappings
+
+    • a global motion, but one of its {lhs} is shadowed
+      by a local motion
+
+            the plugin will make the 2 global {lhs}
+            repeatable (unshadowing one of them)
+
+
+< Interface >_________________________________________________________________~
+
+
+
+                                        *lg#motion#repeatable#main#make_repeatable()*
+
+lg#motion#repeatable#main#make_repeatable({what})
+
+                Make the motions described in {what} repeatable.
+
+                {what} is a dictionary containing 4 keys:
+
+                        mode       the mode in which the motion is defined
+
+                        buffer     a boolean flag; when on, the motion is local
+                                   to the current buffer
+
+                        from       the filepath and the line address from which
+                                   the function is called;
+
+                                   you can get it programmatically with: >
+
+                                       expand('<sfile>:p').':'.expand('<slnum>')
+<
+                                   you can  give any  value, including  an empty
+                                   string; it will be  printed when asking for
+                                   a verbose listing of the database
+
+                        motions    a list of motions
+
+                                   each item must be a dictionary containing
+                                   3 keys:
+
+                                       bwd     key to press to move backwards
+
+                                       fwd     key to press to move forwards
+
+                                       axis    axis on which the motion belongs
+                                               determines how the motion can be
+                                               repeated
+
+                Example: >
+
+                        call lg#motion#repeatable#main#make_repeatable({
+                        \        'mode':    '',
+                        \        'buffer':  0,
+                        \        'from':    expand('<sfile>:p').':'.expand('<slnum>'),
+                        \        'motions': [
+                        \                     { 'bwd': '[M',  'fwd': ']M',  'axis': 1 },
+                        \                     { 'bwd': '[m',  'fwd': ']m',  'axis': 1 },
+                        \                   ],
+                        \ })
+<
+
+
+< Errors >____________________________________________________________________~
+
+
                                         *E8000*
 
 You asked  for a local motion  to be made  repeatable: both its {lhs}  should be
-used in local mappings. But here, at least 1 of them is not.
+used in local mappings. But here, at least one of them is not.
 
 
                                         *E8001*
 
 Either the motion you're trying to make repeatable (M), is already repeatable:
 
-                               total collision
+                               “total collision”
 
 Or, a motion in a database of repeatable motions (global or local) has:
 
     • the same mode as (M)
     • the same scope as (M)
-    • one of its {lhs} has the same value as one of (M)
+    • one of its {lhs} is identical to one of (M)
 
-                              partial collision
+                              “partial collision”
+
+
+< Terminology >_______________________________________________________________~
+
+                                        *repeatable-motion-terminology*
+
+ axis
+
+         Repeatable motions can be repeated with different keys.
+         Each group  of motions which  can be repeated  with the same  keys move
+         along the same axis.
+
+         Example: >
+
+                 noremap  <expr>            ,  lg#motion#repeatable#main#move_again(1,'bwd')
+                 noremap  <expr>            ;  lg#motion#repeatable#main#move_again(1,'fwd')
+                 noremap  <expr><unique>   z,  lg#motion#repeatable#main#move_again(2,'bwd')
+                 noremap  <expr><unique>   z;  lg#motion#repeatable#main#move_again(2,'fwd')
+                 noremap  <expr><unique>   +,  lg#motion#repeatable#main#move_again(3,'bwd')
+                 noremap  <expr><unique>   +;  lg#motion#repeatable#main#move_again(3,'fwd')
+                 nno      <expr><unique>  co,  lg#motion#repeatable#main#move_again(4,'bwd')
+                 nno      <expr><unique>  co;  lg#motion#repeatable#main#move_again(4,'fwd')
+<
+        Here, we use:
+
+                  `,`    `;`    to move on the 1st axis
+                 `z,`   `z;`    to move on the 2nd axis
+                 `+,`   `+;`    to move on the 3rd axis
+                `co,`  `co;`    to move on the 4th axis
+
+        Type of “space” in which we are moving:
+
+                 • buffer text
+                 • filesystem
+                 • versions of buffer
+
+                       in this particular  case, the “motion” is  in fact an
+                       edition; the latter makes us “move” from a version of
+                       the buffer to another
+
+                 • option values
+
+         More generally, you can invent your own axis/space.
+
+
+ database (db)
+
+         dictionary `[s:|b:]repeatable_motions`
+
+         Contains the information relative to all repeatable motions.
+
+
+ motion
+
+         dictionary containing 3 keys:
+
+             • bwd:     output of `maparg('<left>')` where <left> is
+                        the backward motion
+
+             • fwd:     same thing for `<right>` as the forward motion
+
+             • axis:    number which determines how the motion should be
+                        repeated
+
+                        Example:
+
+                            1:  with a bare             , ;
+                            2:  same but prefixed with  z
+                            3:                          +
+                            4:                          co
+
+                        the 2nd axis could be  reserved to motions moving the
+                        focus across different files, or resizing a window
+
+                        the 3rd axis for editions which can be performed
+                        in 2 directions
+
+                        the 4th axis for cycling through options values
+
+
+section
+
+header
+
+toc
