@@ -58,7 +58,6 @@ When you ask for:
 
 
                                         *lg#motion#repeatable#main#make_repeatable()*
-
 lg#motion#repeatable#main#make_repeatable({what})
 
                 Make the motions described in {what} repeatable.
@@ -78,10 +77,10 @@ lg#motion#repeatable#main#make_repeatable({what})
 
                                    the dictionary may contain an optional 3rd
                                    key: 'mode';
-                                   by default, the mappings repeating motions
-                                   are installed using `:noremap`;
-                                   if  'mode'  is  given   the  value  'n',  the
-                                   mappings will  be installed  with `:nnoremap`
+                                   by   default,  the   function  will   install
+                                   the  mappings  to  repeat  the  motion  using
+                                   `:noremap`, but if 'mode'  is given the value
+                                   'n', they will  be installed with `:nnoremap`
                                    instead;
                                    this  is  useful  if  the keys  may  have  an
                                    undesired effect in some mode;
@@ -105,17 +104,17 @@ lg#motion#repeatable#main#make_repeatable({what})
                                    each item must be a dictionary containing
                                    2 keys:
 
-                                       bwd     key to press to move backwards
+                                       'bwd'     key to press to move backwards
 
-                                       fwd     key to press to move forwards
+                                       'fwd'     key to press to move forwards
 
                 Example: >
 
                         call lg#motion#repeatable#main#make_repeatable({
-                        \        'mode':    '',
-                        \        'buffer':  0,
-                        \        'axis':  {'bwd': ',', 'fwd': ';'},
-                        \        'from':    expand('<sfile>:p').':'.expand('<slnum>'),
+                        \        'mode':   '',
+                        \        'buffer': 0,
+                        \        'axis':   {'bwd': ',', 'fwd': ';'},
+                        \        'from':   expand('<sfile>:p').':'.expand('<slnum>'),
                         \        'motions': [
                         \                     { 'bwd': '[M',  'fwd': ']M' },
                         \                     { 'bwd': '[m',  'fwd': ']m' },
