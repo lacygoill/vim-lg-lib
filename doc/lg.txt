@@ -113,11 +113,25 @@ lg#motion#repeatable#main#make_repeatable({what})
 
                                         *E8000*
 
+The dictionary argument you passed to `lg#motion#repeatable#main#make()` should
+contain the following keys:
+
+    • 'axis'
+    • 'buffer'
+    • 'from'
+    • 'mode'
+    • 'motions'
+
+At least one of them is missing.
+
+
+                                        *E8001*
+
 You asked  for a local motion  to be made  repeatable: both its {lhs}  should be
 used in local mappings. But here, at least one of them is not.
 
 
-                                        *E8001*
+                                        *E8002*
 
 Either the motion you're trying to make repeatable (M), is already repeatable:
 

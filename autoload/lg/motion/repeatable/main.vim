@@ -102,7 +102,7 @@ fu! s:collides_with_db(motion, repeatable_motions) abort "{{{1
     " Vim shouldn't make a motion repeatable twice (total collision):
     "
     "     Because it means we have a useless invocation of
-    "     `lg#motion#repeatable#main#make_repeatable()`
+    "     `lg#motion#repeatable#main#make()`
     "     somewhere in our config, it should be removed.
     "
     " Vim shouldn't change the motion to which a lhs belongs (partial collision):
@@ -119,7 +119,7 @@ fu! s:collides_with_db(motion, repeatable_motions) abort "{{{1
         if  a:motion.bwd.lhs ==# m.bwd.lhs && a:motion.bwd.mode ==# m.bwd.mode
         \|| a:motion.fwd.lhs ==# m.fwd.lhs && a:motion.fwd.mode ==# m.fwd.mode
             try
-                throw printf("E8001:  [repeatable motion]  cannot process motion '%s : %s'",
+                throw printf("E8002:  [repeatable motion]  cannot process motion '%s : %s'",
                 \             m.bwd.lhs, m.fwd.lhs)
             catch
                 call lg#catch_error()
@@ -434,13 +434,18 @@ fu! s:make_keys_feedable(seq) abort "{{{1
     sil exe 'return "'.m.'"'
 endfu
 
-fu! lg#motion#repeatable#main#make_repeatable(what) abort "{{{1
+fu! lg#motion#repeatable#main#make(what) abort "{{{1
     " can make several motions repeatable
 
-    " FIXME:
-    " Sanitize input.
-    " Check `what` has all the right keys.
-    " If it doesn't bail out, and raise an error.
+    " sanitize input
+    if sort(keys(a:what)) !=# ['axis', 'buffer', 'from', 'mode', 'motions']
+        try
+            throw 'E8000:  [repeatable motion]  missing key '.a:from
+        catch
+            call lg#catch_error()
+        endtry
+        return
+    endif
     let from     = a:what.from
     let mode     = a:what.mode
     let is_local = a:what.buffer
@@ -498,7 +503,7 @@ fu! s:make_repeatable(mode, is_local, axis, m, from) abort "{{{1
     \&& (!get(b_maparg, 'buffer', 0)
     \||  !get(f_maparg, 'buffer', 0))
         try
-            throw 'E8000:  [repeatable motion]  invalid motion: '.a:from
+            throw 'E8001:  [repeatable motion]  invalid motion: '.a:from
         catch
             return lg#catch_error()
         endtry
