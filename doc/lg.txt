@@ -3,6 +3,25 @@ LG-LIB - TABLE OF CONTENTS                                   *lg-lib* *lg-lib-to
 ==============================================================================
 
 
+                                        *repeatable-motion-absolute-direction*
+
+The key used to repeat a motion always move the cursor in the same direction.
+Example: >
+
+    call lg#motion#repeatable#main#make({
+    \        'mode':   '',
+    \        'buffer': 0,
+    \        'axis':   {'bwd': ',', 'fwd': ';'},
+    \        'from':   expand('<sfile>:p').':'.expand('<slnum>'),
+    \        'motions': [
+    \                     { 'bwd': '[m',  'fwd': ']m' },
+    \                   ],
+    \ })
+<
+After pressing `[m`, `;` will still move the cursor to the NEXT start of a method.
+In contrast, by default, after `Fx`, `;` will move the cursor the PREVIOUS `x`.
+
+
                                         *repeatable-motion-global-local*
 
 You can ask to make a global motion repeatable or a local one (2 possibilities).
@@ -57,8 +76,8 @@ When you ask for:
 
 
 
-                                        *lg#motion#repeatable#main#make_repeatable()*
-lg#motion#repeatable#main#make_repeatable({what})
+                                        *lg#motion#repeatable#main#make()*
+lg#motion#repeatable#main#make({what})
 
                 Make the motions described in {what} repeatable.
 
@@ -110,7 +129,7 @@ lg#motion#repeatable#main#make_repeatable({what})
 
                 Example: >
 
-                        call lg#motion#repeatable#main#make_repeatable({
+                        call lg#motion#repeatable#main#make({
                         \        'mode':   '',
                         \        'buffer': 0,
                         \        'axis':   {'bwd': ',', 'fwd': ';'},

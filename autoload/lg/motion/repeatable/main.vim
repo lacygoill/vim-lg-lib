@@ -131,134 +131,6 @@ fu! s:collides_with_db(motion, repeatable_motions) abort "{{{1
     return 0
 endfu
 
-fu! lg#motion#repeatable#main#fts(cmd) abort "{{{1
-    " TODO:{{{
-    " We don't need to call this function to make `)` repeatable,
-    " so why do we need to call it to make `fx` repeatable?
-    "
-    " What is special about making `fx` repeatable, compared to `)`?
-    "
-    " Update:
-    " `move_again()` → `s:move()` → `fts_workaround()`
-    "                     │
-    "                     └ something different happens here depending on whether
-    "                       the last motion is a simple `)` or a special `fx`
-    "
-    "                       `s:move()` saves the last motion as being:
-    "
-    "                               `)` when we press `)`
-    "                               `f` when we press `fx`
-    "
-    "                       It fails to save the argument passed to the `f` command.
-    "
-    "                       Why?
-    "                       Because `s:move()` saves the lhs of the mapping used.
-    "                       `f` is the lhs of our mapping. Not `fx`.
-    "                       `x` is merely asked via `getchar()`.
-    "                       It doesn't explicitly belong to the lhs.
-    "
-    "                       So, there's an issue here.
-    "                       `f` is not a sufficient information to successfully repeat `fx`.
-    "                       2 solutions:
-    "
-    "                               1. save `x` to later repeat `fx`
-    "                               2. repeat `fx` by pressing `;`
-    "
-    "                       The 1st solution will work with `tx` and `Tx`, but only the 1st time.
-    "                       After that, the cursor won't move, because it will always be stopped
-    "                       by the same `x`.
-    "                       So we must use the 2nd solution, and press `;`.
-    "
-    "                       to finish
-"}}}
-
-    " Why not `call feedkeys('zv', 'int')`?{{{
-    "
-    " It  would interfere  with  `vim-sneak`,  when the  latter  asks for  which
-    " character we want to move on. `zv` would be interpreted like this:
-    "
-    "     zv
-    "     ││
-    "     │└ enter visual mode
-    "     └ move cursor to next/previous `z` character
-    "}}}
-    " How is this autocmd better?{{{
-    "
-    " `feedkeys('zv', 'int')` would IMMEDIATELY press `zv` (✘).
-    " The autocmd also presses `zv`, but only after a motion has occurred (✔).
-    "}}}
-    augroup sneak_open_folds
-        au!
-        au CursorMoved * exe 'norm! zv'
-        \|               exe 'au! sneak_open_folds '
-        \|               aug! sneak_open_folds
-    augroup END
-
-    " What's the purpose of this `if` conditional?{{{
-    "
-    " This function can be called:
-    "
-    "     •   directly from a  [ftFT]  mapping
-    "     • indirectly from a  [;,]    mapping
-    "       │
-    "       └ move_again()  →  s:move()  →  fts_workaround()
-    "
-    " It needs to distinguish from where it was called.
-    " Because in  the first  case, it  needs to  ask the  user for  a character,
-    " before returning the  keys to press. In the other, it  doesn't need to ask
-    " anything.
-    "}}}
-    if get(s:is_repeating_motion, ', ;', 0)
-    "                              │
-    "                              └ `[fFtT]x` motions are specific to the axis `, ;`,
-
-        let move_fwd = a:cmd =~# '\C[fts]'
-        "              │{{{
-        "              └ TODO: What is this?
-        "
-        " When we press `;` after `fx`, how is `a:cmd` obtained?
-        "
-        "   Update: It's `f`.
-        "   Here's what happens approximately:
-        "
-        "   ;  →  move_again(1,'fwd'))
-        "
-        "                 s:get_motion_info(s:last_motion_on_axis_1)  saved in `motion`
-        "                                   │
-        "                                   └ 'f'
-        "
-        "         s:move(motion.fwd.lhs, 0, 0)
-        "                │
-        "                └ 'f'
-        "
-        "                 s:get_motion_info(a:lhs)  saved in `motion`
-        "                                   │
-        "                                   └ 'f'
-        "
-        "                 s:get_direction(a:lhs)  saved in `dir_key`
-        "                 │
-        "                 └ 'fwd'
-        "
-        "         eval(motion[dir_key].rhs)
-        "              └─────────────────┤
-        "                                └ fts_workaround('f')
-        "                                                  │
-        "                                                  └ !!! a:cmd !!!
-        "
-        "          Consequence of all of this:
-        "          our plugin normalizes the direction of the motions `,` and `;`
-        "          i.e. `;` always moves the cursor forward no matter whether
-        "          we previously used f or F or t or T
-        "          In fact, it seems the normalization applies also to non-f motions!
-        "          Document this automatic normalization somewhere.
-        "}}}
-        call feedkeys(move_fwd ? "\<plug>Sneak_;" : "\<plug>Sneak_,", 'i')
-    else
-        call feedkeys("\<plug>Sneak_".a:cmd, 'i')
-    endif
-    return ''
-endfu
-
 fu! s:get_direction(lhs, motion) abort "{{{1
     let is_fwd = s:translate_lhs(a:lhs) ==# s:translate_lhs(a:motion.fwd.lhs)
     return is_fwd ? 'fwd' : 'bwd'
@@ -397,6 +269,10 @@ fu! s:invalid_axis_or_direction(axis, direction) abort "{{{1
     return !is_valid_axis || !is_valid_direction
 endfu
 
+fu! lg#motion#repeatable#main#is_repeating(axis) abort "{{{1
+    return get(s:is_repeating_motion, a:axis, 0)
+endfu
+
 fu! s:make_keys_feedable(seq) abort "{{{1
     let m = escape(a:seq, '"\')
     let special_chars = [
@@ -478,8 +354,14 @@ fu! lg#motion#repeatable#main#make(what) abort "{{{1
         let mapcmd = get(a:what.axis, 'mode', '') == ''
         \?               'noremap'
         \:               a:what.axis.mode . 'noremap'
-        exe mapcmd.'  <expr>  '.a:what.axis.bwd.'  lg#motion#repeatable#main#move_again('.string(axis).",'bwd')"
-        exe mapcmd.'  <expr>  '.a:what.axis.fwd.'  lg#motion#repeatable#main#move_again('.string(axis).",'fwd')"
+        exe mapcmd.'  <expr>  '.a:what.axis.bwd."  <sid>move_again('bwd', ".string(axis).')'
+        exe mapcmd.'  <expr>  '.a:what.axis.fwd."  <sid>move_again('fwd', ".string(axis).')'
+
+        " We also install <plug> mappings to be able to create submodes.
+        " TODO:
+        " document these mappings and how they can be used
+        exe mapcmd.'  <expr>  <plug>(backward-'.substitute(axis, '\s\+', '_', 'g').")  <sid>move_again('bwd', ".string(axis).')'
+        exe mapcmd.'  <expr>  <plug>(forward-'.substitute(axis, '\s\+', '_', 'g').")  <sid>move_again('fwd', ".string(axis).')'
     endif
 
     " try to make all the motions received repeatable
@@ -623,7 +505,7 @@ fu! s:make_repeatable(mode, is_local, axis, m, from) abort "{{{1
     " TODO:
     " This prevents `b:repeatable_motions` from growing when we reload a buffer.
     " But it feels wrong to wait so late.
-    " I would prefer to reset the variable early.
+    " I would prefer to reset the variable earlier.
     " Besides, it may write something in the log messages (type coD, then :e).
     if s:collides_with_db(motion, repeatable_motions)
         return
@@ -667,12 +549,20 @@ endfu
 fu! s:move(lhs, buffer, update_last_motion, ...) abort "{{{1
     " What is the purpose of this optional argument?{{{
     "
-    " When it's passed, it means we don't want the function to translate
-    " special keys at the end.
-    " If we let the function translate them, it will translate `<plug>`.
+    " When  `s:move_again()` is  invoked,  it calls  `s:move()`,  and passes  an
+    " additional dictionary argument. The latter  contains all information about
+    " the motion to repeat. It also contains the key 'no translation'.
+    "
+    " The  info  about  the  motion   are  not  necessary:  we  could  re-invoke
+    " `s:get_motion_info()`. But it  wouldn't be optimal. We've  already compute
+    " the info; there's no need to do it twice.
+    "
+    " The value of the key 'no translation' is a boolean flag.
+    " When it's on, it means we  don't want `s:move()` to translate special keys
+    " at  the  end. This  matters  for  the  `<plug>`  key.
     "}}}
 
-    let motion = s:get_motion_info(a:lhs)
+    let motion = a:0 ? a:1 : s:get_motion_info(a:lhs)
     if type(motion) != type({})
         return ''
     endif
@@ -728,20 +618,12 @@ fu! s:move(lhs, buffer, update_last_motion, ...) abort "{{{1
     " Because, the rhs is an EXPRESSION whose value is keys which will be FED
     " directly to the typeahead buffer.
     "}}}
-    " So, why do we need to translate them when the mapping doesn't use `<expr>`?{{{
-    "
-    " In this case, the rhs is NOT fed directly:
-    " Vim translates automatically any special key it may contain.
-    "
-    " We need to emulate this behavior, and that's why we invoke
-    " `s:make_keys_feedable()`.
-    "}}}
     " Why don't we translate them when the function received an optional argument?{{{
     "
     " When `s:move()` is called from a  wrapper, the keys are directly typed. In
     " this case, `<plug>` must be translated.
     "
-    " But when `s:move()` is called  from `move_again()`, and the latter can't
+    " But when `s:move()` is called  from `s:move_again()`, and the latter can't
     " type the  keys directly  because the  original motion  is silent,  it must
     " install a temporary mapping. Something like:
     "
@@ -753,18 +635,28 @@ fu! s:move(lhs, buffer, update_last_motion, ...) abort "{{{1
     " translated. The rhs will be wrong, and  I can't undo the translation, even
     " with a substitution.
     "}}}
+    " Why do we need to translate them in the other cases?{{{
+    "
+    " In the other cases, the rhs is NOT fed directly:
+    " Vim translates automatically any special key it may contain.
+    "
+    " We need to emulate this behavior, and that's why we invoke
+    " `s:make_keys_feedable()`.
+    "}}}
     return is_expr_mapping
     \?         eval(motion[dir_key].rhs)
-    \:         a:0 ? motion[dir_key].rhs : s:make_keys_feedable(motion[dir_key].rhs)
+    \:         a:0 && a:1['no translation']
+    \?             motion[dir_key].rhs
+    \:             s:make_keys_feedable(motion[dir_key].rhs)
 endfu
 
-fu! lg#motion#repeatable#main#move_again(axis, dir) abort "{{{1
+fu! s:move_again(dir, axis) abort "{{{1
     " This function is called by various mappings whose suffix is `,` or `;`.
 
     " make sure the arguments are valid,
     " and that we've used at least one motion on the axis
     if  s:invalid_axis_or_direction(a:axis, a:dir)
-    \|| empty(s:last_motions[a:axis])
+    \|| empty(get(s:last_motions, a:axis, ''))
         return ''
     endif
 
@@ -803,9 +695,9 @@ fu! lg#motion#repeatable#main#move_again(axis, dir) abort "{{{1
     " the function. But if the mapping uses the `<expr>` argument, we EVALUATE
     " the rhs. Besides, if we have previously pressed `fx`, the rhs is:
     "
-    "     fts_workaround('f')
+    "     fts('f')
     "
-    " And the code in `fts_workaround()` IS influenced by:
+    " And the code in `fts()` IS influenced by:
     "
     "     s:is_repeating_motion[', ;']
     "}}}
@@ -813,12 +705,13 @@ fu! lg#motion#repeatable#main#move_again(axis, dir) abort "{{{1
 
     let is_silent = motion[a:dir].silent
     let seq = call('s:move',   [motion[a:dir].lhs, motion[a:dir].buffer, 0]
-    \                        + (is_silent ? [1] : []))
-    "                                        │
-    "                                        └ don't translate special keys;
-    "                                        we're going to install a temporary mapping
-    "                                        (because the motion must be silent), so `<plug>`
-    "                                        must NOT be translated
+    \                        + [extend(motion, {'no translation': is_silent ? 1 : 0})])
+    "                                                                         │
+    "                                           don't translate special keys: ┘
+    "
+    "                        we're going to install a temporary mapping (because
+    "                        the motion must be silent), so `<plug>` must NOT be
+    "                        translated
 
     " Why do we reset all these variables?{{{
     "
@@ -836,10 +729,14 @@ fu! lg#motion#repeatable#main#move_again(axis, dir) abort "{{{1
     "}}}
     call map(s:is_repeating_motion, {i,v -> 0})
 
-    " if we're using  `]q` &friends (to move  into a list of files),  we need to
-    " redraw  all statuslines,  so  that the  position in  the  list is  updated
-    " immediately
-    if a:axis ==# ', ;'
+    " If we're using  `]q` &friends, we need to redraw  all statuslines, so that
+    " the position in the list is updated immediately.
+    " TODO:
+    " It may not be needed anymore.
+    " Because we execute `:redraw` via `vim-submode`, which redraws the screen
+    " AND the statuslines. Although, we may get rid of `:redraw` later, so for
+    " the moment, I keep `:redraws!`.
+    if a:axis ==# 'z, z;'
         call timer_start(0, {-> execute('redraws!')})
     endif
 

@@ -82,6 +82,12 @@ endfu
 
 fu! lg#motion#repeatable#listing#main(...) abort "{{{1
     let cmd_args = split(a:1)
+    " FIXME: ListRepeatableMotions -axis , ; -vv
+    " this is because of:
+    "
+    "         matchstr('-axis , ; -vv', '\v-axis\s+\zs.{-}\ze%(-mode|-scope|-v)?')
+    "                                                                          │
+    "                                                                          └ ✘
     let opt = {
     \           'axis':     matchstr(a:1, '\v-axis\s+\zs.*\ze%(-mode|-scope|-v)?'),
     \           'mode':     matchstr(a:1, '\v-mode\s+\zs%(\w|-)+'),
@@ -130,7 +136,7 @@ fu! s:merge_listings(opt, ...) abort "{{{1
     let axis = a:1
     let listing_for_this_axis = a:2
 
-    if !empty(a:opt.axis) && n !=# a:opt.axis
+    if !empty(a:opt.axis) && axis !=# a:opt.axis
         return []
     endif
 
