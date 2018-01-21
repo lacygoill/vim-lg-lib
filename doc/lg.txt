@@ -63,12 +63,31 @@ lg#motion#repeatable#main#make_repeatable({what})
 
                 Make the motions described in {what} repeatable.
 
-                {what} is a dictionary containing 4 keys:
+                {what} is a dictionary containing 5 keys:
 
                         mode       the mode in which the motion is defined
 
                         buffer     a boolean flag; when on, the motion is local
                                    to the current buffer
+
+                        axis       dictionary with 2 keys: 'bwd' and 'fwd'
+
+                                   the values of this dictionary are the keys
+                                   which must be pressed to repeat the motion
+                                   in 2 directions
+
+                                   the dictionary may contain an optional 3rd
+                                   key: 'mode';
+                                   by default, the mappings repeating motions
+                                   are installed using `:noremap`;
+                                   if  'mode'  is  given   the  value  'n',  the
+                                   mappings will  be installed  with `:nnoremap`
+                                   instead;
+                                   this  is  useful  if  the keys  may  have  an
+                                   undesired effect in some mode;
+                                   for example, `co,` and `co;` could be used in
+                                   normal mode, but they would introduce lag
+                                   for the `c` operator in visual mode
 
                         from       the filepath and the line address from which
                                    the function is called;
@@ -84,25 +103,22 @@ lg#motion#repeatable#main#make_repeatable({what})
                         motions    a list of motions
 
                                    each item must be a dictionary containing
-                                   3 keys:
+                                   2 keys:
 
                                        bwd     key to press to move backwards
 
                                        fwd     key to press to move forwards
-
-                                       axis    axis on which the motion belongs
-                                               determines how the motion can be
-                                               repeated
 
                 Example: >
 
                         call lg#motion#repeatable#main#make_repeatable({
                         \        'mode':    '',
                         \        'buffer':  0,
+                        \        'axis':  {'bwd': ',', 'fwd': ';'},
                         \        'from':    expand('<sfile>:p').':'.expand('<slnum>'),
                         \        'motions': [
-                        \                     { 'bwd': '[M',  'fwd': ']M',  'axis': 1 },
-                        \                     { 'bwd': '[m',  'fwd': ']m',  'axis': 1 },
+                        \                     { 'bwd': '[M',  'fwd': ']M' },
+                        \                     { 'bwd': '[m',  'fwd': ']m' },
                         \                   ],
                         \ })
 <
@@ -127,11 +143,17 @@ At least one of them is missing.
 
                                         *E8001*
 
+The axis that you provided should have the keys 'bwd' and 'fwd'.
+At least one of them is missing.
+
+
+                                        *E8002*
+
 You asked  for a local motion  to be made  repeatable: both its {lhs}  should be
 used in local mappings. But here, at least one of them is not.
 
 
-                                        *E8002*
+                                        *E8003*
 
 Either the motion you're trying to make repeatable (M), is already repeatable:
 
@@ -152,9 +174,7 @@ Or, a motion in a database of repeatable motions (global or local) has:
 
  axis
 
-         Repeatable motions can be repeated with different keys.
-         Each group  of motions which  can be repeated  with the same  keys move
-         along the same axis.
+         Pair of keys which must be pressed to repeat a motion.
 
 
  database (db)

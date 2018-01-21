@@ -119,7 +119,7 @@ fu! s:collides_with_db(motion, repeatable_motions) abort "{{{1
         if  a:motion.bwd.lhs ==# m.bwd.lhs && a:motion.bwd.mode ==# m.bwd.mode
         \|| a:motion.fwd.lhs ==# m.fwd.lhs && a:motion.fwd.mode ==# m.fwd.mode
             try
-                throw printf("E8002:  [repeatable motion]  cannot process motion '%s : %s'",
+                throw printf("E8003:  [repeatable motion]  cannot process motion '%s : %s'",
                 \             m.bwd.lhs, m.fwd.lhs)
             catch
                 call lg#catch_error()
@@ -210,8 +210,7 @@ fu! lg#motion#repeatable#main#fts(cmd) abort "{{{1
     "}}}
     if get(s:is_repeating_motion, ', ;', 0)
     "                              │
-    "                              └ `[tfTF]x` motions are specific to the axis 1,
-    "                                 so there's no need to check `s:repeating_motion_on_axis_2,3,…`
+    "                              └ `[fFtT]x` motions are specific to the axis `, ;`,
 
         let move_fwd = a:cmd =~# '\C[fts]'
         "              │{{{
@@ -313,8 +312,7 @@ fu! s:get_motion_info(lhs) abort "{{{1
     "
     " Because, in practice, it doesn't make much sense to repeat the same
     " motion on 2 axes.
-    "
-"}}}
+    "}}}
 
     let mode = s:get_current_mode()
     let motions = get(maparg(a:lhs, mode, 0, 1), 'buffer', 0)
@@ -437,19 +435,29 @@ endfu
 fu! lg#motion#repeatable#main#make(what) abort "{{{1
     " can make several motions repeatable
 
+    " FIXME:
+    " maybe rename 'axis'
+
     " sanitize input
     if sort(keys(a:what)) !=# ['axis', 'buffer', 'from', 'mode', 'motions']
         try
-            throw 'E8000:  [repeatable motion]  missing key '.a:from
+            throw 'E8000:  [repeatable motion]  missing key'
         catch
-            call lg#catch_error()
+            return lg#catch_error()
         endtry
-        return
     endif
     let from     = a:what.from
     let mode     = a:what.mode
     let is_local = a:what.buffer
-    let axis     = a:what.axis.bwd.' '.a:what.axis.fwd
+    if has_key(a:what.axis, 'bwd') && has_key(a:what.axis, 'fwd')
+        let axis = a:what.axis.bwd.' '.a:what.axis.fwd
+    else
+        try
+            throw 'E8001:  [repeatable motion]  missing key'
+        catch
+            return lg#catch_error()
+        endtry
+    endif
 
     if  !has_key(s:last_motions, axis)
     \&& maparg(a:what.axis.bwd) !~# '#move_again('
@@ -467,11 +475,11 @@ fu! lg#motion#repeatable#main#make(what) abort "{{{1
         "     'axis':  {'bwd': '+,', 'fwd': '+;', 'n'}
         "         → nnoremap
         "}}}
-        let cmd = get(a:what.axis, 'mode', '') == ''
-        \?            'noremap'
-        \:            a:what.axis.mode . 'noremap'
-        exe cmd.'  <expr>  '.a:what.axis.bwd.'  lg#motion#repeatable#main#move_again('.string(axis).",'bwd')"
-        exe cmd.'  <expr>  '.a:what.axis.fwd.'  lg#motion#repeatable#main#move_again('.string(axis).",'fwd')"
+        let mapcmd = get(a:what.axis, 'mode', '') == ''
+        \?               'noremap'
+        \:               a:what.axis.mode . 'noremap'
+        exe mapcmd.'  <expr>  '.a:what.axis.bwd.'  lg#motion#repeatable#main#move_again('.string(axis).",'bwd')"
+        exe mapcmd.'  <expr>  '.a:what.axis.fwd.'  lg#motion#repeatable#main#move_again('.string(axis).",'fwd')"
     endif
 
     " try to make all the motions received repeatable
@@ -513,7 +521,7 @@ fu! s:make_repeatable(mode, is_local, axis, m, from) abort "{{{1
     \&& (!get(b_maparg, 'buffer', 0)
     \||  !get(f_maparg, 'buffer', 0))
         try
-            throw 'E8001:  [repeatable motion]  invalid motion: '.a:from
+            throw 'E8002:  [repeatable motion]  invalid motion: '.a:from
         catch
             return lg#catch_error()
         endtry
@@ -569,7 +577,7 @@ fu! s:make_repeatable(mode, is_local, axis, m, from) abort "{{{1
     call s:populate(motion, a:mode, bwd, 0, b_maparg)
     " `motion` value is now sth like:{{{
     "
-    " { 'axis' : 1,
+    " { 'axis' : ', ;',
     "   'bwd'    : {'expr': 0, 'noremap': 1, 'lhs': '…', 'mode': ' ', … }}
     "                                                             │
     "                                                             └ nvo
@@ -577,7 +585,7 @@ fu! s:make_repeatable(mode, is_local, axis, m, from) abort "{{{1
     call s:populate(motion, a:mode, fwd, 1, f_maparg)
     " `motion` value is now sth like:{{{
     "
-    " { 'axis' : 1,
+    " { 'axis' : ', ;',
     "   'bwd'    : {'expr': 0, 'noremap': 1, 'lhs': '…', 'mode': ' ', … },
     "   'fwd'    : {'expr': 0, 'noremap': 1, 'lhs': '…', 'mode': ' ', … }}
     "}}}
@@ -797,8 +805,9 @@ fu! lg#motion#repeatable#main#move_again(axis, dir) abort "{{{1
     "
     "     fts_workaround('f')
     "
-    " And the code in `fts_workaround()` IS influenced by
-    " `s:repeating_motion_on_axis_1`.
+    " And the code in `fts_workaround()` IS influenced by:
+    "
+    "     s:is_repeating_motion[', ;']
     "}}}
     let s:is_repeating_motion[a:axis] = a:dir ==# 'fwd' ? 1 : -1
 
@@ -821,7 +830,7 @@ fu! lg#motion#repeatable#main#move_again(axis, dir) abort "{{{1
     " command. IOW, when the last motion was `fx`, `f` is insufficient to know
     " where to move.
     "
-    " Note that  `fFtTssSS` are  specific to the  axis 1, but  we could  want to
+    " Note that `fFtTssSS` are specific to the  axis `, ;`, but we could want to
     " define special  motions on other  axes. That's why,  we need to  reset ALL
     " variables.
     "}}}
@@ -849,7 +858,7 @@ fu! lg#motion#repeatable#main#move_again(axis, dir) abort "{{{1
     "}}}
     " Why return only now, and not as soon as we get `seq`? {{{
     "
-    " Before returning, we must make sure to properly reset `s:repeating_motion_on_axis_…`
+    " Before returning, we must make sure to properly reset `s:is_repeating_motion[…]`
     " Otherwise it would break the repeatibility of some motions, like `fx` &friends.
     " We probably also need to redraw the statusline for `]q` &friends.
     "
