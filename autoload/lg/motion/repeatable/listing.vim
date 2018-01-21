@@ -4,9 +4,8 @@ endif
 let g:autoloaded_lg#motion#repeatable#listing = 1
 
 fu! s:init() abort "{{{1
-    let env = lg#motion#repeatable#main#share_env()
-    let [s:AXES, s:repeatable_motions] = [env['s:AXES'], env['s:repeatable_motions']]
-    let s:N_AXES = len(s:AXES)
+    let s:repeatable_motions = lg#motion#repeatable#main#share_env()
+    let s:axes = uniq(sort(map(deepcopy(s:repeatable_motions), {i,v -> v.axis})))
 endfu
 call s:init()
 
@@ -32,7 +31,7 @@ fu! lg#motion#repeatable#listing#complete(arglead, cmdline, _p) abort "{{{1
         return join(opt, "\n")
 
     elseif a:cmdline =~# '-axis\s\+$'
-        return join(values(s:AXES), "\n")
+        return join(s:axes, "\n")
 
     elseif a:cmdline =~# '-mode \w*$'
         let modes = [
@@ -70,7 +69,7 @@ fu! s:customize_preview_window() abort "{{{1
     endif
 endfu
 
-fu! s:get_line_in_listing(m,n,desired_mode) abort "{{{1
+fu! s:get_line_in_listing(m,desired_mode) abort "{{{1
     let motion_mode = a:m.bwd.mode
     if !empty(a:desired_mode) && motion_mode !=# a:desired_mode
         return ''
@@ -84,7 +83,7 @@ endfu
 fu! lg#motion#repeatable#listing#main(...) abort "{{{1
     let cmd_args = split(a:1)
     let opt = {
-    \           'axis':     matchstr(a:1, '-axis\s\+\zs\d\+'),
+    \           'axis':     matchstr(a:1, '\v-axis\s+\zs.*\ze%(-mode|-scope|-v)?'),
     \           'mode':     matchstr(a:1, '\v-mode\s+\zs%(\w|-)+'),
     \           'scope':    matchstr(a:1, '\v-scope\s+\zs\w+'),
     \           'verbose1': index(cmd_args, '-v') >= 0,
@@ -93,13 +92,19 @@ fu! lg#motion#repeatable#listing#main(...) abort "{{{1
 
     let opt.mode = substitute(opt.mode, 'nvo', ' ', '')
 
-    " initialize each listing scoped to a given axis
-    for i in range(1, s:N_AXES)
-        let s:listing_for_axis_{i} = {'global': [], 'local': []}
+    " initialize a listing for every given axis
+    let s:listing_per_axis = {}
+    for axis in s:axes
+        let s:listing_per_axis[axis] = {'global': [], 'local': []}
     endfor
+
+    " populate them
     call s:populate_listings_for_all_axes(opt)
+
+    " merge them
     let total_listing = s:merge_listings(opt)
 
+    " show the result
     call lg#log#output({'excmd': 'ListRepeatableMotions', 'lines': total_listing})
     call s:customize_preview_window()
 endfu
@@ -109,9 +114,9 @@ fu! s:merge_listings(opt, ...) abort "{{{1
     if !a:0
         let total_listing = []
 
-        for n in range(1, s:N_AXES)
-            let total_listing += s:merge_listings(a:opt, n, s:listing_for_axis_{n})
-            unlet! s:listing_for_axis_{n}
+        for axis in s:axes
+            let total_listing += s:merge_listings(a:opt, axis, s:listing_per_axis[axis])
+            unlet! s:listing_per_axis[axis]
         endfor
 
         return total_listing
@@ -125,7 +130,7 @@ fu! s:merge_listings(opt, ...) abort "{{{1
     let n = a:1
     let listing_for_this_axis = a:2
 
-    if !empty(a:opt.axis) && n != a:opt.axis
+    if !empty(a:opt.axis) && n !=# a:opt.axis
         return []
     endif
 
@@ -159,11 +164,10 @@ fu! s:populate_listings_for_all_axes(opt) abort "{{{1
     for a_list in lists
         let scope = a_list is# s:repeatable_motions ? 'global' : 'local'
         for m in a_list
-            let n = m.axis
-            if !empty(a:opt.axis) && n != a:opt.axis
+            if !empty(a:opt.axis) && m.axis !=# a:opt.axis
                 continue
             endif
-            let line = s:get_line_in_listing(m,n,a:opt.mode)
+            let line = s:get_line_in_listing(m,a:opt.mode)
             if empty(line)
                 continue
             endif
@@ -171,7 +175,7 @@ fu! s:populate_listings_for_all_axes(opt) abort "{{{1
             \?              '    '.m['original mapping']
             \:              ''
 
-            let listing = s:listing_for_axis_{n}[scope]
+            let listing = s:listing_per_axis[m.axis][scope]
             " populate `motions_on_axis_123`
             call add(listing, '  '.line)
             if a:opt.verbose2

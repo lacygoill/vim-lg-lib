@@ -142,38 +142,6 @@ Or, a motion in a database of repeatable motions (global or local) has:
          Each group  of motions which  can be repeated  with the same  keys move
          along the same axis.
 
-         Example: >
-
-                 noremap  <expr>            ,  lg#motion#repeatable#main#move_again(1,'bwd')
-                 noremap  <expr>            ;  lg#motion#repeatable#main#move_again(1,'fwd')
-                 noremap  <expr><unique>   z,  lg#motion#repeatable#main#move_again(2,'bwd')
-                 noremap  <expr><unique>   z;  lg#motion#repeatable#main#move_again(2,'fwd')
-                 noremap  <expr><unique>   +,  lg#motion#repeatable#main#move_again(3,'bwd')
-                 noremap  <expr><unique>   +;  lg#motion#repeatable#main#move_again(3,'fwd')
-                 nno      <expr><unique>  co,  lg#motion#repeatable#main#move_again(4,'bwd')
-                 nno      <expr><unique>  co;  lg#motion#repeatable#main#move_again(4,'fwd')
-<
-        Here, we use:
-
-                  `,`    `;`    to move on the 1st axis
-                 `z,`   `z;`    to move on the 2nd axis
-                 `+,`   `+;`    to move on the 3rd axis
-                `co,`  `co;`    to move on the 4th axis
-
-        Type of “space” in which we are moving:
-
-                 • buffer text
-                 • filesystem
-                 • versions of buffer
-
-                       in this particular  case, the “motion” is  in fact an
-                       edition; the latter makes us “move” from a version of
-                       the buffer to another
-
-                 • option values
-
-         More generally, you can invent your own axis/space.
-
 
  database (db)
 
