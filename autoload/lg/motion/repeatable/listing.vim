@@ -51,7 +51,7 @@ endfu
 
 fu! s:customize_preview_window() abort "{{{1
     if &l:pvw
-        call matchadd('Title', '^Axis:  \d\+$')
+        call matchadd('Title', '^Motions repeated with:')
         call matchadd('SpecialKey', '^global\|local$')
         " Why?{{{
         "
@@ -125,20 +125,17 @@ fu! s:merge_listings(opt, ...) abort "{{{1
     " when the function is called afterwards (by itself, i.e. recursively),
     " it's passed 2 additional arguments:
     "
-    "     • the index of an axis
+    "     • the name of an axis
     "     • the listing of the latter
-    let n = a:1
+    let axis = a:1
     let listing_for_this_axis = a:2
 
     if !empty(a:opt.axis) && n !=# a:opt.axis
         return []
     endif
 
-    let lines = []
-    if n > 1
-        let lines += ['']
-    endif
-    let lines += ['Motions on axis:  '.n]
+    let lines = ['']
+    let lines += ['Motions repeated with:  '.axis]
     if empty(listing_for_this_axis.global) && empty(listing_for_this_axis.local)
         let lines += ['  ∅']
     else

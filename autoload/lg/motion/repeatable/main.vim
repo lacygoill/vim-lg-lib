@@ -449,19 +449,29 @@ fu! lg#motion#repeatable#main#make(what) abort "{{{1
     let from     = a:what.from
     let mode     = a:what.mode
     let is_local = a:what.buffer
-    let axis     = join(a:what.axis)
+    let axis     = a:what.axis.bwd.' '.a:what.axis.fwd
 
-    if !has_key(s:last_motions, axis)
-        " FIXME:
-        " Maybe rename the key 'axis'.
-        " Make it  a dictionary, instead of  a list (whose keys  should be named
-        " 'fwd' and 'bwd').
-        " In the dictionary, add the key 'mode', so that we can know in which mode
-        " the repetition mappings should be installed.
-        " It would be useful to avoid  installing `co,` and `co;` in visual mode
-        " (shadow `c` operator ✘).
-        exe 'noremap  <expr>  '.a:what.axis[0].'  lg#motion#repeatable#main#move_again('.string(axis).",'bwd')"
-        exe 'noremap  <expr>  '.a:what.axis[1].'  lg#motion#repeatable#main#move_again('.string(axis).",'fwd')"
+    if  !has_key(s:last_motions, axis)
+    \&& maparg(a:what.axis.bwd) !~# '#move_again('
+    \&& maparg(a:what.axis.fwd) !~# '#move_again('
+        " What command do you use to install the mappings repeating motions?{{{
+        "
+        " By  default, we  use `:noremap`.   However,  if the  user invoked  the
+        " function  by  adding  the  optional  key  'mode',  in  the  dictionary
+        " `a:what.axis`, we take it into consideration.
+        " So:
+        "
+        "     'axis':  {'bwd': '+,', 'fwd': '+;'}
+        "         → noremap
+        "
+        "     'axis':  {'bwd': '+,', 'fwd': '+;', 'n'}
+        "         → nnoremap
+        "}}}
+        let cmd = get(a:what.axis, 'mode', '') == ''
+        \?            'noremap'
+        \:            a:what.axis.mode . 'noremap'
+        exe cmd.'  <expr>  '.a:what.axis.bwd.'  lg#motion#repeatable#main#move_again('.string(axis).",'bwd')"
+        exe cmd.'  <expr>  '.a:what.axis.fwd.'  lg#motion#repeatable#main#move_again('.string(axis).",'fwd')"
     endif
 
     " try to make all the motions received repeatable
@@ -954,7 +964,7 @@ fu! s:populate(motion, mode, lhs, is_fwd, maparg) abort "{{{1
 endfu
 
 fu! lg#motion#repeatable#main#set_last_used(lhs,axis) abort "{{{1
-    let s:last_motions[join(a:axis)] = s:translate_lhs(a:lhs)
+    let s:last_motions[join(values(a:axis))] = s:translate_lhs(a:lhs)
 endfu
 
 fu! lg#motion#repeatable#main#share_env() abort "{{{1

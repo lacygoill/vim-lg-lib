@@ -166,34 +166,10 @@ Or, a motion in a database of repeatable motions (global or local) has:
 
  motion
 
-         dictionary containing 3 keys:
+         dictionary containing 2 keys:
 
              • bwd:     output of `maparg('<left>')` where <left> is
                         the backward motion
 
              • fwd:     same thing for `<right>` as the forward motion
 
-             • axis:    number which determines how the motion should be
-                        repeated
-
-                        Example:
-
-                            1:  with a bare             , ;
-                            2:  same but prefixed with  z
-                            3:                          +
-                            4:                          co
-
-                        the 2nd axis could be  reserved to motions moving the
-                        focus across different files, or resizing a window
-
-                        the 3rd axis for editions which can be performed
-                        in 2 directions
-
-                        the 4th axis for cycling through options values
-
-
-section
-
-header
-
-toc
