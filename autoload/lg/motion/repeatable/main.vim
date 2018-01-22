@@ -614,6 +614,7 @@ fu! lg#motion#repeatable#main#make(what) abort "{{{2
             return lg#catch_error()
         endtry
     endif
+
     let from     = a:what.from
     let mode     = a:what.mode
     let is_local = a:what.buffer

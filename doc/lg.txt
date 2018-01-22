@@ -69,6 +69,47 @@ lg#motion#repeatable#main#make({what})
                         \ })
 <
 
+                                        *repeatable-motion-listing*
+
+:ListRepeatableMotions
+
+        Display all repeatable motions.
+
+        Accepts the following arguments to limit the output to some motions: >
+
+            -axis
+            -mode
+            -scope
+<
+
+        `-axis` expects the name of an axis: >
+
+            :ListRepeatableMotions -axis z,_z;
+<
+        Displays only motions repeatable with `z,` and `z;`.
+
+
+        `-mode` expects the mode of the motions: >
+
+            :ListRepeatableMotions -mode normal
+<
+        Displays only motions defined in normal mode.
+
+
+        `-scope` expects the scope of the motions (`global` or `local`): >
+
+            :ListRepeatableMotions -scope local
+<
+        Displays only motions local to the current buffer.
+
+
+        You can also use the arguments `-v` and `-vv` to increase the verbosity
+        of the output.
+        `-v` will show from which file each original motion was installed.
+        `-vv` will do the same, but will also show from which file the motion
+        was made repeatable.
+
+
                                         *repeatable-motion-plug-mappings*
 
 For every pair of keys that you use to repeat a motion,
@@ -111,7 +152,7 @@ Useful, for example, to create a submode in which you don't have to press `z`:
          Pair of keys which must be pressed to repeat a motion.
 
 
- database (db)
+ database
 
          Dictionary `s:repeatable_motions` for global motions,
          or `b:repeatable_motions` for local motions.
