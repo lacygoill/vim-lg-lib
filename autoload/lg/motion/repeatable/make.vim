@@ -30,23 +30,23 @@
 " This is unexpected, and we don't want that.
 "}}}
 
-if exists('g:autoloaded_lg#motion#repeatable#main')
+if exists('g:autoloaded_lg#motion#repeatable#make')
     finish
 endif
-let g:autoloaded_lg#motion#repeatable#main = 1
+let g:autoloaded_lg#motion#repeatable#make = 1
 
 fu! s:init() abort "{{{1
     let s:repeatable_motions = []
     let s:last_motions = {}
     let s:is_repeating_motion = {}
 
-    let s:DEFAULT_MAPARG     = {'buffer': 0, 'expr': 0, 'mode': ' ', 'noremap': 1, 'nowait': 0, 'silent': 0}
-    "                                                       Why? ┘{{{
+    let s:DEFAULT_MAPARG = {'buffer': 0, 'expr': 0, 'mode': ' ', 'noremap': 1, 'nowait': 0, 'silent': 0}
+    "                                                   Why? ┘{{{
     "
     " This variable will be used to populate information about a default motion,
-    " for which `maparg()` doesn't output anything. We need to choose a character
-    " standing for the default mode we want. As a default mode, I want `nvo`.
-    " For `maparg()`, `nvo` is represented with:
+    " for  which  `maparg()`  doesn't  output  anything. We  need  to  choose  a
+    " character standing for the default mode we want. As a default mode, I want
+    " `nvo`.  For `maparg()`, `nvo` is represented with:
     "
     "     • an empty string in its input
     "     • a single space in its output
@@ -78,54 +78,19 @@ fu! s:install_wrapper(mode, m, maparg) abort "{{{2
     exe mapcmd.'  '.a:m.fwd.'  <sid>move('.string(a:m.fwd).', '.get(a:maparg, 'buffer', 0).', 1)'
 endfu
 
-fu! s:make_keys_feedable(seq) abort "{{{2
-    let m = escape(a:seq, '"\')
-    let special_chars = [
-    \                    '<BS>',
-    \                    '<Bar>',
-    \                    '<Bslash>',
-    \                    '<C-',
-    \                    '<CR>',
-    \                    '<Del>',
-    \                    '<Down>',
-    \                    '<End>',
-    \                    '<Esc>',
-    \                    '<F',
-    \                    '<Home>',
-    \                    '<Left>',
-    \                    '<M-',
-    \                    '<PageDown>',
-    \                    '<PageUp>',
-    \                    '<Plug>',
-    \                    '<Right>',
-    \                    '<S-',
-    \                    '<Space>',
-    \                    '<Tab>',
-    \                    '<Up>',
-    \                    '<lt>',
-    \                   ]
-    for s in special_chars
-        let m = substitute(m, '\c\('.s.'\)', '\\\1', 'g')
-    endfor
-
-    " Don't use `string()`.
-    " We need double quotes to translate special characters.
-    sil exe 'return "'.m.'"'
-endfu
-
-fu! s:make_repeatable(mode, is_local, axis, m, from) abort "{{{2
+fu! s:make_each_repeatable(mode, is_local, m, axis, from) abort "{{{2
     " can make only ONE motion repeatable
 
     let bwd    = a:m.bwd
     let fwd    = a:m.fwd
-    let b_maparg = maparg(bwd, a:mode, 0, 1)
-    let f_maparg = maparg(fwd, a:mode, 0, 1)
+    let bwd_maparg = maparg(bwd, a:mode, 0, 1)
+    let fwd_maparg = maparg(fwd, a:mode, 0, 1)
 
     " if we ask for a local motion to be made repeatable,
-    " both lhs should be used in local mappings
-    if   a:is_local
-    \&& (!get(b_maparg, 'buffer', 0)
-    \||  !get(f_maparg, 'buffer', 0))
+    " the 2 lhs should be used in local mappings
+    if a:is_local
+                  \&& (    !get(bwd_maparg, 'buffer', 0)
+                       \|| !get(fwd_maparg, 'buffer', 0))
         try
             throw 'E8002:  [repeatable motion]  invalid motion: '.a:from
         catch
@@ -133,20 +98,6 @@ fu! s:make_repeatable(mode, is_local, axis, m, from) abort "{{{2
         endtry
     endif
 
-    " Purpose:{{{
-    "
-    "     1. Install wrapper mappings around a pair of motion mappings.
-    "        The wrappers will be used to save the last motion.
-    "
-    "     2. Add to the list `[s:|b:]repeatable_motions` a dictionary
-    "        containing all the information relative to this original pair of
-    "        motion mappings. This list is used as a database by the wrappers
-    "        to know what the motions are mapped to, and which keys to type in
-    "        the typeahead buffer.
-    "
-    "        This db is also used by :ListRepeatableMotions, to get info
-    "        about all motions currently repeatable.
-    "}}}
     " Could we install the wrapper mappings BEFORE populating `s:repeatable_motions`?{{{
     "
     " No. It would cause `s:populate()` to capture the definition of the wrapper
@@ -180,7 +131,7 @@ fu! s:make_repeatable(mode, is_local, axis, m, from) abort "{{{2
     "
     "         let motion = s:populate(motion, …)
     "}}}
-    call s:populate(motion, a:mode, bwd, 0, b_maparg)
+    call s:populate(motion, a:mode, bwd, 0, bwd_maparg)
     " `motion` value is now sth like:{{{
     "
     " { 'axis' : ', ;',
@@ -188,7 +139,7 @@ fu! s:make_repeatable(mode, is_local, axis, m, from) abort "{{{2
     "                                                             │
     "                                                             └ nvo
     "}}}
-    call s:populate(motion, a:mode, fwd, 1, f_maparg)
+    call s:populate(motion, a:mode, fwd, 1, fwd_maparg)
     " `motion` value is now sth like:{{{
     "
     " { 'axis' : ', ;',
@@ -208,7 +159,8 @@ fu! s:make_repeatable(mode, is_local, axis, m, from) abort "{{{2
     " It  would  give  us  an  empty  list which  would  NOT  be  the  reference
     " to  `b:repeatable_motions`.    It  would   just  be  an   empty  list.
     "
-    " We need the update the db of local motions, not restart from scratch.
+    " We need  the update the  existing database  of local motions,  not restart
+    " from scratch.
     "}}}
     if a:is_local && !exists('b:repeatable_motions')
         let b:repeatable_motions = []
@@ -230,7 +182,7 @@ fu! s:make_repeatable(mode, is_local, axis, m, from) abort "{{{2
         return
     endif
 
-    call s:install_wrapper(a:mode, a:m, b_maparg)
+    call s:install_wrapper(a:mode, a:m, bwd_maparg)
 
     " add the motion in a db, so that we can retrieve info about it later;
     " in particular its rhs
@@ -590,7 +542,7 @@ fu! s:populate(motion, mode, lhs, is_fwd, maparg) abort "{{{2
     endif
 endfu
 
-fu! lg#motion#repeatable#main#share_env() abort "{{{2
+fu! lg#motion#repeatable#make#share_env() abort "{{{2
     return s:repeatable_motions
 endfu
 
@@ -603,7 +555,7 @@ fu! s:update_undo_ftplugin() abort "{{{2
 endfu
 
 " Interface {{{1
-fu! lg#motion#repeatable#main#make(what) abort "{{{2
+fu! lg#motion#repeatable#make#all(what) abort "{{{2
     " can make several motions repeatable
 
     " sanitize input
@@ -615,9 +567,11 @@ fu! lg#motion#repeatable#main#make(what) abort "{{{2
         endtry
     endif
 
-    let from     = a:what.from
-    let mode     = a:what.mode
-    let is_local = a:what.buffer
+    " build a name matching the axis:
+    "
+    "     'axis': {'bwd': 'z,', 'fwd': 'z;'}
+    "     →
+    "     'z, z;'
     if has_key(a:what.axis, 'bwd') && has_key(a:what.axis, 'fwd')
         let axis = a:what.axis.bwd.' '.a:what.axis.fwd
     else
@@ -628,9 +582,7 @@ fu! lg#motion#repeatable#main#make(what) abort "{{{2
         endtry
     endif
 
-    if  !has_key(s:last_motions, axis)
-    \&& maparg(a:what.axis.bwd) !~# '#move_again('
-    \&& maparg(a:what.axis.fwd) !~# '#move_again('
+    if  maparg(a:what.axis.bwd) !~# 'move_again('
         " What command do you use to install the mappings repeating motions?{{{
         "
         " By  default, we  use `:noremap`.   However,  if the  user invoked  the
@@ -638,10 +590,10 @@ fu! lg#motion#repeatable#main#make(what) abort "{{{2
         " `a:what.axis`, we take it into consideration.
         " So:
         "
-        "     'axis':  {'bwd': '+,', 'fwd': '+;'}
+        "     'axis':  {'bwd': 'z,', 'fwd': 'z;'}
         "         → noremap
         "
-        "     'axis':  {'bwd': '+,', 'fwd': '+;', 'n'}
+        "     'axis':  {'bwd': 'z,', 'fwd': 'z;', 'n'}
         "         → nnoremap
         "}}}
         let mapcmd = get(a:what.axis, 'mode', '') == ''
@@ -650,14 +602,17 @@ fu! lg#motion#repeatable#main#make(what) abort "{{{2
         exe mapcmd.'  <expr>  '.a:what.axis.bwd."  <sid>move_again('bwd', ".string(axis).')'
         exe mapcmd.'  <expr>  '.a:what.axis.fwd."  <sid>move_again('fwd', ".string(axis).')'
 
-        " We also install <plug> mappings to be able to access `s:move_again()`
-        " from another script. When the axis contains `z,` and `z;`, these
-        " mappings could be useful, to create a submode in which we don't have
-        " to press `z`.
+        " We also install <plug> mappings  to be able to access `s:move_again()`
+        " from another script.
+        " When the axis  contains `z,` and `z;`, these mappings  could be useful
+        " to create a submode in which we don't have to press `z`.
         exe mapcmd.'  <expr>  <plug>(backward-'.substitute(axis, '\s\+', '_', 'g').")  <sid>move_again('bwd', ".string(axis).')'
         exe mapcmd.'  <expr>  <plug>(forward-' .substitute(axis, '\s\+', '_', 'g').")  <sid>move_again('fwd', ".string(axis).')'
     endif
 
+    let from     = a:what.from
+    let mode     = a:what.mode
+    let is_local = a:what.buffer
     " try to make all the motions received repeatable
     for m in a:what.motions
         " Warning: `execute()` is buggy in Neovim{{{
@@ -672,18 +627,18 @@ fu! lg#motion#repeatable#main#make(what) abort "{{{2
         " buffer-local  mapping using  the same  lhs. We handle  this particular
         " case by temporarily removing the latter.
         "}}}
-        if !is_local && (execute(mode.'map <buffer> '.m.bwd) !~# '^\n\nNo mapping found$'
-                    \||  execute(mode.'map <buffer> '.m.fwd) !~# '^\n\nNo mapping found$')
-            let map_save = s:unshadow(mode, m)
-            call s:make_repeatable(mode, is_local, axis, m, from)
+        if !is_local && (    execute(mode.'map <buffer> '.m.bwd) !~# '^\n\nNo mapping found$'
+                         \|| execute(mode.'map <buffer> '.m.fwd) !~# '^\n\nNo mapping found$')
+            let map_save = s:unshadow(m, mode)
+            call s:make_each_repeatable(mode, is_local, m, axis, from)
             call lg#map#restore(map_save)
         else
-            call s:make_repeatable(mode, is_local, axis, m, from)
+            call s:make_each_repeatable(mode, is_local, m, axis, from)
         endif
     endfor
 endfu
 
-fu! lg#motion#repeatable#main#set_last_used(lhs,axis) abort "{{{2
+fu! lg#motion#repeatable#make#set_last_used(lhs,axis) abort "{{{2
     let s:last_motions[join(values(a:axis))] = s:translate_lhs(a:lhs)
 endfu
 
@@ -709,7 +664,7 @@ fu! s:collides_with_db(motion, repeatable_motions) abort "{{{2
     " Vim shouldn't make a motion repeatable twice (total collision):
     "
     "     Because it means we have a useless invocation of
-    "     `lg#motion#repeatable#main#make()`
+    "     `lg#motion#repeatable#make#all()`
     "     somewhere in our config, it should be removed.
     "
     " Vim shouldn't change the motion to which a lhs belongs (partial collision):
@@ -870,15 +825,50 @@ fu! s:invalid_axis_or_direction(axis, direction) abort "{{{2
     return !is_valid_axis || !is_valid_direction
 endfu
 
-fu! lg#motion#repeatable#main#is_repeating(axis) abort "{{{2
+fu! lg#motion#repeatable#make#is_repeating(axis) abort "{{{2
     return get(s:is_repeating_motion, a:axis, 0)
+endfu
+
+fu! s:make_keys_feedable(seq) abort "{{{2
+    let m = escape(a:seq, '"\')
+    let special_chars = [
+    \                    '<BS>',
+    \                    '<Bar>',
+    \                    '<Bslash>',
+    \                    '<C-',
+    \                    '<CR>',
+    \                    '<Del>',
+    \                    '<Down>',
+    \                    '<End>',
+    \                    '<Esc>',
+    \                    '<F',
+    \                    '<Home>',
+    \                    '<Left>',
+    \                    '<M-',
+    \                    '<PageDown>',
+    \                    '<PageUp>',
+    \                    '<Plug>',
+    \                    '<Right>',
+    \                    '<S-',
+    \                    '<Space>',
+    \                    '<Tab>',
+    \                    '<Up>',
+    \                    '<lt>',
+    \                   ]
+    for s in special_chars
+        let m = substitute(m, '\c\('.s.'\)', '\\\1', 'g')
+    endfor
+
+    " Don't use `string()`.
+    " We need double quotes to translate special characters.
+    sil exe 'return "'.m.'"'
 endfu
 
 fu! s:translate_lhs(lhs) abort "{{{2
     return eval('"'.escape(substitute(a:lhs, '<\ze[^>]\+>', '\\<', 'g'), '"').'"')
 endfu
 
-fu! s:unshadow(mode, m) abort "{{{2
+fu! s:unshadow(m, mode) abort "{{{2
     let map_save = lg#map#save(a:mode, 1, [a:m.bwd, a:m.fwd])
     exe 'sil! '.a:mode.'unmap <buffer> '.a:m.bwd
     exe 'sil! '.a:mode.'unmap <buffer> '.a:m.fwd

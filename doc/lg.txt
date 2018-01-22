@@ -2,71 +2,72 @@ lg-lib.txt    lg-lib    Last change: January 19 2018
 LG-LIB - TABLE OF CONTENTS                                   *lg-lib* *lg-lib-toc*
 ==============================================================================
 
+	 Todo	align the tags
+
 
 < Interface >_________________________________________________________________~
-                                        *lg#motion#repeatable#main#make()*
-lg#motion#repeatable#main#make({what})
+                                        *lg#motion#repeatable#make#all()*
+lg#motion#repeatable#make#all({what})
 
-                Make the motions described in {what} repeatable.
+            Make the motions described in {what} repeatable.
 
-                {what} is a dictionary containing 5 keys:
+            {what} is a dictionary containing 5 keys:
 
-                        mode       the mode in which the motion is defined
+                    mode       the mode in which the motion is defined
 
-                        buffer     a boolean flag; when on, the motion is local
-                                   to the current buffer
+                    buffer     a boolean flag; when on, the motion is local
+                               to the current buffer
 
-                        axis       dictionary with 2 keys: 'bwd' and 'fwd'
+                    axis       dictionary with 2 keys: 'bwd' and 'fwd'
 
-                                   the values of this dictionary are the keys
-                                   which must be pressed to repeat the motion
-                                   in 2 directions
+                               the values of this  dictionary are the keys which
+                               must  be  pressed  to  repeat  the  motion  in  2
+                               directions
 
-                                   the dictionary may contain an optional 3rd
-                                   key: 'mode';
-                                   by   default,  the   function  will   install
-                                   the  mappings  to  repeat  the  motion  using
-                                   `:noremap`, but if 'mode'  is given the value
-                                   'n', they will  be installed with `:nnoremap`
-                                   instead;
-                                   this  is  useful  if  the keys  may  have  an
-                                   undesired effect in some mode;
-                                   for example, `co,` and `co;` could be used in
-                                   normal mode, but they would introduce lag
-                                   for the `c` operator in visual mode
+                               the dictionary  may contain an optional  3rd key:
+                               'mode';
+                               by  default,   the  function  will   install  the
+                               mappings to  repeat the motion  using `:noremap`,
+                               but if 'mode'  is given the value  'n', they will
+                               be installed with `:nnoremap` instead;
+                               this is useful if the  keys may have an undesired
+                               effect in some mode;
+                               for  example, `co,`  and `co;`  could be  used in
+                               normal mode, but they would introduce lag for the
+                               `c` operator in visual mode
 
-                        from       the filepath and the line address from which
-                                   the function is called
+                    from       the filepath and the line address from which
+                               the function is called
 
-                                   you can get it programmatically with: >
+                               you can get it programmatically with: >
 
-                                       expand('<sfile>:p').':'.expand('<slnum>')
+                                   expand('<sfile>:p').':'.expand('<slnum>')
 <
-                                   you can  give any  value, including  an empty
-                                   string; it will be  printed when asking for
-                                   a verbose listing of the database
+                               you  can  give  any  value,  including  an  empty
+                               string;  it will  be  printed when  asking for  a
+                               verbose listing of the database
 
-                        motions    a list of motions
+                    motions    a list of motions
 
-                                   each item must be a dictionary containing
-                                   2 keys:
+                               each item must be a dictionary containing
+                               2 keys:
 
-                                       'bwd'     key to press to move backwards
+                                   'bwd'     key to press to move backwards
 
-                                       'fwd'     key to press to move forwards
+                                   'fwd'     key to press to move forwards
 
-                Usage example: >
+            Usage example: >
 
-                        call lg#motion#repeatable#main#make({
-                        \        'mode':   '',
-                        \        'buffer': 0,
-                        \        'axis':   {'bwd': ',', 'fwd': ';'},
-                        \        'from':   expand('<sfile>:p').':'.expand('<slnum>'),
-                        \        'motions': [
-                        \                     { 'bwd': '[M',  'fwd': ']M' },
-                        \                     { 'bwd': '[m',  'fwd': ']m' },
-                        \                   ],
-                        \ })
+                    call lg#motion#repeatable#make#all({
+                    \        'mode':   '',
+                    \        'buffer': 0,
+                    \        'axis':   {'bwd': ',', 'fwd': ';'},
+                    \        'from':   expand('<sfile>:p').':'.expand('<slnum>'),
+                    \        'motions': [
+                    \                     { 'bwd': '[M',  'fwd': ']M' },
+                    \                     { 'bwd': '[m',  'fwd': ']m' },
+                    \                   ],
+                    \ })
 <
 
                                         *repeatable-motion-listing*
@@ -113,10 +114,10 @@ lg#motion#repeatable#main#make({what})
                                         *repeatable-motion-plug-mappings*
 
 For every pair of keys that you use to repeat a motion,
-`lg#motion#repeatable#main#make()` installs 2 `<plug>` mappings.
+`lg#motion#repeatable#make#all()` installs 2 `<plug>` mappings.
 Example: >
 
-    call lg#motion#repeatable#main#make({
+    call lg#motion#repeatable#make#all({
     \        'mode':   '',
     \        'buffer': 0,
     \        'axis':   {'bwd': 'z,', 'fwd': 'z;'},
@@ -143,9 +144,30 @@ Useful, for example, to create a submode in which you don't have to press `z`:
     call submode#map(       'repeat-motion-2', 'n', 'r',  ';', '<plug>(forward-z,_z;)')
 <
 
+< Purpose >___________________________________________________________________~
+                                                   *repeatable-motion-purpose*
+
+
+`lg#motion#repeatable#make#all()` has 3 purposes:
+
+    1. Install wrapper mappings around a pair of motion mappings.
+       The wrappers will be used to save and update the last motion.
+
+    2. Install a pair of mappings to repeat this last saved motion.
+
+    3. Add to the list `[s:|b:]repeatable_motions` a dictionary containing all
+       the information relative to the original pair of motion mappings.
+
+       This list is used as a database  by the wrappers to know what the motions
+       are mapped to, and which keys to type.
+
+       It is also used by :ListRepeatableMotions,  to get info about all motions
+       currently repeatable.
+
+
 < Terminology >_______________________________________________________________~
 
-                                        *repeatable-motion-terminology*
+                                               *repeatable-motion-terminology*
 
  axis
 
@@ -164,18 +186,20 @@ Useful, for example, to create a submode in which you don't have to press `z`:
 
          dictionary containing 2 keys:
 
-             • bwd:     output of `maparg('<left>')` where <left> is
+             • bwd:     output of `maparg('<left>')` assuming <left> is
                         the backward motion
 
-             • fwd:     same thing for `<right>` as the forward motion
+             • fwd:     same thing for `<right>` assuming it's
+                        the forward motion
 
 
 < Errors >____________________________________________________________________~
+                                                    *repeatable-motion-errors*
 
 
                                         *E8000*
 
-The dictionary argument you passed to `lg#motion#repeatable#main#make()` should
+The dictionary argument you passed to `lg#motion#repeatable#make#all()` should
 contain the following keys:
 
     • 'axis'
@@ -195,8 +219,8 @@ At least one of them is missing.
 
                                         *E8002*
 
-You asked  for a local motion  to be made  repeatable: both its {lhs}  should be
-used in local mappings. But here, at least one of them is not.
+You asked for a  local motion to be made repeatable: the 2  {lhs} should be used
+in local mappings. But here, at least one of them is not.
 
 
                                         *E8003*
@@ -214,13 +238,16 @@ Or, a motion in a database of repeatable motions (global or local) has:
                               “partial collision”
 
 
-< Miscellaneous >_________________________________________________________________~
+< Miscellaneous >_____________________________________________________________~
+                                             *repeatable-motion-miscellaneous*
+
+
                                         *repeatable-motion-absolute-direction*
 
 The key used to repeat a motion always moves the cursor in the same direction.
 Example: >
 
-    call lg#motion#repeatable#main#make({
+    call lg#motion#repeatable#make#all({
     \        'mode':   '',
     \        'buffer': 0,
     \        'axis':   {'bwd': ',', 'fwd': ';'},

@@ -4,7 +4,7 @@ endif
 let g:autoloaded_lg#motion#repeatable#listing = 1
 
 fu! s:init() abort "{{{1
-    let s:repeatable_motions = lg#motion#repeatable#main#share_env()
+    let s:repeatable_motions = lg#motion#repeatable#make#share_env()
     let s:axes = uniq(sort(map(deepcopy(s:repeatable_motions), {i,v -> v.axis})))
 endfu
 call s:init()
