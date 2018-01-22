@@ -12,28 +12,16 @@ call s:init()
 fu! lg#motion#repeatable#listing#complete(arglead, cmdline, _p) abort "{{{1
     let opt = [
     \           '-axis ',
-    \           '-mode',
+    \           '-mode ',
     \           '-scope ',
     \           '-v ',
     \           '-vv ',
     \         ]
 
-    if  a:arglead[0] ==# '-'
-    \|| empty(a:arglead)
-    \&& a:cmdline !~# '-\%(axis\|scope\)\s\+$'
-    \&& a:cmdline !~# '-mode\s\+\w*$'
-        " Why not filtering the options?{{{
-        "
-        " We don't need to, because the command invoking this completion function is
-        " defined with the attribute `-complete=custom`, not `-complete=customlist`,
-        " which means Vim performs a basic filtering automatically.
-        " }}}
-        return join(opt, "\n")
+    if a:cmdline =~# '-axis\s\+\S*$'
+        return join(map(deepcopy(s:axes), {i,v -> substitute(v, '\s\+', '_', 'g')}), "\n")
 
-    elseif a:cmdline =~# '-axis\s\+$'
-        return join(s:axes, "\n")
-
-    elseif a:cmdline =~# '-mode \w*$'
+    elseif a:cmdline =~# '-mode\s\+\w*$'
         let modes = [
         \             'normal',
         \             'visual',
@@ -44,6 +32,15 @@ fu! lg#motion#repeatable#listing#complete(arglead, cmdline, _p) abort "{{{1
 
     elseif a:cmdline =~# '-scope\s\+\w*$'
         return "local\nglobal"
+
+    elseif a:arglead[0] ==# '-' || empty(a:arglead)
+        " Why not filtering the options?{{{
+        "
+        " We don't need to, because the command invoking this completion function is
+        " defined with the attribute `-complete=custom`, not `-complete=customlist`,
+        " which means Vim performs a basic filtering automatically.
+        " }}}
+        return join(opt, "\n")
     endif
 
     return ''
@@ -82,14 +79,8 @@ endfu
 
 fu! lg#motion#repeatable#listing#main(...) abort "{{{1
     let cmd_args = split(a:1)
-    " FIXME: ListRepeatableMotions -axis , ; -vv
-    " this is because of:
-    "
-    "         matchstr('-axis , ; -vv', '\v-axis\s+\zs.{-}\ze%(-mode|-scope|-v)?')
-    "                                                                          │
-    "                                                                          └ ✘
     let opt = {
-    \           'axis':     matchstr(a:1, '\v-axis\s+\zs.*\ze%(-mode|-scope|-v)?'),
+    \           'axis':     substitute(matchstr(a:1, '\v-axis\s+\zs\S+'), '_', ' ', 'g'),
     \           'mode':     matchstr(a:1, '\v-mode\s+\zs%(\w|-)+'),
     \           'scope':    matchstr(a:1, '\v-scope\s+\zs\w+'),
     \           'verbose1': index(cmd_args, '-v') >= 0,
