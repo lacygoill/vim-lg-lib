@@ -104,6 +104,8 @@ fu! lg#motion#repeatable#listing#main(...) abort "{{{1
     " show the result
     call lg#log#output({'excmd': 'ListRepeatableMotions', 'lines': total_listing})
     call s:customize_preview_window()
+    1/^Motions/?\n\n?d_
+    keepj keepp %s/\v\n{3,}/\r\r/e
 endfu
 
 fu! s:merge_listings(opt, ...) abort "{{{1
@@ -134,7 +136,7 @@ fu! s:merge_listings(opt, ...) abort "{{{1
     let lines = ['']
     let lines += ['Motions repeated with:  '.axis]
     if empty(listing_for_this_axis.global) && empty(listing_for_this_axis.local)
-        let lines += ['  ∅']
+        call remove(lines, -1)
     else
         for scope in ['global', 'local']
             if !empty(listing_for_this_axis[scope])

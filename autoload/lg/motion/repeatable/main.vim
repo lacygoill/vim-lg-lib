@@ -35,15 +35,6 @@ if exists('g:autoloaded_lg#motion#repeatable#main')
 endif
 let g:autoloaded_lg#motion#repeatable#main = 1
 
-" TODO:
-" Split the code in several files if needed.
-" Also, make the signature of the main function similar to `submode#map()`;
-" which means we shouldn't use a dictionary of arguments, just plain arguments.
-" This would allow us to eliminate `make_repeatable()`.
-"
-" Also, I'm not satisfied with the current architecture of files for this plugin.
-" Also, maybe we should move it back to its own plugin.
-
 fu! s:init() abort "{{{1
     let s:repeatable_motions = []
     let s:last_motions = {}
@@ -77,203 +68,17 @@ fu! s:init() abort "{{{1
     \                              'o': 'onoremap',
     \                              '' : 'noremap',
     \                            }
-
 endfu
 call s:init()
 
-fu! s:collides_with_db(motion, repeatable_motions) abort "{{{1
-    " Purpose:{{{
-    " Detect whether the motion we're trying  to make repeatable collides with
-    " a motion in the db.
-    "}}}
-    " When does a collision occur?{{{
-    "
-    " When `a:motion` is already in the db (TOTAL collision).
-    " Or when a motion in the db has the same mode as `a:motion`, and one of its
-    " `lhs` key has the same value as one of `a:motion` (PARTIAL collision).
-    "}}}
-    " Why is a collision an issue?{{{
-    "
-    " If you try to install a wrapper around a key which has already been wrapped,
-    " you'll probably end up losing the original definition:
-    " in the db, it may be replaced with the 1st wrapper.
-    "
-    " Besides:
-    " Vim shouldn't make a motion repeatable twice (total collision):
-    "
-    "     Because it means we have a useless invocation of
-    "     `lg#motion#repeatable#main#make()`
-    "     somewhere in our config, it should be removed.
-    "
-    " Vim shouldn't change the motion to which a lhs belongs (partial collision):
-    "
-    "     we define the motion:    [m  ]m  (normal mode)    ✔
-    "     we define the motion:    [m  ]]  (normal mode)    ✘
-    "
-    "     We probably have made an error. We should be warned to fix it.
-    "}}}
-
-    "   ┌ Motion
-    "   │
-    for m in a:repeatable_motions
-        if  a:motion.bwd.lhs ==# m.bwd.lhs && a:motion.bwd.mode ==# m.bwd.mode
-        \|| a:motion.fwd.lhs ==# m.fwd.lhs && a:motion.fwd.mode ==# m.fwd.mode
-            try
-                throw printf("E8003:  [repeatable motion]  cannot process motion '%s : %s'",
-                \             m.bwd.lhs, m.fwd.lhs)
-            catch
-                call lg#catch_error()
-            finally
-                return 1
-            endtry
-        endif
-    endfor
-    return 0
-endfu
-
-fu! s:get_direction(lhs, motion) abort "{{{1
-    let is_fwd = s:translate_lhs(a:lhs) ==# s:translate_lhs(a:motion.fwd.lhs)
-    return is_fwd ? 'fwd' : 'bwd'
-endfu
-
-fu! s:get_mapcmd(mode, maparg) abort "{{{1
-    let is_recursive = !get(a:maparg, 'noremap', 1)
-    "                                            │
-    "                                            └ by default, we don't want
-    "                                              a recursive wrapper mapping
-
-    let mapcmd = s:{is_recursive ? '' : 'NON_'}RECURSIVE_MAPCMD[a:mode]
-
-    let mapcmd .= '  <expr>'
-    if get(a:maparg, 'buffer', 0)
-        let mapcmd .= '<buffer>'
-    endif
-    if get(a:maparg, 'nowait', 0)
-        let mapcmd .= '<nowait>'
-    endif
-    if get(a:maparg, 'silent', 0)
-        let mapcmd .= '<silent>'
-    endif
-
-    return mapcmd
-endfu
-
-fu! s:get_current_mode() abort "{{{1
-    " Why the substitutions?{{{
-    "
-    "     substitute(mode(1), "[vV\<c-v>]", 'x', ''):
-    "
-    "         normalize output of `mode()` to match the one of `maparg()`
-    "         in case we're in visual mode
-    "
-    "     substitute(…, 'no', 'o', '')
-    "
-    "         same thing for operator-pending mode
-    "}}}
-    return substitute(substitute(mode(1), "[vV\<c-v>]", 'x', ''), 'no', 'o', '')
-endfu
-
-fu! s:get_motion_info(lhs) abort "{{{1
-    " Purpose:{{{
-    " return the info about the motion in the db which:
-    "
-    "     • contains `a:lhs` (no matter for which direction)
-    "     • has the same mode as the current one
-    "}}}
-    " Why don't you check the axis too?{{{
-    "
-    " Because, in practice, it doesn't make much sense to repeat the same
-    " motion on 2 axes.
-    "}}}
-
-    let mode = s:get_current_mode()
-    let motions = get(maparg(a:lhs, mode, 0, 1), 'buffer', 0)
-    \?                get(b:, 'repeatable_motions', [])
-    \:                s:repeatable_motions
-
-    for m in motions
-        if  index([s:translate_lhs(m.bwd.lhs), s:translate_lhs(m.fwd.lhs)],
-        \          s:translate_lhs(a:lhs)) >= 0
-        \&& index([mode, ' '], m.bwd.mode) >= 0
-        "                      └────────┤
-        "                               └ mode of the motion:
-        "                                 originally obtained with `maparg()`
-        "
-        " Why this last condition? {{{
-        "
-        " We only  pass a lhs  to this function. So, when  it tries to  find the
-        " relevant info in  the database, it doesn't care about  the mode of the
-        " motion. It stops searching as soon as it finds one which has the right
-        " lhs.  It's wrong; it should also care about the mode.
-        "
-        " Without this condition, here's what could happen:
-        "
-        "     1. go to a function containing a `:return` statement
-        "     2. enter visual mode
-        "     3. press `%` on `fu!`
-        "     4. press `;`
-        "     5. press Escape
-        "     6. press `;`
-        "
-        " Now `;` makes us enter visual  mode. It shouldn't. We want a motion in
-        " normal mode.
-        "}}}
-        " Break it down please:{{{
-        "
-        "     mode:
-        "         current mode
-        "
-        "     index([…, ' '], m.bwd.mode) >= 0
-        "
-        "         check whether  the mode  of the motion  found in  the database
-        "         matches the current one, or a single space.
-        "}}}
-        " Why a single space?{{{
-        "
-        " `m.bwd.mode` could  be a  space, if the  original mapping  was defined
-        " with `:noremap` or  `:map`. But `mode` will never be  a space, because
-        " it gets its value from `mode(1)`, which will return:
-        "
-        "     'n', 'v', 'V', 'C-v' or 'no'
-        "
-        " So, we need to compare `m.bwd.mode` to the current mode, AND to a space.
-        "}}}
-        " Note that there's an inconsistency in  maparg(){{{
-        "
-        " Don't be confused:
-        "
-        " if you want information about a mapping in the 3 modes `nvo`, the help
-        " says that you must  pass an empty string as the  2nd argument.  But in
-        " the output, they will be represented  with a single space, not with an
-        " empty string.
-        "}}}
-        " There's also one between  maparg()  and  mode(){{{
-        "
-        " To express  the operator-pending mode,  `maparg()` expects 'o'  in its
-        " input, while `mode(1)` uses 'no' in its output.
-        "}}}
-            return m
-        endif
-    endfor
-endfu
-
-fu! s:install_wrapper(mode, m, maparg) abort "{{{1
+" Core {{{1
+fu! s:install_wrapper(mode, m, maparg) abort "{{{2
     let mapcmd = s:get_mapcmd(a:mode, a:maparg)
     exe mapcmd.'  '.a:m.bwd.'  <sid>move('.string(a:m.bwd).', '.get(a:maparg, 'buffer', 0).', 1)'
     exe mapcmd.'  '.a:m.fwd.'  <sid>move('.string(a:m.fwd).', '.get(a:maparg, 'buffer', 0).', 1)'
 endfu
 
-fu! s:invalid_axis_or_direction(axis, direction) abort "{{{1
-    let is_valid_axis = has_key(s:last_motions, a:axis) >= 0
-    let is_valid_direction = index(['bwd', 'fwd'], a:direction) >= 0
-    return !is_valid_axis || !is_valid_direction
-endfu
-
-fu! lg#motion#repeatable#main#is_repeating(axis) abort "{{{1
-    return get(s:is_repeating_motion, a:axis, 0)
-endfu
-
-fu! s:make_keys_feedable(seq) abort "{{{1
+fu! s:make_keys_feedable(seq) abort "{{{2
     let m = escape(a:seq, '"\')
     let special_chars = [
     \                    '<BS>',
@@ -308,88 +113,7 @@ fu! s:make_keys_feedable(seq) abort "{{{1
     sil exe 'return "'.m.'"'
 endfu
 
-fu! lg#motion#repeatable#main#make(what) abort "{{{1
-    " can make several motions repeatable
-
-    " FIXME:
-    " maybe rename 'axis'
-
-    " sanitize input
-    if sort(keys(a:what)) !=# ['axis', 'buffer', 'from', 'mode', 'motions']
-        try
-            throw 'E8000:  [repeatable motion]  missing key'
-        catch
-            return lg#catch_error()
-        endtry
-    endif
-    let from     = a:what.from
-    let mode     = a:what.mode
-    let is_local = a:what.buffer
-    if has_key(a:what.axis, 'bwd') && has_key(a:what.axis, 'fwd')
-        let axis = a:what.axis.bwd.' '.a:what.axis.fwd
-    else
-        try
-            throw 'E8001:  [repeatable motion]  missing key'
-        catch
-            return lg#catch_error()
-        endtry
-    endif
-
-    if  !has_key(s:last_motions, axis)
-    \&& maparg(a:what.axis.bwd) !~# '#move_again('
-    \&& maparg(a:what.axis.fwd) !~# '#move_again('
-        " What command do you use to install the mappings repeating motions?{{{
-        "
-        " By  default, we  use `:noremap`.   However,  if the  user invoked  the
-        " function  by  adding  the  optional  key  'mode',  in  the  dictionary
-        " `a:what.axis`, we take it into consideration.
-        " So:
-        "
-        "     'axis':  {'bwd': '+,', 'fwd': '+;'}
-        "         → noremap
-        "
-        "     'axis':  {'bwd': '+,', 'fwd': '+;', 'n'}
-        "         → nnoremap
-        "}}}
-        let mapcmd = get(a:what.axis, 'mode', '') == ''
-        \?               'noremap'
-        \:               a:what.axis.mode . 'noremap'
-        exe mapcmd.'  <expr>  '.a:what.axis.bwd."  <sid>move_again('bwd', ".string(axis).')'
-        exe mapcmd.'  <expr>  '.a:what.axis.fwd."  <sid>move_again('fwd', ".string(axis).')'
-
-        " We also install <plug> mappings to be able to create submodes.
-        " TODO:
-        " document these mappings and how they can be used
-        exe mapcmd.'  <expr>  <plug>(backward-'.substitute(axis, '\s\+', '_', 'g').")  <sid>move_again('bwd', ".string(axis).')'
-        exe mapcmd.'  <expr>  <plug>(forward-'.substitute(axis, '\s\+', '_', 'g').")  <sid>move_again('fwd', ".string(axis).')'
-    endif
-
-    " try to make all the motions received repeatable
-    for m in a:what.motions
-        " Warning: `execute()` is buggy in Neovim{{{
-        "
-        " It sometimes fail to capture anything. It  has been fixed in a Vim
-        " patch.  For this code to work in  Neovim, you need to wait for the
-        " patch to be merged there, or use `:redir`.
-       "}}}
-        " Why this check?{{{
-        "
-        " If  the motion  is global,  one  of its  lhs  could be  shadowed by  a
-        " buffer-local  mapping using  the same  lhs. We handle  this particular
-        " case by temporarily removing the latter.
-        "}}}
-        if !is_local && (execute(mode.'map <buffer> '.m.bwd) !~# '^\n\nNo mapping found$'
-                    \||  execute(mode.'map <buffer> '.m.fwd) !~# '^\n\nNo mapping found$')
-            let map_save = s:unshadow(mode, m)
-            call s:make_repeatable(mode, is_local, axis, m, from)
-            call lg#map#restore(map_save)
-        else
-            call s:make_repeatable(mode, is_local, axis, m, from)
-        endif
-    endfor
-endfu
-
-fu! s:make_repeatable(mode, is_local, axis, m, from) abort "{{{1
+fu! s:make_repeatable(mode, is_local, axis, m, from) abort "{{{2
     " can make only ONE motion repeatable
 
     let bwd    = a:m.bwd
@@ -502,11 +226,6 @@ fu! s:make_repeatable(mode, is_local, axis, m, from) abort "{{{1
     "}}}
     let repeatable_motions = {a:is_local ? 'b:' : 's:'}repeatable_motions
 
-    " TODO:
-    " This prevents `b:repeatable_motions` from growing when we reload a buffer.
-    " But it feels wrong to wait so late.
-    " I would prefer to reset the variable earlier.
-    " Besides, it may write something in the log messages (type coD, then :e).
     if s:collides_with_db(motion, repeatable_motions)
         return
     endif
@@ -546,7 +265,7 @@ fu! s:make_repeatable(mode, is_local, axis, m, from) abort "{{{1
     endif
 endfu
 
-fu! s:move(lhs, buffer, update_last_motion, ...) abort "{{{1
+fu! s:move(lhs, buffer, update_last_motion, ...) abort "{{{2
     " What is the purpose of this optional argument?{{{
     "
     " When  `s:move_again()` is  invoked,  it calls  `s:move()`,  and passes  an
@@ -650,7 +369,7 @@ fu! s:move(lhs, buffer, update_last_motion, ...) abort "{{{1
     \:             s:make_keys_feedable(motion[dir_key].rhs)
 endfu
 
-fu! s:move_again(dir, axis) abort "{{{1
+fu! s:move_again(dir, axis) abort "{{{2
     " This function is called by various mappings whose suffix is `,` or `;`.
 
     " make sure the arguments are valid,
@@ -731,14 +450,16 @@ fu! s:move_again(dir, axis) abort "{{{1
 
     " If we're using  `]q` &friends, we need to redraw  all statuslines, so that
     " the position in the list is updated immediately.
+    "
     " TODO:
-    " It may not be needed anymore.
-    " Because we execute `:redraw` via `vim-submode`, which redraws the screen
-    " AND the statuslines. Although, we may get rid of `:redraw` later, so for
-    " the moment, I keep `:redraws!`.
-    if a:axis ==# 'z, z;'
-        call timer_start(0, {-> execute('redraws!')})
-    endif
+    " It was needed in the past, but it's not anymore.
+    " Because we execute  `:redraw` via `vim-submode`, which  redraws the screen
+    " AND the statuslines. However,  if we get rid of `:redraw`  later, uncomment
+    " the next 3 lines.
+    "
+    "     if a:axis ==# 'z, z;'
+    "         call timer_start(0, {-> execute('redraws!')})
+    "     endif
 
     " How could it be empty?{{{
     "
@@ -837,7 +558,7 @@ fu! s:move_again(dir, axis) abort "{{{1
     return ''
 endfu
 
-fu! s:populate(motion, mode, lhs, is_fwd, maparg) abort "{{{1
+fu! s:populate(motion, mode, lhs, is_fwd, maparg) abort "{{{2
     let dir = a:is_fwd ? 'fwd' : 'bwd'
 
     " make a custom mapping repeatable
@@ -869,29 +590,296 @@ fu! s:populate(motion, mode, lhs, is_fwd, maparg) abort "{{{1
     endif
 endfu
 
-fu! lg#motion#repeatable#main#set_last_used(lhs,axis) abort "{{{1
-    let s:last_motions[join(values(a:axis))] = s:translate_lhs(a:lhs)
-endfu
-
-fu! lg#motion#repeatable#main#share_env() abort "{{{1
+fu! lg#motion#repeatable#main#share_env() abort "{{{2
     return s:repeatable_motions
 endfu
 
-fu! s:translate_lhs(lhs) abort "{{{1
-    return eval('"'.escape(substitute(a:lhs, '<\ze[^>]\+>', '\\<', 'g'), '"').'"')
-endfu
-
-fu! s:unshadow(mode, m) abort "{{{1
-    let map_save = lg#map#save(a:mode, 1, [a:m.bwd, a:m.fwd])
-    exe 'sil! '.a:mode.'unmap <buffer> '.a:m.bwd
-    exe 'sil! '.a:mode.'unmap <buffer> '.a:m.fwd
-    return map_save
-endfu
-
-fu! s:update_undo_ftplugin() abort "{{{1
+fu! s:update_undo_ftplugin() abort "{{{2
     if stridx(get(b:, 'undo_ftplugin', ''), 'unlet! b:repeatable_motions') == -1
         let b:undo_ftplugin =          get(b:, 'undo_ftplugin', '')
         \                     . (empty(get(b:, 'undo_ftplugin', '')) ? '' : '|')
         \                     . 'unlet! b:repeatable_motions'
     endif
+endfu
+
+" Interface {{{1
+fu! lg#motion#repeatable#main#make(what) abort "{{{2
+    " can make several motions repeatable
+
+    " sanitize input
+    if sort(keys(a:what)) !=# ['axis', 'buffer', 'from', 'mode', 'motions']
+        try
+            throw 'E8000:  [repeatable motion]  missing key'
+        catch
+            return lg#catch_error()
+        endtry
+    endif
+    let from     = a:what.from
+    let mode     = a:what.mode
+    let is_local = a:what.buffer
+    if has_key(a:what.axis, 'bwd') && has_key(a:what.axis, 'fwd')
+        let axis = a:what.axis.bwd.' '.a:what.axis.fwd
+    else
+        try
+            throw 'E8001:  [repeatable motion]  missing key'
+        catch
+            return lg#catch_error()
+        endtry
+    endif
+
+    if  !has_key(s:last_motions, axis)
+    \&& maparg(a:what.axis.bwd) !~# '#move_again('
+    \&& maparg(a:what.axis.fwd) !~# '#move_again('
+        " What command do you use to install the mappings repeating motions?{{{
+        "
+        " By  default, we  use `:noremap`.   However,  if the  user invoked  the
+        " function  by  adding  the  optional  key  'mode',  in  the  dictionary
+        " `a:what.axis`, we take it into consideration.
+        " So:
+        "
+        "     'axis':  {'bwd': '+,', 'fwd': '+;'}
+        "         → noremap
+        "
+        "     'axis':  {'bwd': '+,', 'fwd': '+;', 'n'}
+        "         → nnoremap
+        "}}}
+        let mapcmd = get(a:what.axis, 'mode', '') == ''
+        \?               'noremap'
+        \:               a:what.axis.mode . 'noremap'
+        exe mapcmd.'  <expr>  '.a:what.axis.bwd."  <sid>move_again('bwd', ".string(axis).')'
+        exe mapcmd.'  <expr>  '.a:what.axis.fwd."  <sid>move_again('fwd', ".string(axis).')'
+
+        " We also install <plug> mappings to be able to access `s:move_again()`
+        " from another script. When the axis contains `z,` and `z;`, these
+        " mappings could be useful, to create a submode in which we don't have
+        " to press `z`.
+        exe mapcmd.'  <expr>  <plug>(backward-'.substitute(axis, '\s\+', '_', 'g').")  <sid>move_again('bwd', ".string(axis).')'
+        exe mapcmd.'  <expr>  <plug>(forward-' .substitute(axis, '\s\+', '_', 'g').")  <sid>move_again('fwd', ".string(axis).')'
+    endif
+
+    " try to make all the motions received repeatable
+    for m in a:what.motions
+        " Warning: `execute()` is buggy in Neovim{{{
+        "
+        " It sometimes fail to capture anything. It  has been fixed in a Vim
+        " patch.  For this code to work in  Neovim, you need to wait for the
+        " patch to be merged there, or use `:redir`.
+       "}}}
+        " Why this check?{{{
+        "
+        " If  the motion  is global,  one  of its  lhs  could be  shadowed by  a
+        " buffer-local  mapping using  the same  lhs. We handle  this particular
+        " case by temporarily removing the latter.
+        "}}}
+        if !is_local && (execute(mode.'map <buffer> '.m.bwd) !~# '^\n\nNo mapping found$'
+                    \||  execute(mode.'map <buffer> '.m.fwd) !~# '^\n\nNo mapping found$')
+            let map_save = s:unshadow(mode, m)
+            call s:make_repeatable(mode, is_local, axis, m, from)
+            call lg#map#restore(map_save)
+        else
+            call s:make_repeatable(mode, is_local, axis, m, from)
+        endif
+    endfor
+endfu
+
+fu! lg#motion#repeatable#main#set_last_used(lhs,axis) abort "{{{2
+    let s:last_motions[join(values(a:axis))] = s:translate_lhs(a:lhs)
+endfu
+
+" Misc. {{{1
+fu! s:collides_with_db(motion, repeatable_motions) abort "{{{2
+    " Purpose:{{{
+    " Detect whether the motion we're trying  to make repeatable collides with
+    " a motion in the db.
+    "}}}
+    " When does a collision occur?{{{
+    "
+    " When `a:motion` is already in the db (TOTAL collision).
+    " Or when a motion in the db has the same mode as `a:motion`, and one of its
+    " `lhs` key has the same value as one of `a:motion` (PARTIAL collision).
+    "}}}
+    " Why is a collision an issue?{{{
+    "
+    " If you try to install a wrapper around a key which has already been wrapped,
+    " you'll probably end up losing the original definition:
+    " in the db, it may be replaced with the 1st wrapper.
+    "
+    " Besides:
+    " Vim shouldn't make a motion repeatable twice (total collision):
+    "
+    "     Because it means we have a useless invocation of
+    "     `lg#motion#repeatable#main#make()`
+    "     somewhere in our config, it should be removed.
+    "
+    " Vim shouldn't change the motion to which a lhs belongs (partial collision):
+    "
+    "     we define the motion:    [m  ]m  (normal mode)    ✔
+    "     we define the motion:    [m  ]]  (normal mode)    ✘
+    "
+    "     We probably have made an error. We should be warned to fix it.
+    "}}}
+
+    "   ┌ Motion
+    "   │
+    for m in a:repeatable_motions
+        if  a:motion.bwd.lhs ==# m.bwd.lhs && a:motion.bwd.mode ==# m.bwd.mode
+        \|| a:motion.fwd.lhs ==# m.fwd.lhs && a:motion.fwd.mode ==# m.fwd.mode
+            try
+                throw printf("E8003:  [repeatable motion]  cannot process motion '%s : %s'",
+                \             m.bwd.lhs, m.fwd.lhs)
+            catch
+                call lg#catch_error()
+            finally
+                return 1
+            endtry
+        endif
+    endfor
+    return 0
+endfu
+
+fu! s:get_direction(lhs, motion) abort "{{{2
+    let is_fwd = s:translate_lhs(a:lhs) ==# s:translate_lhs(a:motion.fwd.lhs)
+    return is_fwd ? 'fwd' : 'bwd'
+endfu
+
+fu! s:get_mapcmd(mode, maparg) abort "{{{2
+    let is_recursive = !get(a:maparg, 'noremap', 1)
+    "                                            │
+    "                                            └ by default, we don't want
+    "                                              a recursive wrapper mapping
+
+    let mapcmd = s:{is_recursive ? '' : 'NON_'}RECURSIVE_MAPCMD[a:mode]
+
+    let mapcmd .= '  <expr>'
+    if get(a:maparg, 'buffer', 0)
+        let mapcmd .= '<buffer>'
+    endif
+    if get(a:maparg, 'nowait', 0)
+        let mapcmd .= '<nowait>'
+    endif
+    if get(a:maparg, 'silent', 0)
+        let mapcmd .= '<silent>'
+    endif
+
+    return mapcmd
+endfu
+
+fu! s:get_current_mode() abort "{{{2
+    " Why the substitutions?{{{
+    "
+    "     substitute(mode(1), "[vV\<c-v>]", 'x', ''):
+    "
+    "         normalize output of `mode()` to match the one of `maparg()`
+    "         in case we're in visual mode
+    "
+    "     substitute(…, 'no', 'o', '')
+    "
+    "         same thing for operator-pending mode
+    "}}}
+    return substitute(substitute(mode(1), "[vV\<c-v>]", 'x', ''), 'no', 'o', '')
+endfu
+
+fu! s:get_motion_info(lhs) abort "{{{2
+    " Purpose:{{{
+    " return the info about the motion in the db which:
+    "
+    "     • contains `a:lhs` (no matter for which direction)
+    "     • has the same mode as the current one
+    "}}}
+    " Why don't you check the axis too?{{{
+    "
+    " Because, in practice, it doesn't make much sense to repeat the same
+    " motion on 2 axes.
+    "}}}
+
+    let mode = s:get_current_mode()
+    let motions = get(maparg(a:lhs, mode, 0, 1), 'buffer', 0)
+    \?                get(b:, 'repeatable_motions', [])
+    \:                s:repeatable_motions
+
+    for m in motions
+        if  index([s:translate_lhs(m.bwd.lhs), s:translate_lhs(m.fwd.lhs)],
+        \          s:translate_lhs(a:lhs)) >= 0
+        \&& index([mode, ' '], m.bwd.mode) >= 0
+        "                      └────────┤
+        "                               └ mode of the motion:
+        "                                 originally obtained with `maparg()`
+        "
+        " Why this last condition? {{{
+        "
+        " We only  pass a lhs  to this function. So, when  it tries to  find the
+        " relevant info in  the database, it doesn't care about  the mode of the
+        " motion. It stops searching as soon as it finds one which has the right
+        " lhs.  It's wrong; it should also care about the mode.
+        "
+        " Without this condition, here's what could happen:
+        "
+        "     1. go to a function containing a `:return` statement
+        "     2. enter visual mode
+        "     3. press `%` on `fu!`
+        "     4. press `;`
+        "     5. press Escape
+        "     6. press `;`
+        "
+        " Now `;` makes us enter visual  mode. It shouldn't. We want a motion in
+        " normal mode.
+        "}}}
+        " Break it down please:{{{
+        "
+        "     mode:
+        "         current mode
+        "
+        "     index([…, ' '], m.bwd.mode) >= 0
+        "
+        "         check whether  the mode  of the motion  found in  the database
+        "         matches the current one, or a single space.
+        "}}}
+        " Why a single space?{{{
+        "
+        " `m.bwd.mode` could  be a  space, if the  original mapping  was defined
+        " with `:noremap` or  `:map`. But `mode` will never be  a space, because
+        " it gets its value from `mode(1)`, which will return:
+        "
+        "     'n', 'v', 'V', 'C-v' or 'no'
+        "
+        " So, we need to compare `m.bwd.mode` to the current mode, AND to a space.
+        "}}}
+        " Note that there's an inconsistency in  maparg(){{{
+        "
+        " Don't be confused:
+        "
+        " if you want information about a mapping in the 3 modes `nvo`, the help
+        " says that you must  pass an empty string as the  2nd argument.  But in
+        " the output, they will be represented  with a single space, not with an
+        " empty string.
+        "}}}
+        " There's also one between  maparg()  and  mode(){{{
+        "
+        " To express  the operator-pending mode,  `maparg()` expects 'o'  in its
+        " input, while `mode(1)` uses 'no' in its output.
+        "}}}
+            return m
+        endif
+    endfor
+endfu
+
+fu! s:invalid_axis_or_direction(axis, direction) abort "{{{2
+    let is_valid_axis = has_key(s:last_motions, a:axis) >= 0
+    let is_valid_direction = index(['bwd', 'fwd'], a:direction) >= 0
+    return !is_valid_axis || !is_valid_direction
+endfu
+
+fu! lg#motion#repeatable#main#is_repeating(axis) abort "{{{2
+    return get(s:is_repeating_motion, a:axis, 0)
+endfu
+
+fu! s:translate_lhs(lhs) abort "{{{2
+    return eval('"'.escape(substitute(a:lhs, '<\ze[^>]\+>', '\\<', 'g'), '"').'"')
+endfu
+
+fu! s:unshadow(mode, m) abort "{{{2
+    let map_save = lg#map#save(a:mode, 1, [a:m.bwd, a:m.fwd])
+    exe 'sil! '.a:mode.'unmap <buffer> '.a:m.bwd
+    exe 'sil! '.a:mode.'unmap <buffer> '.a:m.fwd
+    return map_save
 endfu
