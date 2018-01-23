@@ -4,6 +4,12 @@ LG-LIB - TABLE OF CONTENTS                                   *lg-lib* *lg-lib-to
 
 	 Todo	align the tags
 
+         Are you sure about the syntax highlighting?
+         Sometimes, in Vim's help files, the backticks are used
+         to surround function names. But here, you systematically
+         use bars.
+         Be consistent with Vim's default help files.
+
 
 < Interface >_________________________________________________________________~
                                         *lg#motion#repeatable#make#all()*
@@ -18,23 +24,23 @@ lg#motion#repeatable#make#all({what})
                     buffer     a boolean flag; when on, the motion is local
                                to the current buffer
 
-                    axis       dictionary with 2 keys: 'bwd' and 'fwd'
+                    axis       dictionary with 2 keys: bwd and fwd
 
                                the values of this  dictionary are the keys which
                                must  be  pressed  to  repeat  the  motion  in  2
                                directions
 
                                the dictionary  may contain an optional  3rd key:
-                               'mode';
+                               mode;
                                by  default,   the  function  will   install  the
-                               mappings to  repeat the motion  using `:noremap`,
-                               but if 'mode'  is given the value  'n', they will
-                               be installed with `:nnoremap` instead;
-                               this is useful if the  keys may have an undesired
-                               effect in some mode;
-                               for  example, `co,`  and `co;`  could be  used in
+                               mappings to  repeat the motion  using |:noremap|,
+                               but if  mode is  given the  value 'n',  they will
+                               be  installed with  |:nnoremap| instead;  this is
+                               useful if  the keys may have  an undesired effect
+                               in some mode;
+                               for  example, co,  and co;  could be  used in
                                normal mode, but they would cause a timeout for the
-                               `c` operator in visual mode
+                               |c| operator in visual mode
 
                     from       the filepath and the line address from which
                                the function is called
@@ -52,9 +58,9 @@ lg#motion#repeatable#make#all({what})
                                each item must be a dictionary containing
                                2 keys:
 
-                                   'bwd'     key to press to move backwards
+                                   bwd     key to press to move backwards
 
-                                   'fwd'     key to press to move forwards
+                                   fwd     key to press to move forwards
 
             Usage example: >
 
@@ -75,45 +81,45 @@ lg#motion#repeatable#make#all({what})
 
         Display all repeatable motions.
 
-        Accepts the following arguments to limit the output to some motions: >
+        Accepts the following arguments to limit the output to some motions:
 
                 -axis
                 -mode
                 -scope
-<
 
-        `-axis` expects the name of an axis: >
+
+        -axis expects the name of an axis: >
 
                 :ListRepeatableMotions -axis z,_z;
 <
-        Displays only motions repeatable with `z,` and `z;`.
+        Displays only motions repeatable with z, and z;
 
 
-        `-mode` expects the mode of the motions: >
+        -mode expects the mode of the motions: >
 
                 :ListRepeatableMotions -mode normal
 <
         Displays only motions defined in normal mode.
 
 
-        `-scope` expects the scope of the motions (`global` or `local`): >
+        -scope expects the scope of the motions (global or local): >
 
                 :ListRepeatableMotions -scope local
 <
         Displays only motions local to the current buffer.
 
 
-        You can also use the arguments `-v` and `-vv` to increase the verbosity
+        You can also use the arguments -v and -vv to increase the verbosity
         of the output.
-        `-v` will show from which file each original motion was installed.
-        `-vv` will do the same, but will also show from which file the motion
+        -v will show from which file each original motion was installed.
+        -vv will do the same, but will also show from which file the motion
         was made repeatable.
 
 
                                         *repeatable-motion-plug-mappings*
 
 For every pair of keys that you use to repeat a motion,
-`lg#motion#repeatable#make#all()` installs 2 `<plug>` mappings.
+|lg#motion#repeatable#make#all()| installs 2 <plug> mappings.
 Example: >
 
     call lg#motion#repeatable#make#all({
@@ -126,41 +132,44 @@ Example: >
     \                   ],
     \ })
 <
-This will install the following mappings: >
+In addition  to make [q and  ]q repeatable, this will  install the following
+mappings: >
 
     noremap  <expr>  <plug>(backward-z,_z;)  <sid>move_again('bwd', 'z, z;')
     noremap  <expr>  <plug>(forward-z,_z;)   <sid>move_again('fwd', 'z, z;')
 <
 They  can be  used as  a public  interface to  access the  script-local function
-`s:move_again()`. The latter  is responsible  for repeating  a motion,  when you
-`press z,` or `z;`.
+|s:move_again()|. The latter  is responsible  for repeating  a motion,  when you
+press z, or z;
 
-Useful, for example, to create a submode in which you don't have to press `z`:
+If you  use vim-submode {1}, it  can be used, to  create a submode in  which you
+don't have to press z to repeat the motion:
 >
     call submode#enter_with('repeat-motion-z', 'n', 'r', 'z,', '<plug>(backward-z,_z;)')
     call submode#enter_with('repeat-motion-z', 'n', 'r', 'z;', '<plug>(forward-z,_z;)')
     call submode#map(       'repeat-motion-z', 'n', 'r',  ',', '<plug>(backward-z,_z;)')
     call submode#map(       'repeat-motion-z', 'n', 'r',  ';', '<plug>(forward-z,_z;)')
 <
+                                       {1} https://github.com/kana/vim-submode
 
 < Purpose >___________________________________________________________________~
                                                    *repeatable-motion-purpose*
 
 
-`lg#motion#repeatable#make#all()` has 3 purposes:
+|lg#motion#repeatable#make#all()| has 3 purposes:
 
     1. Install wrapper mappings around all pairs of motion mappings.
        The wrappers will be used to save and update the last motion.
 
     2. Install a pair of mappings to repeat this last saved motion.
 
-    3. Add to the list `[s:|b:]repeatable_motions` a dictionary containing all
+    3. Add to the list [s:|b:]repeatable_motions a dictionary containing all
        the information relative to the original pair of motion mappings.
 
        This list is used as a database  by the wrappers to know what the motions
        are mapped to, and which keys to type.
 
-       It is also used by :ListRepeatableMotions,  to get info about all motions
+       It is also used by |:ListRepeatableMotions|,  to get info about all motions
        currently repeatable.
 
 
@@ -175,8 +184,8 @@ Useful, for example, to create a submode in which you don't have to press `z`:
 
  database
 
-         Dictionary `s:repeatable_motions` for global motions,
-         or `b:repeatable_motions` for local motions.
+         Dictionary |s:repeatable_motions| for global motions,
+         or |b:repeatable_motions| for local motions.
 
          Contains the information relative to all repeatable motions.
 
@@ -185,10 +194,10 @@ Useful, for example, to create a submode in which you don't have to press `z`:
 
          dictionary containing 2 keys:
 
-             • bwd:     output of `maparg('<left>')` assuming <left> is
+             • bwd:     output of maparg('<left>') assuming <left> is
                         the backward motion
 
-             • fwd:     same thing for `<right>` assuming it's
+             • fwd:     same thing for <right> assuming it's
                         the forward motion
 
 
@@ -198,21 +207,21 @@ Useful, for example, to create a submode in which you don't have to press `z`:
 
                                         *E8000*
 
-The dictionary argument you passed to `lg#motion#repeatable#make#all()` should
+The dictionary argument you passed to |lg#motion#repeatable#make#all()| should
 contain the following keys:
 
-    • 'axis'
-    • 'buffer'
-    • 'from'
-    • 'mode'
-    • 'motions'
+    • axis
+    • buffer
+    • from
+    • mode
+    • motions
 
 At least one of them is missing.
 
 
                                         *E8001*
 
-The axis that you provided should have the keys 'bwd' and 'fwd'.
+The axis that you provided should have the keys bwd and fwd.
 At least one of them is missing.
 
 
@@ -256,8 +265,8 @@ Example: >
     \                   ],
     \ })
 <
-After pressing `[m`, `;` will still move the cursor to the NEXT start of a method.
-In contrast, by default, after `Fx`, `;` will move the cursor the PREVIOUS `x`.
+After pressing  '[m'  ';' will still move the cursor to the NEXT start of a method.
+In contrast, by default, after  'Fx'  ';' will move the cursor to the PREVIOUS 'x'.
 
 
                                         *repeatable-motion-global-local*
@@ -293,7 +302,7 @@ When you ask for:
 
     • a local motion, but it doesn't exist, or only partially
 
-            the function will bail out and raise |E8000| because
+            the function will bail out and raise |E8002| because
             it checks that both {lhs} are used in local mappings
 
     • a global motion, but one of its {lhs} is shadowed

@@ -567,7 +567,7 @@ fu! lg#motion#repeatable#make#all(what) abort "{{{2
     let is_local = a:what.buffer
     " try to make all the motions received repeatable
     for m in a:what.motions
-        " Warning: `execute()` is buggy in Neovim{{{
+        " Warnin `execute()` is buggy in Neovim{{{
         "
         " It sometimes fail to capture anything. It  has been fixed in a Vim
         " patch.  For this code to work in  Neovim, you need to wait for the

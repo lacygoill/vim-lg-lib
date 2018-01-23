@@ -42,6 +42,69 @@ fu! lg#window#get_modifier(...) abort "{{{1
     return mod
 endfu
 
+fu! lg#window#qf_open(type) abort "{{{1
+    let we_are_in_qf = &l:bt ==# 'quickfix'
+
+    if !we_are_in_qf
+        "
+        "   ┌ dictionary: {'winid': 42}
+        "   │
+        let id = a:type ==# 'loc'
+        \            ?    getloclist(0, {'winid':0})
+        \            :    getqflist(   {'winid':0})
+        if get(id, 'winid', 0) == 0
+            " Why :[cl]open? Are they valid commands here?{{{
+            "
+            " Probably not, because these commands  don't populate the qfl, they
+            " just  open the  qf  window.
+            "
+            " However,  we  use   these  names  in  the   autocmd  listening  to
+            " `QuickFixCmdPost` in `vim-qf`,  to decide whether we  want to open
+            " the  qf window  unconditionally (:[cl]open),  or on  the condition
+            " that the qfl contains at least 1 valid entry (`:[cl]window`).
+            "
+            " It allows us to do this in any plugin populating the qfl:
+            "
+            "         doautocmd <nomodeline> QuickFixCmdPost grep
+            "             → open  the qf window  on the condition  it contains
+            "               at  least 1 valid entry
+            "
+            "         doautocmd <nomodeline> QuickFixCmdPost copen
+            "             → open the qf window unconditionally
+            "}}}
+            " Could we write sth simpler?{{{
+            "
+            " Yes:
+            "         return (a:type ==# 'loc' ? 'l' : 'c').'open'
+            "
+            " But, it wouldn't  open the qf window like our  autocmd in `vim-qf`
+            " does.
+            "}}}
+            exe 'doautocmd <nomodeline> QuickFixCmdPost '.(a:type ==# 'loc' ? 'l' : 'c').'open'
+            return ''
+        endif
+        let id = id.winid
+
+    " if we are already in the qf window, get back to the previous one
+    elseif we_are_in_qf && a:type ==# 'qf'
+            return 'wincmd p'
+
+    " if we are already in the ll window, get to the associated window
+    elseif we_are_in_qf && a:type ==# 'loc'
+        let win_ids = gettabinfo(tabpagenr())[0].windows
+        let loc_id  = win_getid()
+        let id      = get(filter(copy(win_ids), {i,v ->    get(getloclist(v, {'winid': 0}), 'winid', 0)
+        \                                               == loc_id
+        \                                               && v != loc_id })
+        \                 ,0,0)
+    endif
+
+    if id != 0
+        call win_gotoid(id)
+    endif
+    return ''
+endfu
+
 fu! lg#window#quit() abort "{{{1
     " If we are in the command-line window, we want to close the latter,
     " and return without doing anything else (save session).
