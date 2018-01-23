@@ -33,7 +33,7 @@ lg#motion#repeatable#make#all({what})
                                this is useful if the  keys may have an undesired
                                effect in some mode;
                                for  example, `co,`  and `co;`  could be  used in
-                               normal mode, but they would introduce lag for the
+                               normal mode, but they would cause a timeout for the
                                `c` operator in visual mode
 
                     from       the filepath and the line address from which
@@ -71,35 +71,34 @@ lg#motion#repeatable#make#all({what})
 <
 
                                         *repeatable-motion-listing*
-
 :ListRepeatableMotions
 
         Display all repeatable motions.
 
         Accepts the following arguments to limit the output to some motions: >
 
-            -axis
-            -mode
-            -scope
+                -axis
+                -mode
+                -scope
 <
 
         `-axis` expects the name of an axis: >
 
-            :ListRepeatableMotions -axis z,_z;
+                :ListRepeatableMotions -axis z,_z;
 <
         Displays only motions repeatable with `z,` and `z;`.
 
 
         `-mode` expects the mode of the motions: >
 
-            :ListRepeatableMotions -mode normal
+                :ListRepeatableMotions -mode normal
 <
         Displays only motions defined in normal mode.
 
 
         `-scope` expects the scope of the motions (`global` or `local`): >
 
-            :ListRepeatableMotions -scope local
+                :ListRepeatableMotions -scope local
 <
         Displays only motions local to the current buffer.
 
@@ -138,10 +137,10 @@ They  can be  used as  a public  interface to  access the  script-local function
 
 Useful, for example, to create a submode in which you don't have to press `z`:
 >
-    call submode#enter_with('repeat-motion-2', 'n', 'r', 'z,', '<plug>(backward-z,_z;)')
-    call submode#enter_with('repeat-motion-2', 'n', 'r', 'z;', '<plug>(forward-z,_z;)')
-    call submode#map(       'repeat-motion-2', 'n', 'r',  ',', '<plug>(backward-z,_z;)')
-    call submode#map(       'repeat-motion-2', 'n', 'r',  ';', '<plug>(forward-z,_z;)')
+    call submode#enter_with('repeat-motion-z', 'n', 'r', 'z,', '<plug>(backward-z,_z;)')
+    call submode#enter_with('repeat-motion-z', 'n', 'r', 'z;', '<plug>(forward-z,_z;)')
+    call submode#map(       'repeat-motion-z', 'n', 'r',  ',', '<plug>(backward-z,_z;)')
+    call submode#map(       'repeat-motion-z', 'n', 'r',  ';', '<plug>(forward-z,_z;)')
 <
 
 < Purpose >___________________________________________________________________~
@@ -150,7 +149,7 @@ Useful, for example, to create a submode in which you don't have to press `z`:
 
 `lg#motion#repeatable#make#all()` has 3 purposes:
 
-    1. Install wrapper mappings around a pair of motion mappings.
+    1. Install wrapper mappings around all pairs of motion mappings.
        The wrappers will be used to save and update the last motion.
 
     2. Install a pair of mappings to repeat this last saved motion.

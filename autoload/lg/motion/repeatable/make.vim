@@ -74,17 +74,17 @@ call s:init()
 " Core {{{1
 fu! s:install_wrapper(mode, m, maparg) abort "{{{2
     let mapcmd = s:get_mapcmd(a:mode, a:maparg)
-    exe mapcmd.'  '.a:m.bwd.'  <sid>move('.string(a:m.bwd).', '.get(a:maparg, 'buffer', 0).', 1)'
-    exe mapcmd.'  '.a:m.fwd.'  <sid>move('.string(a:m.fwd).', '.get(a:maparg, 'buffer', 0).', 1)'
+    exe mapcmd.'  '.a:m.bwd.'  <sid>move('.string(a:m.bwd).', 1)'
+    exe mapcmd.'  '.a:m.fwd.'  <sid>move('.string(a:m.fwd).', 1)'
 endfu
 
 fu! s:make_each_repeatable(mode, is_local, m, axis, from) abort "{{{2
-    " can make only ONE motion repeatable
+    " can only make ONE motion repeatable
 
-    let bwd    = a:m.bwd
-    let fwd    = a:m.fwd
-    let bwd_maparg = maparg(bwd, a:mode, 0, 1)
-    let fwd_maparg = maparg(fwd, a:mode, 0, 1)
+    let bwd_lhs    = a:m.bwd
+    let fwd_lhs    = a:m.fwd
+    let bwd_maparg = maparg(bwd_lhs, a:mode, 0, 1)
+    let fwd_maparg = maparg(fwd_lhs, a:mode, 0, 1)
 
     " if we ask for a local motion to be made repeatable,
     " the 2 lhs should be used in local mappings
@@ -107,10 +107,10 @@ fu! s:make_each_repeatable(mode, is_local, m, axis, from) abort "{{{2
     "
     " The fact  that the wrapper  mapping is, by default,  non-recursive doesn't
     " change  anything. When  we  would  press   the  lhs,  Vim  would  evaluate
-    " `s:move('lhs', 0, 1)`.   At the end, Vim would compute  the keys to press:
-    " the latter would be the output  of `s:move('lhs', 0, 1)`. That's where the
-    " recursion comes from. It's like pressing  `cd`, where `cd` is defined like
-    " so:
+    " `s:move('lhs', 1)`.
+    " At the end, Vim  would compute the keys to press: the  latter would be the
+    " output of `s:move('lhs', 1)`. That's  where the recursion comes from. It's
+    " like pressing `cd`, where `cd` is defined like so:
     "
     "     nno  <expr>  cd  Func()
     "     fu! Func()
@@ -121,8 +121,9 @@ fu! s:make_each_repeatable(mode, is_local, m, axis, from) abort "{{{2
     let motion = { 'axis': a:axis,
     \              'made repeatable from': a:from,
     \              'original mapping': matchstr(
-    \                                           execute('verb '.a:mode.'no '.(a:is_local ? ' <buffer> ' : '').bwd),
-    \                                           '.*\n\s*\zsLast set from.*') }
+    \                  execute('verb '.a:mode.'no '.(a:is_local ? ' <buffer> ' : '').bwd_lhs),
+    \                  '.*\n\s*\zsLast set from.*'
+    \)}
     " Why don't we write an assignment to populate `motion`?{{{
     "
     " `motion` is an array (!= scalar), so Vim passes it to `s:populate()`
@@ -131,7 +132,7 @@ fu! s:make_each_repeatable(mode, is_local, m, axis, from) abort "{{{2
     "
     "         let motion = s:populate(motion, …)
     "}}}
-    call s:populate(motion, a:mode, bwd, 0, bwd_maparg)
+    call s:populate(motion, a:mode, bwd_lhs, 0, bwd_maparg)
     " `motion` value is now sth like:{{{
     "
     " { 'axis' : ', ;',
@@ -139,7 +140,7 @@ fu! s:make_each_repeatable(mode, is_local, m, axis, from) abort "{{{2
     "                                                             │
     "                                                             └ nvo
     "}}}
-    call s:populate(motion, a:mode, fwd, 1, fwd_maparg)
+    call s:populate(motion, a:mode, fwd_lhs, 1, fwd_maparg)
     " `motion` value is now sth like:{{{
     "
     " { 'axis' : ', ;',
@@ -217,7 +218,7 @@ fu! s:make_each_repeatable(mode, is_local, m, axis, from) abort "{{{2
     endif
 endfu
 
-fu! s:move(lhs, buffer, update_last_motion, ...) abort "{{{2
+fu! s:move(lhs, update_last_motion, ...) abort "{{{2
     " What is the purpose of this optional argument?{{{
     "
     " When  `s:move_again()` is  invoked,  it calls  `s:move()`,  and passes  an
@@ -270,15 +271,15 @@ fu! s:move(lhs, buffer, update_last_motion, ...) abort "{{{2
         let s:last_motions[motion.axis] = a:lhs
     endif
 
-    let dir_key = s:get_direction(a:lhs, motion)
-    if empty(dir_key)
+    let dir = s:get_direction(a:lhs, motion)
+    if empty(dir)
         return ''
     endif
 
-    let is_expr_mapping = motion[dir_key].expr
-    if motion[dir_key].rhs =~# '\c<sid>'
-        let motion[dir_key].rhs =
-        \    substitute(motion[dir_key].rhs, '\c<sid>', '<snr>'.motion[dir_key].sid.'_', 'g')
+    let is_expr_mapping = motion[dir].expr
+    if motion[dir].rhs =~# '\c<sid>'
+        let motion[dir].rhs =
+        \    substitute(motion[dir].rhs, '\c<sid>', '<snr>'.motion[dir].sid.'_', 'g')
     endif
 
     " Why don't we translate the special keys when the mapping uses `<expr>`?{{{
@@ -315,10 +316,10 @@ fu! s:move(lhs, buffer, update_last_motion, ...) abort "{{{2
     " `s:make_keys_feedable()`.
     "}}}
     return is_expr_mapping
-    \?         eval(motion[dir_key].rhs)
+    \?         eval(motion[dir].rhs)
     \:         a:0 && a:1['no translation']
-    \?             motion[dir_key].rhs
-    \:             s:make_keys_feedable(motion[dir_key].rhs)
+    \?             motion[dir].rhs
+    \:             s:make_keys_feedable(motion[dir].rhs)
 endfu
 
 fu! s:move_again(dir, axis) abort "{{{2
@@ -375,7 +376,7 @@ fu! s:move_again(dir, axis) abort "{{{2
     let s:is_repeating_motion[a:axis] = a:dir ==# 'fwd' ? 1 : -1
 
     let is_silent = motion[a:dir].silent
-    let seq = call('s:move',   [motion[a:dir].lhs, motion[a:dir].buffer, 0]
+    let seq = call('s:move',   [motion[a:dir].lhs, 0]
     \                        + [extend(motion, {'no translation': is_silent ? 1 : 0})])
     "                                                                         │
     "                                           don't translate special keys: ┘
@@ -516,6 +517,7 @@ fu! s:populate(motion, mode, lhs, is_fwd, maparg) abort "{{{2
     " make a custom mapping repeatable
     if !empty(a:maparg)
         let a:motion[dir] = a:maparg
+
     " make a default motion repeatable
     else
         let a:motion[dir] = extend(deepcopy(s:DEFAULT_MAPARG),
@@ -669,8 +671,8 @@ fu! s:collides_with_db(motion, repeatable_motions) abort "{{{2
     "
     " Vim shouldn't change the motion to which a lhs belongs (partial collision):
     "
-    "     we define the motion:    [m  ]m  (normal mode)    ✔
-    "     we define the motion:    [m  ]]  (normal mode)    ✘
+    "     we make this motion repeatable:    [m  ]m  (normal mode)    ✔
+    "     "                             :    [m  ]]  (normal mode)    ✘
     "
     "     We probably have made an error. We should be warned to fix it.
     "}}}
@@ -699,6 +701,10 @@ fu! s:get_direction(lhs, motion) abort "{{{2
 endfu
 
 fu! s:get_mapcmd(mode, maparg) abort "{{{2
+    "                  ┌ the value of the 'noremap' key stands for the NON-recursiveness
+    "                  │ but we want a flag standing for the recursiveness
+    "                  │ so we need to invert the value of the key
+    "                  │
     let is_recursive = !get(a:maparg, 'noremap', 1)
     "                                            │
     "                                            └ by default, we don't want

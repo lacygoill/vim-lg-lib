@@ -66,7 +66,7 @@ fu! s:customize_preview_window() abort "{{{1
     endif
 endfu
 
-fu! s:get_line_in_listing(m,desired_mode) abort "{{{1
+fu! s:get_line_in_listing(m, desired_mode) abort "{{{1
     let motion_mode = a:m.bwd.mode
     if !empty(a:desired_mode) && motion_mode !=# a:desired_mode
         return ''
@@ -163,7 +163,7 @@ fu! s:populate_listings_for_all_axes(opt) abort "{{{1
             if !empty(a:opt.axis) && m.axis !=# a:opt.axis
                 continue
             endif
-            let line = s:get_line_in_listing(m,a:opt.mode)
+            let line = s:get_line_in_listing(m, a:opt.mode)
             if empty(line)
                 continue
             endif
@@ -172,7 +172,6 @@ fu! s:populate_listings_for_all_axes(opt) abort "{{{1
             \:              ''
 
             let listing = s:listing_per_axis[m.axis][scope]
-            " populate `motions_on_axis_123`
             call add(listing, '  '.line)
             if a:opt.verbose2
                 call extend(listing,
