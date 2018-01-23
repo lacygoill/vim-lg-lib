@@ -253,6 +253,19 @@ fu! s:move(lhs, update_last_motion) abort "{{{2
         "     │                └ result of the previous translation
         "     │
         "     └ automatically translates special keys
+        "
+        " FIXME:
+        " What?
+        " The explanation doesn't make sense anymore.
+        "
+        " Besides, I think we need s:translate_lhs(), to normalize the name
+        " of the keys stored in `a:lhs`. The latter seems to come directly
+        " from the motions we pass to `lg#motion#repeatable#make#all()`.
+        "
+        " Also, could we eliminate some `s:translate_lhs()` invocations?
+        " Why do we use it so often?
+        " It seems to solve a normalization issue. Does the issue really
+        " exists though?
         "}}}
         let s:last_motions[motion.axis] = a:lhs
     endif
@@ -262,7 +275,7 @@ fu! s:move(lhs, update_last_motion) abort "{{{2
         return ''
     endif
 
-    let is_expr_mapping = motion[dir].expr
+    let has_expr = motion[dir].expr
 
     " Why don't we translate the special keys when the mapping uses `<expr>`?{{{
     "
@@ -275,12 +288,12 @@ fu! s:move(lhs, update_last_motion) abort "{{{2
     " Why do we need to translate them otherwise?{{{
     "
     " Otherwise, the rhs is NOT fed directly:
-    " Vim translates automatically any special key it may contain.
+    " `:nno` &friends automatically translate any special key it may contain.
     "
     " We need to emulate this behavior, and that's why we invoke
     " `s:make_keys_feedable()`.
     "}}}
-    return is_expr_mapping
+    return has_expr
     \?         eval(motion[dir].rhs)
     \:         s:make_keys_feedable(motion[dir].rhs)
 endfu
@@ -325,19 +338,23 @@ fu! s:move_again(dir, axis) abort "{{{2
     "}}}
     " Why do we set it now?{{{
     "
-    " At the end of this function, we feed the keys to press.
-    " To get them, we fetch the rhs associated with the lhs which was passed to
-    " the function. But if the mapping uses the `<expr>` argument, we EVALUATE
-    " the rhs. Besides, if we have previously pressed `fx`, the rhs is:
+    " Suppose we've pressed `fx`, and now we want to repeat it with `;`.
+    " In this case:
     "
-    "     <sid>fts('f')
+    "     motion[a:dir].expr  =  1
+    "     motion[a:dir].rhs   =  <sid>fts()
+    "                                 │
+    "                                 └ custom function defined in another script
     "
-    " And the code in `s:fts()` needs to know whether we are repeating `fx`
-    " or not:
+    " The code in `s:fts()` is going to be evaluated, and the result typed as keys.
+    " But, `s:fts()` needs to know whether we are pressing `f` to ask for a target,
+    " or repeating a previous `fx`:
     "
     "     if lg#motion#repeatable#make#is_repeating(', ;')
+    "        " repeat last `fx`
     "         …
     "     else
+    "        " ask for a target, then press `f{target}`
     "         …
     "     endif
     "}}}
@@ -417,6 +434,12 @@ fu! s:move_again(dir, axis) abort "{{{2
     " variables.
     "}}}
     call timer_start(0, {-> map(s:is_repeating_motion, {i,v -> 0})})
+    " TODO:
+    " Do we need `i,v`?
+    " Check everywhere else.
+    "
+    " When do we need `i,v` anyway?
+
 
     " If we're using  `]q` &friends, we need to redraw  all statuslines, so that
     " the position in the list is updated immediately.
@@ -430,12 +453,6 @@ fu! s:move_again(dir, axis) abort "{{{2
     "     if a:axis ==# 'z, z;'
     "         call timer_start(0, {-> execute('redraws!')})
     "     endif
-
-    " TODO:
-    " Do we need `i,v`?
-    " Check everywhere else.
-    "
-    " When do we need `i,v` anyway?
 
     return ''
 endfu
@@ -693,6 +710,9 @@ fu! s:get_motion_info(lhs) abort "{{{2
     \:                s:repeatable_motions
 
     for m in motions
+        " FIXME:
+        " Do we need `s:translate_lhs()` for `m.bwd.lhs` and `m.fwd.lhs`?
+        " They should already have been normalized.
         if  index([s:translate_lhs(m.bwd.lhs), s:translate_lhs(m.fwd.lhs)],
         \          s:translate_lhs(a:lhs)) >= 0
         \&& index([mode, ' '], m.bwd.mode) >= 0
