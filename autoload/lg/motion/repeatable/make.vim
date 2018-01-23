@@ -218,23 +218,9 @@ fu! s:make_each_repeatable(mode, is_local, m, axis, from) abort "{{{2
     endif
 endfu
 
-fu! s:move(lhs, update_last_motion, ...) abort "{{{2
-    " What is the purpose of this optional argument?{{{
-    "
-    " When  `s:move_again()` is  invoked,  it calls  `s:move()`,  and passes  an
-    " additional dictionary argument. The latter  contains all information about
-    " the motion to repeat. It also contains the key 'no translation'.
-    "
-    " The  info  about  the  motion   are  not  necessary:  we  could  re-invoke
-    " `s:get_motion_info()`. But it  wouldn't be optimal. We've  already compute
-    " the info; there's no need to do it twice.
-    "
-    " The value of the key 'no translation' is a boolean flag.
-    " When it's on, it means we  don't want `s:move()` to translate special keys
-    " at  the  end. This  matters  for  the  `<plug>`  key.
-    "}}}
+fu! s:move(lhs, update_last_motion) abort "{{{2
 
-    let motion = a:0 ? a:1 : s:get_motion_info(a:lhs)
+    let motion = s:get_motion_info(a:lhs)
     if type(motion) != type({})
         return ''
     endif
@@ -277,10 +263,6 @@ fu! s:move(lhs, update_last_motion, ...) abort "{{{2
     endif
 
     let is_expr_mapping = motion[dir].expr
-    if motion[dir].rhs =~# '\c<sid>'
-        let motion[dir].rhs =
-        \    substitute(motion[dir].rhs, '\c<sid>', '<snr>'.motion[dir].sid.'_', 'g')
-    endif
 
     " Why don't we translate the special keys when the mapping uses `<expr>`?{{{
     "
@@ -290,26 +272,9 @@ fu! s:move(lhs, update_last_motion, ...) abort "{{{2
     " Because, the rhs is an EXPRESSION whose value is keys which will be FED
     " directly to the typeahead buffer.
     "}}}
-    " Why don't we translate them when the function received an optional argument?{{{
+    " Why do we need to translate them otherwise?{{{
     "
-    " When `s:move()` is called from a  wrapper, the keys are directly typed. In
-    " this case, `<plug>` must be translated.
-    "
-    " But when `s:move()` is called  from `s:move_again()`, and the latter can't
-    " type the  keys directly  because the  original motion  is silent,  it must
-    " install a temporary mapping. Something like:
-    "
-    "     nmap  <plug>(repeat-silently)  rhs_containing_a_plug
-    "                                                     ^
-    "                                                     must NOT be translated
-    "
-    " We  won't   be  able  to  install   it  properly  if  `<plug>`   has  been
-    " translated. The rhs will be wrong, and  I can't undo the translation, even
-    " with a substitution.
-    "}}}
-    " Why do we need to translate them in the other cases?{{{
-    "
-    " In the other cases, the rhs is NOT fed directly:
+    " Otherwise, the rhs is NOT fed directly:
     " Vim translates automatically any special key it may contain.
     "
     " We need to emulate this behavior, and that's why we invoke
@@ -317,9 +282,7 @@ fu! s:move(lhs, update_last_motion, ...) abort "{{{2
     "}}}
     return is_expr_mapping
     \?         eval(motion[dir].rhs)
-    \:         a:0 && a:1['no translation']
-    \?             motion[dir].rhs
-    \:             s:make_keys_feedable(motion[dir].rhs)
+    \:         s:make_keys_feedable(motion[dir].rhs)
 endfu
 
 fu! s:move_again(dir, axis) abort "{{{2
@@ -362,96 +325,28 @@ fu! s:move_again(dir, axis) abort "{{{2
     "}}}
     " Why do we set it now?{{{
     "
-    " At the end of `s:move()` we return the keys to press.
+    " At the end of this function, we feed the keys to press.
     " To get them, we fetch the rhs associated with the lhs which was passed to
     " the function. But if the mapping uses the `<expr>` argument, we EVALUATE
     " the rhs. Besides, if we have previously pressed `fx`, the rhs is:
     "
-    "     fts('f')
+    "     <sid>fts('f')
     "
-    " And the code in `fts()` IS influenced by:
+    " And the code in `s:fts()` needs to know whether we are repeating `fx`
+    " or not:
     "
-    "     s:is_repeating_motion[', ;']
+    "     if lg#motion#repeatable#make#is_repeating(', ;')
+    "         …
+    "     else
+    "         …
+    "     endif
     "}}}
     let s:is_repeating_motion[a:axis] = a:dir ==# 'fwd' ? 1 : -1
 
-    let is_silent = motion[a:dir].silent
-    let seq = call('s:move',   [motion[a:dir].lhs, 0]
-    \                        + [extend(motion, {'no translation': is_silent ? 1 : 0})])
-    "                                                                         │
-    "                                           don't translate special keys: ┘
-    "
-    "                        we're going to install a temporary mapping (because
-    "                        the motion must be silent), so `<plug>` must NOT be
-    "                        translated
-
-    " Why do we reset all these variables?{{{
-    "
-    " I think it's  for a custom function  which we could define  to implement a
-    " special motion like `fFtTssSS`. Similar to what we have to do in `fts()`.
-    "
-    " `tTfFssSS` are  special because  the lhs, which  is saved  for repetition,
-    " doesn't  contain the  necessary  character  which must  be  passed to  the
-    " command. IOW, when the last motion was `fx`, `f` is insufficient to know
-    " where to move.
-    "
-    " Note that `fFtTssSS` are specific to the  axis `, ;`, but we could want to
-    " define special  motions on other  axes. That's why,  we need to  reset ALL
-    " variables.
-    "}}}
-    call map(s:is_repeating_motion, {i,v -> 0})
-
-    " If we're using  `]q` &friends, we need to redraw  all statuslines, so that
-    " the position in the list is updated immediately.
-    "
     " TODO:
-    " It was needed in the past, but it's not anymore.
-    " Because we execute  `:redraw` via `vim-submode`, which  redraws the screen
-    " AND the statuslines. However,  if we get rid of `:redraw`  later, uncomment
-    " the next 3 lines.
-    "
-    "     if a:axis ==# 'z, z;'
-    "         call timer_start(0, {-> execute('redraws!')})
-    "     endif
-
-    " How could it be empty?{{{
-    "
-    " The rhs of the motion could be an expression returning an empty string.
-    " But during its evaluation, Vim would have to invoke `feedkeys()`.
-    " That's a mechanism we may sometimes need to use.
-    "}}}
-    " If it's empty, then is the repetition of the motion broken?{{{
-    "
-    " No. In this particular case, the original code implementing the motion has
-    " already invoked `feedkeys()`. We don't need to re-invoke it here.
-    " And we  can't anyway. We don't know  what the original code  does: what it
-    " passes to `feedkeys()`. It doesn't matter. The motion is fine.
-    "}}}
-    " Why return only now, and not as soon as we get `seq`? {{{
-    "
-    " Before returning, we must make sure to properly reset `s:is_repeating_motion[…]`
-    " Otherwise it would break the repeatibility of some motions, like `fx` &friends.
-    " We probably also need to redraw the statusline for `]q` &friends.
-    "
-    " Bottom Line:
-    " Even if `seq` is empty, return as late as possible.
-    "}}}
-    " What happens if we don't return?{{{
-    "
-    " Nothing. But if the original motion was  silent, the next block of code is
-    " going  to  try  to  install  a temporary  mapping. It  will  be  correctly
-    " installed, but will have no rhs. So, when we'll repeat the motion, we'll
-    " see the message:
-    "
-    "     No mapping found
-    "
-    " Also, for some reason, the repetition seems to be broken. Probably because
-    " of  the previous  error. Vim  must  stop processing  the  mapping when  it
-    " encounters it.
-    "}}}
-    if empty(seq)
-        return ''
-    endif
+    " Finish refactoring this function.
+    " Also, is there a way to avoid re-installing this temporary mapping,
+    " when we smash `;`?
 
     " Why not returning the sequence of keys directly?{{{
     "
@@ -473,41 +368,75 @@ fu! s:move_again(dir, axis) abort "{{{2
     " IOW, if the rhs is an Ex command, it shouldn't be displayed on the command
     " line.
     "}}}
-    let is_recursive = !motion[a:dir].noremap
+    " To emulate `<silent>`, why not simply `:redraw!`?{{{
+    "
+    "     • overkill
+    "
+    "     • If  the  motion  wants  to  echo   a  message,  it  will
+    "       probably  be erased. That's not what <silent> does.  <silent>
+    "       only prevents the rhs from being  echo'ed. But it can still
+    "       display  a message  if it wants to.
+    "
+    "     • Sometimes, the command line may seem to flash.
+    "       Currently,  it  happens when  we  cycle  through the  levels  of
+    "       lightness of the colorscheme (]oL  co;  ;).
+    "}}}
+    " Why do we need to replace `|` with `<bar>`?{{{
+    "
+    " We're going to install a mapping. `|` would wrongly end the rhs.
+    "}}}
+    " Where could this bar come from?{{{
+    "
+    " From the database of repeatable motions, whose information, including
+    " the rhs, is obtained with `maparg()`.
+    "}}}
+    exe s:get_current_mode().(!motion[a:dir].noremap ? 'map' : 'noremap')
+    \   .(motion[a:dir].nowait ? '  <nowait>' : '')
+    \   .(motion[a:dir].expr   ? '  <expr>'   : '')
+    \   .(motion[a:dir].silent ? '  <silent>' : '')
+    \   .'  <plug>(repeat-motion-tmp)'
+    \   .'  '.substitute(motion[a:dir].rhs, '|', '<bar>', 'g')
 
-    if is_silent
-        " Why installing a mapping? Why not simply `:redraw!`?{{{
-        "
-        "     • overkill
-        "
-        "     • If  the  motion  wants  to  echo   a  message,  it  will
-        "       probably  be erased. That's not what <silent> does.  <silent>
-        "       only prevents the rhs from being  echo'ed. But it can still
-        "       display  a message  if it wants to.
-        "
-        "     • Sometimes, the command line may seem to flash.
-        "       Currently,  it  happens when  we  cycle  through the  levels  of
-        "       lightness of the colorscheme (]oL  co;  ;).
-        "}}}
-        " Why do we need to replace `|` with `<bar>`?{{{
-        "
-        " We're going to install a mapping. `|` would wrongly end the rhs.
-        "}}}
-        " Where could this bar come from?{{{
-        "
-        " `s:move()`, called when we got `seq`.
-        "}}}
-        exe s:get_current_mode().(is_recursive ? 'map' : 'noremap')
-        \   .'  <silent>'
-        \   .'  <plug>(repeat-silently)'
-        \   .'  '.substitute(seq, '|', '<bar>', 'g')
-        call feedkeys("\<plug>(repeat-silently)", 'i')
-        "                                          │
-        "                                          └ `<plug>(…)`, contrary to `seq`, must ALWAYS
-        "                                            be expanded so don't add the 'n' flag
-    else
-        call feedkeys(seq, 'i'.(is_recursive ? '' : 'n'))
-    endif
+    call feedkeys("\<plug>(repeat-motion-tmp)", 'i')
+    "                                            │
+    "                                            └ `<plug>(…)`, contrary to `seq`, must ALWAYS
+    "                                              be expanded so don't add the 'n' flag
+
+    " Why do we reset all these variables?{{{
+    "
+    " It's for  a custom function which  we could define to  implement a special
+    " motion like `fFtTssSS`. Similar to what we have to do in `s:fts()`.
+    "
+    " `tTfFssSS` are  special because  the lhs, which  is saved  for repetition,
+    " doesn't  contain the  necessary  character  which must  be  passed to  the
+    " command. IOW, when the last motion was `fx`, `f` is insufficient to know
+    " where to move.
+    "
+    " Note that `fFtTssSS` are specific to the  axis `, ;`, but we could want to
+    " define special  motions on other  axes. That's why,  we need to  reset ALL
+    " variables.
+    "}}}
+    call timer_start(0, {-> map(s:is_repeating_motion, {i,v -> 0})})
+
+    " If we're using  `]q` &friends, we need to redraw  all statuslines, so that
+    " the position in the list is updated immediately.
+    "
+    " TODO:
+    " It was needed in the past, but it's not anymore.
+    " Because we execute  `:redraw` via `vim-submode`, which  redraws the screen
+    " AND the statuslines. However,  if we get rid of `:redraw`  later, uncomment
+    " the next 3 lines.
+    "
+    "     if a:axis ==# 'z, z;'
+    "         call timer_start(0, {-> execute('redraws!')})
+    "     endif
+
+    " TODO:
+    " Do we need `i,v`?
+    " Check everywhere else.
+    "
+    " When do we need `i,v` anyway?
+
     return ''
 endfu
 
@@ -517,6 +446,10 @@ fu! s:populate(motion, mode, lhs, is_fwd, maparg) abort "{{{2
     " make a custom mapping repeatable
     if !empty(a:maparg)
         let a:motion[dir] = a:maparg
+        if a:motion[dir].rhs =~# '\c<sid>'
+            let a:motion[dir].rhs =
+            \    substitute(a:motion[dir].rhs, '\c<sid>', '<snr>'.a:motion[dir].sid.'_', 'g')
+        endif
 
     " make a default motion repeatable
     else
