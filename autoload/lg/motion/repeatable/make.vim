@@ -224,6 +224,11 @@ fu! s:move(lhs) abort "{{{2
         return ''
     endif
 
+    let dir = s:get_direction(a:lhs, motion)
+    if empty(dir)
+        return ''
+    endif
+
     " Why don't we translate `a:lhs`?{{{
     "
     " There's no need to.
@@ -237,13 +242,6 @@ fu! s:move(lhs) abort "{{{2
     " And Vim automatically translates special keys in a mapping.
     "}}}
     let s:last_motions[motion.axis] = a:lhs
-
-    let dir = s:get_direction(a:lhs, motion)
-    if empty(dir)
-        return ''
-    endif
-
-    let has_expr = motion[dir].expr
 
     " Why don't we translate the special keys when the mapping uses `<expr>`?{{{
     "
@@ -261,7 +259,7 @@ fu! s:move(lhs) abort "{{{2
     " We need to emulate this behavior, and that's why we invoke
     " `s:make_keys_feedable()`.
     "}}}
-    return has_expr
+    return motion[dir].expr
     \?         eval(motion[dir].rhs)
     \:         s:make_keys_feedable(motion[dir].rhs)
 endfu
@@ -454,6 +452,8 @@ fu! s:populate(motion, mode, lhs, is_fwd, maparg) abort "{{{2
         let a:motion[dir].lhs = a:lhs
         let a:motion[dir].rhs = a:lhs
     endif
+
+    let a:motion[dir].lhs = s:translate_lhs(a:motion[dir].lhs)
 endfu
 
 fu! lg#motion#repeatable#make#share_env() abort "{{{2
@@ -607,8 +607,26 @@ fu! s:collides_with_db(motion, repeatable_motions) abort "{{{2
     return 0
 endfu
 
+fu! s:get_current_mode() abort "{{{2
+    " Why the substitutions?{{{
+    "
+    "     substitute(mode(1), "[vV\<c-v>]", 'x', ''):
+    "
+    "         normalize output of `mode()` to match the one of `maparg()`
+    "         in case we're in visual mode
+    "
+    "     substitute(…, 'no', 'o', '')
+    "
+    "         same thing for operator-pending mode
+    "}}}
+    return substitute(substitute(mode(1), "[vV\<c-v>]", 'x', ''), 'no', 'o', '')
+endfu
+
 fu! s:get_direction(lhs, motion) abort "{{{2
-    let is_fwd = s:translate_lhs(a:lhs) ==# s:translate_lhs(a:motion.fwd.lhs)
+    "            ┌ no need to translate: it has been translated in a mapping
+    "            │         ┌ no need to translate: it has been translated in `s:populate()`
+    "            │         │
+    let is_fwd = a:lhs ==# a:motion.fwd.lhs
     return is_fwd ? 'fwd' : 'bwd'
 endfu
 
@@ -638,21 +656,6 @@ fu! s:get_mapcmd(mode, maparg) abort "{{{2
     return mapcmd
 endfu
 
-fu! s:get_current_mode() abort "{{{2
-    " Why the substitutions?{{{
-    "
-    "     substitute(mode(1), "[vV\<c-v>]", 'x', ''):
-    "
-    "         normalize output of `mode()` to match the one of `maparg()`
-    "         in case we're in visual mode
-    "
-    "     substitute(…, 'no', 'o', '')
-    "
-    "         same thing for operator-pending mode
-    "}}}
-    return substitute(substitute(mode(1), "[vV\<c-v>]", 'x', ''), 'no', 'o', '')
-endfu
-
 fu! s:get_motion_info(lhs) abort "{{{2
     " Purpose:{{{
     " return the info about the motion in the db which:
@@ -672,16 +675,33 @@ fu! s:get_motion_info(lhs) abort "{{{2
     \:                s:repeatable_motions
 
     for m in motions
-        " FIXME:
-        " Do we need `s:translate_lhs()` for `m.bwd.lhs` and `m.fwd.lhs`?
-        " They should already have been normalized.
+        " Why don't you translate `a:lhs` to normalize it?{{{
         "
-        " Also, could we eliminate some `s:translate_lhs()` invocations?
-        " Why do we use it so often?
-        " It seems to solve a normalization issue. Does the issue really
-        " exists though?
-        if  index([s:translate_lhs(m.bwd.lhs), s:translate_lhs(m.fwd.lhs)],
-        \          s:translate_lhs(a:lhs)) >= 0
+        " No need to.
+        "
+        " The current function is called from:
+        "
+        "     • s:move()
+        "     • s:move_again()
+        "
+        " In `s:move()`, `s:get_motion_info()` is passed a keysequence which has
+        " been translated automatically  because `s:move()` was in the  rhs of a
+        " mapping.
+        "
+        " In `s:move_again()`, `s:get_motion_info()` is passed a keysequence
+        " from the dictionary `s:last_motions`.
+        " All the keysequences inside this dictionary are set by:
+        "
+        "    s:lg#motion#repeatable#make#set_last_used()
+        "
+        " And the latter translates every keysequence it receives.
+        "}}}
+        " Same question for `m.bwd.lhs` and `m.fwd.lhs`?{{{
+        "
+        " No need to.
+        " We've done it already in `s:populate()`.
+        "}}}
+        if  index([m.bwd.lhs, m.fwd.lhs], a:lhs) >= 0
         \&& index([mode, ' '], m.bwd.mode) >= 0
         "                      └────────┤
         "                               └ mode of the motion:
@@ -791,6 +811,8 @@ fu! s:make_keys_feedable(seq) abort "{{{2
 endfu
 
 fu! s:translate_lhs(lhs) abort "{{{2
+    " TODO:
+    " explain why this function is needed
     return eval('"'.escape(substitute(a:lhs, '<\ze[^>]\+>', '\\<', 'g'), '"').'"')
 endfu
 
