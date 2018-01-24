@@ -72,8 +72,8 @@ fu! s:get_line_in_listing(m, desired_mode) abort "{{{1
         return ''
     endif
     let line  = a:m.bwd.mode.'  '
-    let line .= a:m.bwd.lhs
-    let line .= ' : '.a:m.fwd.lhs
+    let line .= a:m.bwd.untranslated_lhs
+    let line .= ' : '.a:m.fwd.untranslated_lhs
     return line
 endfu
 

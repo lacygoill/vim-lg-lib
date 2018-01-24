@@ -276,7 +276,6 @@ fu! s:move_again(dir, axis) abort "{{{2
 
     " get last motion on the axis provided
     let motion = s:get_motion_info(s:last_motions[a:axis])
-
     " How could we get an unrecognized motion?{{{
     "
     " You have a motion defined in a given mode.
@@ -325,11 +324,6 @@ fu! s:move_again(dir, axis) abort "{{{2
     "     endif
     "}}}
     let s:is_repeating_motion[a:axis] = a:dir ==# 'fwd' ? 1 : -1
-
-    " TODO:
-    " Finish refactoring this function.
-    " Also, is there a way to avoid re-installing this temporary mapping,
-    " when we smash `;`?
 
     " Why not returning the sequence of keys directly?{{{
     "
@@ -453,6 +447,25 @@ fu! s:populate(motion, mode, lhs, is_fwd, maparg) abort "{{{2
         let a:motion[dir].rhs = a:lhs
     endif
 
+    " we save the lhs keysequence, unmodified, so that `:ListRepeatableMotions`
+    " has something readable to display
+    let a:motion[dir].untranslated_lhs = a:motion[dir].lhs
+
+    " We now translate it to normalize its form.
+    " Why?{{{
+    "
+    " `a:motion[dir].lhs` comes from `lg#motion#repeatable#make#all()`.
+    " Its form depends on how the user wrote the motion.
+    " Example:
+    "             Z<c-l>
+    "             Z<C-L>
+    "
+    " … are different, but describe the same keysequence.
+    "
+    " This difference may cause an issue later when we make some comparison
+    " between the lhs of a motion and some keysequence.
+    " We must make sure, we're always comparing the same (translated) form.
+    "}}}
     let a:motion[dir].lhs = s:translate_lhs(a:motion[dir].lhs)
 endfu
 
@@ -811,8 +824,13 @@ fu! s:make_keys_feedable(seq) abort "{{{2
 endfu
 
 fu! s:translate_lhs(lhs) abort "{{{2
-    " TODO:
-    " explain why this function is needed
+    " Purpose:{{{
+    " When  we populate  the  database of  repeatable motions,  as  well as  the
+    " dictionary `s:last_motions`, we  need to get a normalized form  of the lhs
+    " keysequence(s).  So that future comparisons are reliable.
+    "
+    " For more info, see comment at the end of `s:populate()`.
+    "}}}
     return eval('"'.escape(substitute(a:lhs, '<\ze[^>]\+>', '\\<', 'g'), '"').'"')
 endfu
 
