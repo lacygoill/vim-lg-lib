@@ -219,7 +219,6 @@ fu! s:make_each_repeatable(mode, is_local, m, axis, from) abort "{{{2
 endfu
 
 fu! s:move(lhs, update_last_motion) abort "{{{2
-
     let motion = s:get_motion_info(a:lhs)
     if type(motion) != type({})
         return ''
@@ -433,13 +432,7 @@ fu! s:move_again(dir, axis) abort "{{{2
     " define special  motions on other  axes. That's why,  we need to  reset ALL
     " variables.
     "}}}
-    call timer_start(0, {-> map(s:is_repeating_motion, {i,v -> 0})})
-    " TODO:
-    " Do we need `i,v`?
-    " Check everywhere else.
-    "
-    " When do we need `i,v` anyway?
-
+    call timer_start(0, {-> map(s:is_repeating_motion, { -> 0})})
 
     " If we're using  `]q` &friends, we need to redraw  all statuslines, so that
     " the position in the list is updated immediately.
