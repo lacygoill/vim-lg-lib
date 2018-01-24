@@ -74,8 +74,8 @@ call s:init()
 " Core {{{1
 fu! s:install_wrapper(mode, m, maparg) abort "{{{2
     let mapcmd = s:get_mapcmd(a:mode, a:maparg)
-    exe mapcmd.'  '.a:m.bwd.'  <sid>move('.string(a:m.bwd).', 1)'
-    exe mapcmd.'  '.a:m.fwd.'  <sid>move('.string(a:m.fwd).', 1)'
+    exe mapcmd.'  '.a:m.bwd.'  <sid>move('.string(a:m.bwd).')'
+    exe mapcmd.'  '.a:m.fwd.'  <sid>move('.string(a:m.fwd).')'
 endfu
 
 fu! s:make_each_repeatable(mode, is_local, m, axis, from) abort "{{{2
@@ -107,9 +107,9 @@ fu! s:make_each_repeatable(mode, is_local, m, axis, from) abort "{{{2
     "
     " The fact  that the wrapper  mapping is, by default,  non-recursive doesn't
     " change  anything. When  we  would  press   the  lhs,  Vim  would  evaluate
-    " `s:move('lhs', 1)`.
+    " `s:move('lhs')`.
     " At the end, Vim  would compute the keys to press: the  latter would be the
-    " output of `s:move('lhs', 1)`. That's  where the recursion comes from. It's
+    " output of `s:move('lhs')`. That's  where the recursion comes from. It's
     " like pressing `cd`, where `cd` is defined like so:
     "
     "     nno  <expr>  cd  Func()
@@ -218,56 +218,25 @@ fu! s:make_each_repeatable(mode, is_local, m, axis, from) abort "{{{2
     endif
 endfu
 
-fu! s:move(lhs, update_last_motion) abort "{{{2
+fu! s:move(lhs) abort "{{{2
     let motion = s:get_motion_info(a:lhs)
     if type(motion) != type({})
         return ''
     endif
 
-    " Why this check?{{{
+    " Why don't we translate `a:lhs`?{{{
     "
-    " To be efficient. There's no need to always update the last motion.
+    " There's no need to.
+    " This function is used in the rhs of wrapper mappings:
+    "
+    "     exe mapcmd.'  '.a:m.bwd.'  <sid>move('.string(a:m.bwd).')'
+    "     exe mapcmd.'  '.a:m.fwd.'  <sid>move('.string(a:m.fwd).')'
+    "                                            └─────────────┤
+    "                                                          └ automatically translated
+    "
+    " And Vim automatically translates special keys in a mapping.
     "}}}
-    " When is it useless to update last motion?{{{
-    "
-    " `s:move()` is called  by `move_again()` to know which keys  to type when
-    " we press `;`  (&friends).  When that happens, we don't  need to update the
-    " last motion: it didn't change. Only the  direction may change, but not the
-    " motion.
-    "
-    " So we pass a zero flag as the last argument for `s:move()` when we call it
-    " from `move_again()`. The  rest of the  time, in the wrappers  around the
-    " motions, we pass a zero flag.
-    "}}}
-    if a:update_last_motion
-        " Why don't we translate `a:lhs`?{{{
-        "
-        " There's probably no need to.
-        " This function is called at the beginning of `s:move()`.
-        " The  latter passes  to it  a keysequence,  which originally  comes from  a
-        " mapping. And Vim automatically translates special keys in a mapping.
-        "
-        "     mapping → s:move(lhs, …)
-        "     │                │
-        "     │                └ result of the previous translation
-        "     │
-        "     └ automatically translates special keys
-        "
-        " FIXME:
-        " What?
-        " The explanation doesn't make sense anymore.
-        "
-        " Besides, I think we need s:translate_lhs(), to normalize the name
-        " of the keys stored in `a:lhs`. The latter seems to come directly
-        " from the motions we pass to `lg#motion#repeatable#make#all()`.
-        "
-        " Also, could we eliminate some `s:translate_lhs()` invocations?
-        " Why do we use it so often?
-        " It seems to solve a normalization issue. Does the issue really
-        " exists though?
-        "}}}
-        let s:last_motions[motion.axis] = a:lhs
-    endif
+    let s:last_motions[motion.axis] = a:lhs
 
     let dir = s:get_direction(a:lhs, motion)
     if empty(dir)
@@ -706,6 +675,11 @@ fu! s:get_motion_info(lhs) abort "{{{2
         " FIXME:
         " Do we need `s:translate_lhs()` for `m.bwd.lhs` and `m.fwd.lhs`?
         " They should already have been normalized.
+        "
+        " Also, could we eliminate some `s:translate_lhs()` invocations?
+        " Why do we use it so often?
+        " It seems to solve a normalization issue. Does the issue really
+        " exists though?
         if  index([s:translate_lhs(m.bwd.lhs), s:translate_lhs(m.fwd.lhs)],
         \          s:translate_lhs(a:lhs)) >= 0
         \&& index([mode, ' '], m.bwd.mode) >= 0
