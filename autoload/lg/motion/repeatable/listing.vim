@@ -1,3 +1,28 @@
+" TODO:
+" Add `C-n` `C-p` mappings to move between the axes.
+" And `C-j` `C-k` to move between scopes?
+"
+" NOTE:
+" Using C-n and C-p to move between tabpages is a bad idea.
+" Every time we end  up in a special buffer where  local mappings are installed,
+" and which use these keys, we can't move to another tabpage.
+"
+" We could use `gh` and `gl` as a replacement. But they use 2 keys.
+" We could create a submode, but we would need to quit it every time.
+" Annoying.
+" Maybe if we tweaked `vim-submode` to automatically quit the submode
+" via a timer after a short time. Long enough to let us smash `h` and `l`
+" while in the submode, but short enough so that we don't have to quit
+" the submode.
+
+" TODO:
+" Show the total command which has been used to produce the output.
+" You'll have to tweak `lg#log#output()`.
+
+" TODO:
+" Show the name of the axis even when using `-axis`.
+" Are there other (combination of) arguments for which there's not enough info?
+
 if exists('g:autoloaded_lg#motion#repeatable#listing')
     finish
 endif
@@ -127,8 +152,10 @@ fu! s:merge_listings(axes, ...) abort "{{{2
 
         for axis in a:axes
             let total_listing += s:merge_listings(a:axes, axis, s:listing_per_axis[axis])
-            unlet! s:listing_per_axis[axis]
         endfor
+        " the listings have all been merged,
+        " they are not needed anymore, so we can safely remove them
+        unlet! s:listing_per_axis
 
         return total_listing
     endif
@@ -141,10 +168,9 @@ fu! s:merge_listings(axes, ...) abort "{{{2
     let axis = a:1
     let listing_for_this_axis = a:2
 
-    let lines = ['']
-    let lines += ['Motions repeated with:  '.substitute(axis, '_', ' : ', '')]
+    let lines = ['', 'Motions repeated with:  '.substitute(axis, '_', ' : ', '')]
     if empty(listing_for_this_axis.global) && empty(listing_for_this_axis.local)
-        call remove(lines, -1)
+        return []
     else
         for scope in ['global', 'local']
             if !empty(listing_for_this_axis[scope])
@@ -169,7 +195,9 @@ fu! s:populate_listings(opt) abort "{{{2
         let scope = a_list is# s:repeatable_motions ? 'global' : 'local'
         for m in a_list
             if  !empty(a:opt.axis) && a:opt.axis !=# m.axis
-            \|| !empty(a:opt.mode) && a:opt.mode !=# m.bwd.mode
+            \|| !empty(a:opt.mode) && a:opt.mode !=# m.bwd.mode && m.bwd.mode ==# ' '
+                " TODO:
+                " Are you sure about the 2nd condition?
                 continue
             endif
 
