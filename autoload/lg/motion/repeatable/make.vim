@@ -88,9 +88,8 @@ fu! s:make_repeatable(m, mode, is_local, axis, from) abort "{{{2
 
     " if we ask for a local motion to be made repeatable,
     " the 2 lhs should be used in local mappings
-    if a:is_local
-                  \&& (    !get(bwd_maparg, 'buffer', 0)
-                       \|| !get(fwd_maparg, 'buffer', 0))
+    if   a:is_local
+    \&& (!get(bwd_maparg, 'buffer', 0) || !get(fwd_maparg, 'buffer', 0))
         try
             throw 'E8002:  [repeatable motion]  invalid motion: '.a:from
         catch
@@ -100,10 +99,11 @@ fu! s:make_repeatable(m, mode, is_local, axis, from) abort "{{{2
 
     " Could we install the wrapper mappings BEFORE populating `s:repeatable_motions`?{{{
     "
-    " No. It would cause `s:populate()` to capture the definition of the wrapper
-    " mapping instead of  the original one. So, when we would  type a motion, we
-    " would enter  an infinite  loop: the  wrapper would  call itself  again and
-    " again until E132.
+    " No.
+    " It would  cause `s:populate()`  to capture the  definition of  the wrapper
+    " mapping instead of the original motion.
+    " So, when  we would press  a motion, we would  enter an infinite  loop: the
+    " wrapper would call itself again and again, until E132.
     "
     " The fact  that the wrapper  mapping is, by default,  non-recursive doesn't
     " change  anything. When  we  would  press   the  lhs,  Vim  would  evaluate
@@ -118,12 +118,13 @@ fu! s:make_repeatable(m, mode, is_local, axis, from) abort "{{{2
     "     endfu
     "}}}
 
-    let motion = { 'axis': a:axis,
+    let origin = matchstr(execute('verb '.a:mode.'no '.(a:is_local ? ' <buffer> ' : '').bwd_lhs),
+    \                     '.*\n\s*\zsLast set from.*')
+    let motion = {
+    \              'axis':                 a:axis,
     \              'made repeatable from': a:from,
-    \              'original mapping': matchstr(
-    \                  execute('verb '.a:mode.'no '.(a:is_local ? ' <buffer> ' : '').bwd_lhs),
-    \                  '.*\n\s*\zsLast set from.*'
-    \)}
+    \              'original mapping':     origin,
+    \}
     " Why don't we write an assignment to populate `motion`?{{{
     "
     " `motion` is an array (!= scalar), so Vim passes it to `s:populate()`
@@ -133,7 +134,7 @@ fu! s:make_repeatable(m, mode, is_local, axis, from) abort "{{{2
     "         let motion = s:populate(motion, …)
     "}}}
     call s:populate(motion, a:mode, bwd_lhs, 0, bwd_maparg)
-    " `motion` value is now sth like:{{{
+    " now `motion` contains sth like:{{{
     "
     " { 'axis' : ', ;',
     "   'bwd'    : {'expr': 0, 'noremap': 1, 'lhs': '…', 'mode': ' ', … }}
@@ -141,7 +142,7 @@ fu! s:make_repeatable(m, mode, is_local, axis, from) abort "{{{2
     "                                                             └ nvo
     "}}}
     call s:populate(motion, a:mode, fwd_lhs, 1, fwd_maparg)
-    " `motion` value is now sth like:{{{
+    " now `motion` contains sth like:{{{
     "
     " { 'axis' : ', ;',
     "   'bwd'    : {'expr': 0, 'noremap': 1, 'lhs': '…', 'mode': ' ', … },
@@ -179,9 +180,9 @@ fu! s:make_repeatable(m, mode, is_local, axis, from) abort "{{{2
     "}}}
     let repeatable_motions = {a:is_local ? 'b:' : 's:'}repeatable_motions
 
-    if s:collides_with_db(motion, repeatable_motions)
-        return
-    endif
+    " if s:collides_with_db(motion, repeatable_motions)
+    "     return
+    " endif
 
     call s:install_wrapper(a:mode, a:m, bwd_maparg)
 
