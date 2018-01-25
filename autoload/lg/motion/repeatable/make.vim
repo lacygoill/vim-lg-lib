@@ -569,7 +569,7 @@ fu! lg#motion#repeatable#make#all(what) abort "{{{2
 endfu
 
 fu! lg#motion#repeatable#make#set_last_used(lhs,axis) abort "{{{2
-    let s:last_motions[join(values(a:axis))] = s:translate_lhs(a:lhs)
+    let s:last_motions[a:axis.bwd.' '.a:axis.fwd] = s:translate_lhs(a:lhs)
 endfu
 
 " Misc. {{{1
