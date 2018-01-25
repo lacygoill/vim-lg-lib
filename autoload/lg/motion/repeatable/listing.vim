@@ -60,13 +60,13 @@ fu! lg#motion#repeatable#listing#main(...) abort "{{{2
     \         }
     let opt.mode = substitute(opt.mode, 'nvo', ' ', '')
 
-    let axes_wanted = !empty(opt.axis) ? [opt.axis] : s:axes
+    let axes_asked = !empty(opt.axis) ? [opt.axis] : s:axes
 
-    call s:init_listing_for_every_axis(axes_wanted)
+    call s:init_listings_for_all_axes(axes_asked)
 
-    call s:populate_listing_for_every_axis(opt)
+    call s:populate_listings(opt)
 
-    let total_listing = s:merge_listings(axes_wanted)
+    let total_listing = s:merge_listings(axes_asked)
 
     " show the result
     call lg#log#output({'lines': total_listing})
@@ -77,6 +77,24 @@ fu! lg#motion#repeatable#listing#main(...) abort "{{{2
 endfu
 
 " Core {{{1
+fu! s:add_info_to_show(opt, m, scope) abort "{{{2
+    let lines = printf('%s  %s : %s',
+    \                  a:m.bwd.mode, a:m.bwd.untranslated_lhs, a:m.fwd.untranslated_lhs)
+
+    let lines .= a:opt.verbose1
+    \?               '    '.a:m['original mapping']
+    \:               ''
+
+    let listing = s:listing_per_axis[a:m.axis][a:scope]
+    call add(listing, '  '.lines)
+    if a:opt.verbose2
+        call extend(listing,
+        \                    ['       '.a:m['original mapping']]
+        \                   +['       Made repeatable from '.a:m['made repeatable from']]
+        \                   +[''])
+    endif
+endfu
+
 fu! s:merge_listings(axes, ...) abort "{{{2
     " when the function is called for the 1st time, it's not passed any optional argument
     if !a:0
@@ -115,7 +133,7 @@ fu! s:merge_listings(axes, ...) abort "{{{2
     return lines
 endfu
 
-fu! s:populate_listing_for_every_axis(opt) abort "{{{2
+fu! s:populate_listings(opt) abort "{{{2
     let lists = a:opt.scope ==# 'local'
     \?              [get(b:, 'repeatable_motions', [])]
     \:          a:opt.scope ==# 'global'
@@ -125,25 +143,12 @@ fu! s:populate_listing_for_every_axis(opt) abort "{{{2
     for a_list in lists
         let scope = a_list is# s:repeatable_motions ? 'global' : 'local'
         for m in a_list
-            if !empty(a:opt.axis) && m.axis !=# a:opt.axis
+            if  !empty(a:opt.axis) && a:opt.axis !=# m.axis
+            \|| !empty(a:opt.mode) && a:opt.mode !=# m.bwd.mode
                 continue
             endif
-            let line = s:get_line_in_listing(m, a:opt.mode)
-            if empty(line)
-                continue
-            endif
-            let line .= a:opt.verbose1
-            \?              '    '.m['original mapping']
-            \:              ''
 
-            let listing = s:listing_per_axis[m.axis][scope]
-            call add(listing, '  '.line)
-            if a:opt.verbose2
-                call extend(listing,
-                \                    (!empty(m['original mapping']) ? ['       '.m['original mapping']] : [])
-                \                   +['       Made repeatable from '.m['made repeatable from']]
-                \                   +[''])
-            endif
+            call s:add_info_to_show(a:opt, m, scope)
         endfor
     endfor
 endfu
@@ -169,18 +174,7 @@ fu! s:customize_preview_window() abort "{{{2
     endif
 endfu
 
-fu! s:get_line_in_listing(m, mode_asked) abort "{{{2
-    let motion_mode = a:m.bwd.mode
-    if !empty(a:mode_asked) && motion_mode !=# a:mode_asked
-        return ''
-    endif
-    let line  = a:m.bwd.mode.'  '
-    let line .= a:m.bwd.untranslated_lhs
-    let line .= ' : '.a:m.fwd.untranslated_lhs
-    return line
-endfu
-
-fu! s:init_listing_for_every_axis(axes) abort "{{{2
+fu! s:init_listings_for_all_axes(axes) abort "{{{2
     let s:listing_per_axis = {}
     for axis in a:axes
         let s:listing_per_axis[axis] = {'global': [], 'local': []}
