@@ -1,21 +1,4 @@
 " TODO:
-" Add `C-n` `C-p` mappings to move between the axes.
-" And `C-j` `C-k` to move between scopes?
-"
-" NOTE:
-" Using C-n and C-p to move between tabpages is a bad idea.
-" Every time we end  up in a special buffer where  local mappings are installed,
-" and which use these keys, we can't move to another tabpage.
-"
-" We could use `gh` and `gl` as a replacement. But they use 2 keys.
-" We could create a submode, but we would need to quit it every time.
-" Annoying.
-" Maybe if we tweaked `vim-submode` to automatically quit the submode
-" via a timer after a short time. Long enough to let us smash `h` and `l`
-" while in the submode, but short enough so that we don't have to quit
-" the submode.
-
-" TODO:
 " Show the total command which has been used to produce the output.
 " You'll have to tweak `lg#log#output()`.
 
@@ -121,7 +104,7 @@ endfu
 
 " Core {{{1
 fu! s:add_text_to_write(opt, m, scope) abort "{{{2
-    let line = printf('  %s  %s : %s',
+    let line = printf('  %s  %s | %s',
     \                 a:m.bwd.mode, a:m.bwd.untranslated_lhs, a:m.fwd.untranslated_lhs)
 
     let line .= a:opt.verbose1
@@ -186,7 +169,7 @@ fu! s:merge_listings(axes, ...) abort "{{{2
     let axis = a:1
     let listing_for_this_axis = a:2
 
-    let lines = ['', 'Motions repeated with:  '.substitute(axis, '_', ' : ', '')]
+    let lines = ['', 'Motions repeated with:  '.substitute(axis, '_', ' | ', '')]
     if empty(listing_for_this_axis.global) && empty(listing_for_this_axis.local)
         return []
     else
