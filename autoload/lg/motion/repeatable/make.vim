@@ -683,15 +683,10 @@ endfu
 
 fu! s:get_motion_info(lhs) abort "{{{2
     " Purpose:{{{
-    " return the info about the motion in the db which:
+    " return the info about the motion in the db:
     "
-    "     • contains `a:lhs` (no matter for which direction)
-    "     • has the same mode as the current one
-    "}}}
-    " Why don't you check the axis too?{{{
-    "
-    " Because, in practice, it doesn't make much sense to repeat the same
-    " motion on 2 axes.
+    "     • which contains `a:lhs` (no matter for which direction)
+    "     • whose mode is the identical to the one in which we currently are
     "}}}
 
     let mode = s:get_current_mode()
@@ -734,12 +729,13 @@ fu! s:get_motion_info(lhs) abort "{{{2
         "
         " Why this last condition? {{{
         "
-        " We only  pass a lhs  to this function. So, when  it tries to  find the
-        " relevant info in  the database, it doesn't care about  the mode of the
-        " motion. It stops searching as soon as it finds one which has the right
-        " lhs.  It's wrong; it should also care about the mode.
+        " We only pass a lhs to  this function. So, without this condition, when
+        " the function would  try to find the relevant info  in the database, it
+        " wouldn't care about the mode of the motion.
+        " It would  stop searching as  soon as it would  find one which  has the
+        " right lhs.  It's wrong; it should also care about the mode.
         "
-        " Without this condition, here's what could happen:
+        " Here's what could happen:
         "
         "     1. go to a function containing a `:return` statement
         "     2. enter visual mode
@@ -750,16 +746,6 @@ fu! s:get_motion_info(lhs) abort "{{{2
         "
         " Now `;` makes us enter visual  mode. It shouldn't. We want a motion in
         " normal mode.
-        "}}}
-        " Break it down please:{{{
-        "
-        "     mode:
-        "         current mode
-        "
-        "     index([…, ' '], m.bwd.mode) >= 0
-        "
-        "         check whether  the mode  of the motion  found in  the database
-        "         matches the current one, or a single space.
         "}}}
         " Why a single space?{{{
         "
@@ -784,6 +770,12 @@ fu! s:get_motion_info(lhs) abort "{{{2
         "
         " To express  the operator-pending mode,  `maparg()` expects 'o'  in its
         " input, while `mode(1)` uses 'no' in its output.
+        "}}}
+        " Why don't you check the axis too?{{{
+        "
+        " Because, in  practice, it doesn't make  much sense to repeat  the same
+        " motion  on  2  axes. So,  if  the function  finds  a  motion,  with  a
+        " particular axis, there's no need to look further.
         "}}}
             return m
         endif
@@ -819,10 +811,10 @@ fu! s:translate(seq) abort "{{{2
     " For more info, see the comment at the end of `s:populate()`.
     "
     " Also:
-    " The keysequence returned  by `s:move()` are directly fed  to the typeahead
+    " The keysequence  returned by `s:move()`  is directly fed to  the typeahead
     " buffer. If it contains special keycodes, they must be translated.
     "}}}
-    return eval('"'.substitute(escape(a:seq, '"\'), '\c\ze\%('.s:KEYCODES.'\)', '\\', 'g').'"')
+    return eval('"'.substitute(escape(a:seq, '"\'), '\m\c\ze\%('.s:KEYCODES.'\)', '\\', 'g').'"')
     "                                         ││
     "                                         │└ to prevent a real backslash contained in the sequence
     "                                         │  from being removed by `eval("…")`
