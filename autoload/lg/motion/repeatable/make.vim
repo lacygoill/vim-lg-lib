@@ -261,8 +261,14 @@ fu! s:move(lhs) abort "{{{2
     " Why don't we translate the special keys when the mapping uses `<expr>`?{{{
     "
     " Not necessary.
-    " Because, the rhs is an EXPRESSION whose value is keys which will be FED
-    " directly to the typeahead buffer.
+    " Because, the rhs is NOT a keysequence. It's an EXPRESSION.
+    " It just needs to be evaluated.
+    "
+    " Ok, but don't we need to translate special keycodes in the evaluation?
+    " Nope.
+    " The  evaluation of  the  rhs of  an `<expr>`  mapping  must NEVER  contain
+    " special keycodes. The expression must take care of returning feedable keys
+    " itself.
     "}}}
     " Why do we need to translate them otherwise?{{{
     "
@@ -826,11 +832,11 @@ fu! s:translate(seq) abort "{{{2
     " buffer. If it contains special keycodes, they must be translated.
     "}}}
     return eval('"'.substitute(escape(a:seq, '"\'), '\c\ze\%('.s:KEYCODES.'\)', '\\', 'g').'"')
-    "                                          │
-    "                                          └ TODO:
-    " explain why it's necessary
-    "
-    " hint: without it, `\m` can't be used to replace `]m`
+    "                                         ││
+    "                                         │└ to prevent a real backslash contained in the sequence
+    "                                         │  from being removed by `eval("…")`
+    "                                         │
+    "                                         └ to not break the string passed to `eval()` prematurely
 endfu
 
 fu! s:unshadow(m, mode) abort "{{{2
