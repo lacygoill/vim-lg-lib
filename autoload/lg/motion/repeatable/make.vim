@@ -46,6 +46,32 @@ fu! s:init() abort "{{{1
     " direction), for all axes
     let s:is_repeating_motion = {}
 
+    let s:KEYCODES = [
+    \                  '<BS>',
+    \                  '<Bar>',
+    \                  '<Bslash>',
+    \                  '<C-',
+    \                  '<CR>',
+    \                  '<Del>',
+    \                  '<Down>',
+    \                  '<End>',
+    \                  '<Esc>',
+    \                  '<F',
+    \                  '<Home>',
+    \                  '<Left>',
+    \                  '<M-',
+    \                  '<PageDown>',
+    \                  '<PageUp>',
+    \                  '<Plug>',
+    \                  '<Right>',
+    \                  '<S-',
+    \                  '<Space>',
+    \                  '<Tab>',
+    \                  '<Up>',
+    \                  '<lt>',
+    \                ]
+    let s:KEYCODES = join(s:KEYCODES, '\|')
+
     let s:DEFAULT_MAPARG = {'buffer': 0, 'expr': 0, 'mode': ' ', 'noremap': 1, 'nowait': 0, 'silent': 0}
     "                                                   Why? ┘{{{
     "
@@ -228,15 +254,13 @@ fu! s:move(lhs) abort "{{{2
     "                                            └─────────────┤
     "                                                          └ automatically translated
     "
-    " And Vim automatically translates special keys in a mapping.
+    " And mapping commands automatically translate special keys.
     "}}}
     let s:last_motions[motion.axis] = a:lhs
 
     " Why don't we translate the special keys when the mapping uses `<expr>`?{{{
     "
-    " I don't think there's a need to invoke `s:make_keys_feedable()` when the
-    " original mapping uses `<expr>`.
-    "
+    " Not necessary.
     " Because, the rhs is an EXPRESSION whose value is keys which will be FED
     " directly to the typeahead buffer.
     "}}}
@@ -245,12 +269,11 @@ fu! s:move(lhs) abort "{{{2
     " Otherwise, the rhs is NOT fed directly:
     " `:nno` &friends automatically translate any special key it may contain.
     "
-    " We need to emulate this behavior, and that's why we invoke
-    " `s:make_keys_feedable()`.
+    " We need to emulate this behavior, and that's why we invoke `s:translate()`.
     "}}}
     return motion[dir].expr
     \?         eval(motion[dir].rhs)
-    \:         s:make_keys_feedable(motion[dir].rhs)
+    \:         s:translate(motion[dir].rhs)
 endfu
 
 fu! s:move_again(dir, axis) abort "{{{2
@@ -455,7 +478,7 @@ fu! s:populate(motion, mode, lhs, is_fwd, maparg) abort "{{{2
     " between the lhs of a motion and some keysequence.
     " We must make sure, we're always comparing the same (translated) form.
     "}}}
-    let a:motion[dir].lhs = s:translate_lhs(a:motion[dir].lhs)
+    let a:motion[dir].lhs = s:translate(a:motion[dir].lhs)
 endfu
 
 " Interface {{{1
@@ -558,7 +581,7 @@ fu! lg#motion#repeatable#make#all(what) abort "{{{2
 endfu
 
 fu! lg#motion#repeatable#make#set_last_used(lhs,axis) abort "{{{2
-    let s:last_motions[a:axis.bwd.' '.a:axis.fwd] = s:translate_lhs(a:lhs)
+    let s:last_motions[a:axis.bwd.' '.a:axis.fwd] = s:translate(a:lhs)
 endfu
 
 " Misc. {{{1
@@ -786,54 +809,28 @@ fu! lg#motion#repeatable#make#is_repeating(axis) abort "{{{2
     return get(s:is_repeating_motion, a:axis, 0)
 endfu
 
-fu! s:make_keys_feedable(seq) abort "{{{2
-    let m = escape(a:seq, '"\')
-    let special_chars = [
-    \                    '<BS>',
-    \                    '<Bar>',
-    \                    '<Bslash>',
-    \                    '<C-',
-    \                    '<CR>',
-    \                    '<Del>',
-    \                    '<Down>',
-    \                    '<End>',
-    \                    '<Esc>',
-    \                    '<F',
-    \                    '<Home>',
-    \                    '<Left>',
-    \                    '<M-',
-    \                    '<PageDown>',
-    \                    '<PageUp>',
-    \                    '<Plug>',
-    \                    '<Right>',
-    \                    '<S-',
-    \                    '<Space>',
-    \                    '<Tab>',
-    \                    '<Up>',
-    \                    '<lt>',
-    \                   ]
-    for s in special_chars
-        let m = substitute(m, '\c\('.s.'\)', '\\\1', 'g')
-    endfor
-
-    " Don't use `string()`.
-    " We need double quotes to translate special characters.
-    sil exe 'return "'.m.'"'
-endfu
-
 fu! lg#motion#repeatable#make#share_env() abort "{{{2
     return s:repeatable_motions
 endfu
 
-fu! s:translate_lhs(lhs) abort "{{{2
+fu! s:translate(seq) abort "{{{2
     " Purpose:{{{
     " When  we populate  the  database of  repeatable motions,  as  well as  the
     " dictionary `s:last_motions`, we  need to get a normalized form  of the lhs
     " keysequence(s).  So that future comparisons are reliable.
     "
-    " For more info, see comment at the end of `s:populate()`.
+    " For more info, see the comment at the end of `s:populate()`.
+    "
+    " Also:
+    " The keysequence returned  by `s:move()` are directly fed  to the typeahead
+    " buffer. If it contains special keycodes, they must be translated.
     "}}}
-    return eval('"'.escape(substitute(a:lhs, '<\ze[^>]\+>', '\\<', 'g'), '"').'"')
+    return eval('"'.substitute(escape(a:seq, '"\'), '\c\ze\%('.s:KEYCODES.'\)', '\\', 'g').'"')
+    "                                          │
+    "                                          └ TODO:
+    " explain why it's necessary
+    "
+    " hint: without it, `\m` can't be used to replace `]m`
 endfu
 
 fu! s:unshadow(m, mode) abort "{{{2
