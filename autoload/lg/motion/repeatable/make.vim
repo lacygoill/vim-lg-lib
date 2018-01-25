@@ -36,14 +36,20 @@ endif
 let g:autoloaded_lg#motion#repeatable#make = 1
 
 fu! s:init() abort "{{{1
+    " database for global motions, which will be populated progressively
     let s:repeatable_motions = []
+
+    " last motions for all axes
     let s:last_motions = {}
+
+    " flag  telling whether  a motion  is  being repeated  (and if  so in  which
+    " direction), for all axes
     let s:is_repeating_motion = {}
 
     let s:DEFAULT_MAPARG = {'buffer': 0, 'expr': 0, 'mode': ' ', 'noremap': 1, 'nowait': 0, 'silent': 0}
     "                                                   Why? ┘{{{
     "
-    " This variable will be used to populate information about a default motion,
+    " This variable will be used to populate information about a built-in motion,
     " for  which  `maparg()`  doesn't  output  anything. We  need  to  choose  a
     " character standing for the default mode we want. As a default mode, I want
     " `nvo`.  For `maparg()`, `nvo` is represented with:
@@ -72,13 +78,7 @@ endfu
 call s:init()
 
 " Core {{{1
-fu! s:install_wrapper(mode, m, maparg) abort "{{{2
-    let mapcmd = s:get_mapcmd(a:mode, a:maparg)
-    exe mapcmd.'  '.a:m.bwd.'  <sid>move('.string(a:m.bwd).')'
-    exe mapcmd.'  '.a:m.fwd.'  <sid>move('.string(a:m.fwd).')'
-endfu
-
-fu! s:make_each_repeatable(mode, is_local, m, axis, from) abort "{{{2
+fu! s:make_repeatable(m, mode, is_local, axis, from) abort "{{{2
     " can only make ONE motion repeatable
 
     let bwd_lhs    = a:m.bwd
@@ -422,7 +422,7 @@ fu! s:populate(motion, mode, lhs, is_fwd, maparg) abort "{{{2
             \    substitute(a:motion[dir].rhs, '\c<sid>', '<snr>'.a:motion[dir].sid.'_', 'g')
         endif
 
-    " make a default motion repeatable
+    " make a built-in motion repeatable
     else
         let a:motion[dir] = extend(deepcopy(s:DEFAULT_MAPARG),
         \                          {'mode': empty(a:mode) ? ' ' : a:mode })
@@ -469,18 +469,6 @@ fu! s:populate(motion, mode, lhs, is_fwd, maparg) abort "{{{2
     let a:motion[dir].lhs = s:translate_lhs(a:motion[dir].lhs)
 endfu
 
-fu! lg#motion#repeatable#make#share_env() abort "{{{2
-    return s:repeatable_motions
-endfu
-
-fu! s:update_undo_ftplugin() abort "{{{2
-    if stridx(get(b:, 'undo_ftplugin', ''), 'unlet! b:repeatable_motions') == -1
-        let b:undo_ftplugin =          get(b:, 'undo_ftplugin', '')
-        \                     . (empty(get(b:, 'undo_ftplugin', '')) ? '' : '|')
-        \                     . 'unlet! b:repeatable_motions'
-    endif
-endfu
-
 " Interface {{{1
 fu! lg#motion#repeatable#make#all(what) abort "{{{2
     " can make several motions repeatable
@@ -494,13 +482,15 @@ fu! lg#motion#repeatable#make#all(what) abort "{{{2
         endtry
     endif
 
-    " build a name matching the axis:
+    let axis = a:what.axis
+
+    " build a name describing the axis:
     "
     "     'axis': {'bwd': 'z,', 'fwd': 'z;'}
     "     →
     "     'z, z;'
-    if has_key(a:what.axis, 'bwd') && has_key(a:what.axis, 'fwd')
-        let axis = a:what.axis.bwd.' '.a:what.axis.fwd
+    if has_key(axis, 'bwd') && has_key(axis, 'fwd')
+        let axis_name = axis.bwd.' '.axis.fwd
     else
         try
             throw 'E8001:  [repeatable motion]  missing key'
@@ -509,40 +499,21 @@ fu! lg#motion#repeatable#make#all(what) abort "{{{2
         endtry
     endif
 
-    if  maparg(a:what.axis.bwd) !~# 'move_again('
-        " What command do you use to install the mappings repeating motions?{{{
-        "
-        " By  default, we  use `:noremap`.   However,  if the  user invoked  the
-        " function  by  adding  the  optional  key  'mode',  in  the  dictionary
-        " `a:what.axis`, we take it into consideration.
-        " So:
-        "
-        "     'axis':  {'bwd': 'z,', 'fwd': 'z;'}
-        "         → noremap
-        "
-        "     'axis':  {'bwd': 'z,', 'fwd': 'z;', 'n'}
-        "         → nnoremap
-        "}}}
-        let mapcmd = get(a:what.axis, 'mode', '') == ''
-        \?               'noremap'
-        \:               a:what.axis.mode . 'noremap'
-        exe mapcmd.'  <expr>  '.a:what.axis.bwd."  <sid>move_again('bwd', ".string(axis).')'
-        exe mapcmd.'  <expr>  '.a:what.axis.fwd."  <sid>move_again('fwd', ".string(axis).')'
-
-        " We also install <plug> mappings  to be able to access `s:move_again()`
-        " from another script.
-        " When the axis  contains `z,` and `z;`, these mappings  could be useful
-        " to create a submode in which we don't have to press `z`.
-        exe mapcmd.'  <expr>  <plug>(backward-'.substitute(axis, '\s\+', '_', 'g').")  <sid>move_again('bwd', ".string(axis).')'
-        exe mapcmd.'  <expr>  <plug>(forward-' .substitute(axis, '\s\+', '_', 'g').")  <sid>move_again('fwd', ".string(axis).')'
-    endif
-
-    let from     = a:what.from
+    " Make the motions repeatable{{{
+    "
+    " We need to install a wrapper mapping  around each motion, to save the last
+    " used one.  Otherwise, how the repeating mappings would know what motion to
+    " repeat?
+    "
+    " We also need a database of repeatable motions, with all their information.
+    " Otherwise,  how  the repeating  mappings  would  be  able to  emulate  the
+    " original motion?
+    "}}}
     let mode     = a:what.mode
     let is_local = a:what.buffer
-    " try to make all the motions received repeatable
+    let from     = a:what.from
     for m in a:what.motions
-        " Warnin `execute()` is buggy in Neovim{{{
+        " Warning `execute()` is buggy in Neovim{{{
         "
         " It sometimes fail to capture anything. It  has been fixed in a Vim
         " patch.  For this code to work in  Neovim, you need to wait for the
@@ -557,12 +528,44 @@ fu! lg#motion#repeatable#make#all(what) abort "{{{2
         if !is_local && (    execute(mode.'map <buffer> '.m.bwd) !~# '^\n\nNo mapping found$'
                          \|| execute(mode.'map <buffer> '.m.fwd) !~# '^\n\nNo mapping found$')
             let map_save = s:unshadow(m, mode)
-            call s:make_each_repeatable(mode, is_local, m, axis, from)
+            call s:make_repeatable(m, mode, is_local, axis_name, from)
             call lg#map#restore(map_save)
         else
-            call s:make_each_repeatable(mode, is_local, m, axis, from)
+            call s:make_repeatable(m, mode, is_local, axis_name, from)
         endif
     endfor
+
+    " if not already done, install mappings to repeat the motions (,  ;  z,  z;  …)
+    if  maparg(axis.bwd) !~# 'move_again('
+        " What command do you use to install the mappings repeating motions?{{{
+        "
+        " By  default, we  use `:noremap`.   However,  if the  user invoked  the
+        " function  by  adding  the  optional  key  'mode',  in  the  dictionary
+        " `axis`, we take it into consideration.
+        " So:
+        "
+        "     'axis':  {'bwd': 'z,', 'fwd': 'z;'}
+        "         → noremap
+        "
+        "     'axis':  {'bwd': 'z,', 'fwd': 'z;', 'n'}
+        "         → nnoremap
+        "           ^
+        "}}}
+        let mapcmd = get(axis, 'mode', '') == ''
+        \?               'noremap'
+        \:               axis.mode . 'noremap'
+        exe mapcmd.'  <expr>  '.axis.bwd."  <sid>move_again('bwd', ".string(axis_name).')'
+        exe mapcmd.'  <expr>  '.axis.fwd."  <sid>move_again('fwd', ".string(axis_name).')'
+
+        " We also install <plug> mappings  to be able to access `s:move_again()`
+        " from another script.
+        " These mappings could be useful, for  example, when the axis is `z, z;`
+        " and we want to create a submode in which we don't have to press `z`.
+        exe mapcmd.'  <expr>  <plug>(backward-'.substitute(axis_name, '\s\+', '_', 'g').')'
+        \                 ."  <sid>move_again('bwd', ".string(axis_name).')'
+        exe mapcmd.'  <expr>  <plug>(forward-' .substitute(axis_name, '\s\+', '_', 'g').')'
+        \                 ."  <sid>move_again('fwd', ".string(axis_name).')'
+    endif
 endfu
 
 fu! lg#motion#repeatable#make#set_last_used(lhs,axis) abort "{{{2
@@ -778,6 +781,12 @@ fu! s:get_motion_info(lhs) abort "{{{2
     endfor
 endfu
 
+fu! s:install_wrapper(mode, m, maparg) abort "{{{2
+    let mapcmd = s:get_mapcmd(a:mode, a:maparg)
+    exe mapcmd.'  '.a:m.bwd.'  <sid>move('.string(a:m.bwd).')'
+    exe mapcmd.'  '.a:m.fwd.'  <sid>move('.string(a:m.fwd).')'
+endfu
+
 fu! s:invalid_axis_or_direction(axis, direction) abort "{{{2
     let is_valid_axis = has_key(s:last_motions, a:axis) >= 0
     let is_valid_direction = index(['bwd', 'fwd'], a:direction) >= 0
@@ -823,6 +832,10 @@ fu! s:make_keys_feedable(seq) abort "{{{2
     sil exe 'return "'.m.'"'
 endfu
 
+fu! lg#motion#repeatable#make#share_env() abort "{{{2
+    return s:repeatable_motions
+endfu
+
 fu! s:translate_lhs(lhs) abort "{{{2
     " Purpose:{{{
     " When  we populate  the  database of  repeatable motions,  as  well as  the
@@ -839,4 +852,12 @@ fu! s:unshadow(m, mode) abort "{{{2
     exe 'sil! '.a:mode.'unmap <buffer> '.a:m.bwd
     exe 'sil! '.a:mode.'unmap <buffer> '.a:m.fwd
     return map_save
+endfu
+
+fu! s:update_undo_ftplugin() abort "{{{2
+    if stridx(get(b:, 'undo_ftplugin', ''), 'unlet! b:repeatable_motions') == -1
+        let b:undo_ftplugin =          get(b:, 'undo_ftplugin', '')
+        \                     . (empty(get(b:, 'undo_ftplugin', '')) ? '' : '|')
+        \                     . 'unlet! b:repeatable_motions'
+    endif
 endfu

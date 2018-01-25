@@ -10,6 +10,9 @@ LG-LIB - TABLE OF CONTENTS                                   *lg-lib* *lg-lib-to
          use bars.
          Be consistent with Vim's default help files.
 
+         document how to use `lg#motion#repeatable#make#is_repeating()`
+         to make `fFtT` repeatable
+
 
 < Interface >_________________________________________________________________~
                                         *lg#motion#repeatable#make#all()*
@@ -208,7 +211,7 @@ don't have to press z to repeat the motion:
                                         *E8000*
 
 The dictionary argument you passed to |lg#motion#repeatable#make#all()| should
-contain the following keys:
+have included the following keys:
 
     • axis
     • buffer
@@ -221,7 +224,7 @@ At least one of them is missing.
 
                                         *E8001*
 
-The axis that you provided should have the keys bwd and fwd.
+The axis that you provided should have included the keys bwd and fwd.
 At least one of them is missing.
 
 
