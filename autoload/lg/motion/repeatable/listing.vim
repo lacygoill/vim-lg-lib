@@ -15,7 +15,7 @@ fu! lg#motion#repeatable#listing#complete(arglead, cmdline, _p) abort "{{{2
     " That's why we never use `a:_p`.
 
     if a:cmdline =~# '-axis\s\+\S*$'
-        return join(s:axes,"\n")
+        return join(s:axes, "\n")
 
     elseif a:cmdline =~# '-mode\s\+\w*$'
         let modes = [
@@ -52,42 +52,38 @@ endfu
 fu! lg#motion#repeatable#listing#main(...) abort "{{{2
     let cmd_args = split(a:1)
     let opt = {
-    \           'axis':     substitute(matchstr(a:1, '\v-axis\s+\zs\S+'), '_', ' ', 'g'),
-    \           'mode':     matchstr(a:1, '\v-mode\s+\zs%(\w|-)+'),
+    \           'axis':     matchstr(a:1, '\v-axis\s+\zs\S+'),
+    \           'mode':     matchstr(a:1, '\v-mode\s+\zs[-a-z]+'),
     \           'scope':    matchstr(a:1, '\v-scope\s+\zs\w+'),
     \           'verbose1': index(cmd_args, '-v') >= 0,
     \           'verbose2': index(cmd_args, '-vv') >= 0,
     \         }
-
     let opt.mode = substitute(opt.mode, 'nvo', ' ', '')
 
-    " initialize a listing for every given axis
-    let s:listing_per_axis = {}
-    for axis in s:axes
-        let s:listing_per_axis[axis] = {'global': [], 'local': []}
-    endfor
+    let axes_wanted = !empty(opt.axis) ? [opt.axis] : s:axes
 
-    " populate them
-    call s:populate_listings_for_all_axes(opt)
+    call s:init_listing_for_every_axis(axes_wanted)
 
-    " merge them
-    let total_listing = s:merge_listings(opt)
+    call s:populate_listing_for_every_axis(opt)
+
+    let total_listing = s:merge_listings(axes_wanted)
 
     " show the result
-    call lg#log#output({'excmd': 'ListRepeatableMotions', 'lines': total_listing})
+    call lg#log#output({'lines': total_listing})
     call s:customize_preview_window()
-    1/^Motions/?\n\n?d_
+    sil! 1/^Motions/?\n\n?d_
     sil keepj keepp %s/\v\n{3,}/\r\r/e
+    sil! 1/^Motions/
 endfu
 
 " Core {{{1
-fu! s:merge_listings(opt, ...) abort "{{{2
+fu! s:merge_listings(axes, ...) abort "{{{2
     " when the function is called for the 1st time, it's not passed any optional argument
     if !a:0
         let total_listing = []
 
-        for axis in s:axes
-            let total_listing += s:merge_listings(a:opt, axis, s:listing_per_axis[axis])
+        for axis in a:axes
+            let total_listing += s:merge_listings(a:axes, axis, s:listing_per_axis[axis])
             unlet! s:listing_per_axis[axis]
         endfor
 
@@ -102,12 +98,8 @@ fu! s:merge_listings(opt, ...) abort "{{{2
     let axis = a:1
     let listing_for_this_axis = a:2
 
-    if !empty(a:opt.axis) && axis !=# a:opt.axis
-        return []
-    endif
-
     let lines = ['']
-    let lines += ['Motions repeated with:  '.axis]
+    let lines += ['Motions repeated with:  '.substitute(axis, '_', ' : ', '')]
     if empty(listing_for_this_axis.global) && empty(listing_for_this_axis.local)
         call remove(lines, -1)
     else
@@ -123,7 +115,7 @@ fu! s:merge_listings(opt, ...) abort "{{{2
     return lines
 endfu
 
-fu! s:populate_listings_for_all_axes(opt) abort "{{{2
+fu! s:populate_listing_for_every_axis(opt) abort "{{{2
     let lists = a:opt.scope ==# 'local'
     \?              [get(b:, 'repeatable_motions', [])]
     \:          a:opt.scope ==# 'global'
@@ -177,13 +169,20 @@ fu! s:customize_preview_window() abort "{{{2
     endif
 endfu
 
-fu! s:get_line_in_listing(m, desired_mode) abort "{{{2
+fu! s:get_line_in_listing(m, mode_asked) abort "{{{2
     let motion_mode = a:m.bwd.mode
-    if !empty(a:desired_mode) && motion_mode !=# a:desired_mode
+    if !empty(a:mode_asked) && motion_mode !=# a:mode_asked
         return ''
     endif
     let line  = a:m.bwd.mode.'  '
     let line .= a:m.bwd.untranslated_lhs
     let line .= ' : '.a:m.fwd.untranslated_lhs
     return line
+endfu
+
+fu! s:init_listing_for_every_axis(axes) abort "{{{2
+    let s:listing_per_axis = {}
+    for axis in a:axes
+        let s:listing_per_axis[axis] = {'global': [], 'local': []}
+    endfor
 endfu

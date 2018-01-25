@@ -8,7 +8,7 @@ fu! lg#log#output(what) abort "{{{1
     "       │      │
     "     • excmd, level    for :Verbose Cmd
     "     • lines           for :ListRepeatableMotions,
-    "       │               or any command for which we manually build its output
+    "       │               or any custom command for which we manually build the output
     "       │
     "       └ lists of lines which we'll use as the output of the command
     "
@@ -65,7 +65,7 @@ fu! lg#log#output(what) abort "{{{1
 
     " Vim doesn't give the focus to the preview window. Jump to it.
     wincmd P
-    " if we really get there...
+    " if we really got there …
     if &l:pvw
         nno  <buffer><nowait><silent>  q  :<c-u>call lg#window#quit()<cr>
         setl bh=wipe bt=nofile nobl nowrap noswf
