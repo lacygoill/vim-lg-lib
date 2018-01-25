@@ -13,6 +13,8 @@ LG-LIB - TABLE OF CONTENTS                                   *lg-lib* *lg-lib-to
          document how to use `lg#motion#repeatable#make#is_repeating()`
          to make `fFtT` repeatable
 
+         document `:ListRepeatableMotions`: arguments, local mappings, …
+
 
 < Interface >_________________________________________________________________~
                                         *lg#motion#repeatable#make#all()*

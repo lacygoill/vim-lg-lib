@@ -102,6 +102,19 @@ fu! lg#motion#repeatable#listing#main(...) abort "{{{2
     " show the result
     call lg#log#output({'lines': total_listing})
     call s:customize_preview_window()
+
+    " Previously, we also wrote that:
+    "
+    "     sil! 1/^Motions/?\n\n?d_
+    "
+    " I've removed it, because `?\n\n?` was wrongly moving the cursor beyond
+    " the beginning of the file, to the end, on the last line beginning with
+    " `Motions`.
+    "
+    " TODO:
+    " Tidy up this section.
+    " Remove undesired empty lines, but make sure you never remove sth else
+    " accidently.
     sil keepj keepp %s/\v\n{3,}/\r\r/e
     sil! 1/^Motions/
 endfu
@@ -228,8 +241,11 @@ fu! s:customize_preview_window() abort "{{{2
         "                                       │ └ open possible folds
         "                                       └── go to line number after colon
 
-        nno  <buffer><nowait><silent>  <c-n>  :<c-u>call search('^Motions repeated with:  ', 'W')<cr>
-        nno  <buffer><nowait><silent>  <c-p>  :<c-u>call search('^Motions repeated with:  ', 'bW')<cr>
+        nno  <buffer><nowait><silent>  <c-n>  :<c-u>call search('^Motions repeated with:  ')<cr>
+        nno  <buffer><nowait><silent>  <c-p>  :<c-u>call search('^Motions repeated with:  ', 'b')<cr>
+
+        nno  <buffer><nowait><silent>  <c-j>  :<c-u>call search('^\%(global\<bar>local\)$')<cr>
+        nno  <buffer><nowait><silent>  <c-k>  :<c-u>call search('^\%(global\<bar>local\)$', 'b')<cr>
     endif
 endfu
 
