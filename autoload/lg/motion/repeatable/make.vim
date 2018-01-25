@@ -577,7 +577,7 @@ fu! s:collides_with_db(motion, repeatable_motions) abort "{{{2
     "
     " If you try to install a wrapper around a key which has already been wrapped,
     " you'll probably end up losing the original definition:
-    " in the db, it may be replaced with the 1st wrapper.
+    " in the db, it may be replaced with the one of the 1st wrapper.
     "
     " Besides:
     " Vim shouldn't make a motion repeatable twice (total collision):
@@ -597,10 +597,10 @@ fu! s:collides_with_db(motion, repeatable_motions) abort "{{{2
     "   ┌ Motion
     "   │
     for m in a:repeatable_motions
-        if  a:motion.bwd.lhs ==# m.bwd.lhs && a:motion.bwd.mode ==# m.bwd.mode
-        \|| a:motion.fwd.lhs ==# m.fwd.lhs && a:motion.fwd.mode ==# m.fwd.mode
+        if  [m.bwd.lhs, m.bwd.mode] ==# [a:motion.bwd.lhs, a:motion.bwd.mode]
+        \|| [m.fwd.lhs, m.fwd.mode] ==# [a:motion.fwd.lhs, a:motion.fwd.mode]
             try
-                throw printf("E8003:  [repeatable motion]  cannot process motion '%s : %s'",
+                throw printf('E8003:  [repeatable motion]  cannot process motion  %s : %s',
                 \             m.bwd.lhs, m.fwd.lhs)
             catch
                 call lg#catch_error()
