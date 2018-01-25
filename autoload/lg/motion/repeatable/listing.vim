@@ -15,7 +15,7 @@ fu! lg#motion#repeatable#listing#complete(arglead, cmdline, _p) abort "{{{2
     " That's why we never use `a:_p`.
 
     if a:cmdline =~# '-axis\s\+\S*$'
-        return join(map(copy(s:axes), {i,v -> substitute(v, '\s\+', '_', '')}), "\n")
+        return join(s:axes,"\n")
 
     elseif a:cmdline =~# '-mode\s\+\w*$'
         let modes = [
@@ -77,7 +77,7 @@ fu! lg#motion#repeatable#listing#main(...) abort "{{{2
     call lg#log#output({'excmd': 'ListRepeatableMotions', 'lines': total_listing})
     call s:customize_preview_window()
     1/^Motions/?\n\n?d_
-    keepj keepp %s/\v\n{3,}/\r\r/e
+    sil keepj keepp %s/\v\n{3,}/\r\r/e
 endfu
 
 " Core {{{1

@@ -162,7 +162,7 @@ fu! s:make_repeatable(m, mode, is_local, axis, from) abort "{{{2
     call s:populate(motion, a:mode, bwd_lhs, 0, bwd_maparg)
     " now `motion` contains sth like:{{{
     "
-    " { 'axis' : ', ;',
+    " { 'axis' : ',_;',
     "   'bwd'    : {'expr': 0, 'noremap': 1, 'lhs': '…', 'mode': ' ', … }}
     "                                                             │
     "                                                             └ nvo
@@ -170,7 +170,7 @@ fu! s:make_repeatable(m, mode, is_local, axis, from) abort "{{{2
     call s:populate(motion, a:mode, fwd_lhs, 1, fwd_maparg)
     " now `motion` contains sth like:{{{
     "
-    " { 'axis' : ', ;',
+    " { 'axis' : ',_;',
     "   'bwd'    : {'expr': 0, 'noremap': 1, 'lhs': '…', 'mode': ' ', … },
     "   'fwd'    : {'expr': 0, 'noremap': 1, 'lhs': '…', 'mode': ' ', … }}
     "}}}
@@ -332,7 +332,7 @@ fu! s:move_again(dir, axis) abort "{{{2
     " But, `s:fts()` needs to know whether we are pressing `f` to ask for a target,
     " or repeating a previous `fx`:
     "
-    "     if lg#motion#repeatable#make#is_repeating(', ;')
+    "     if lg#motion#repeatable#make#is_repeating(',_;')
     "        " repeat last `fx`
     "         …
     "     else
@@ -406,7 +406,7 @@ fu! s:move_again(dir, axis) abort "{{{2
     " command. IOW, when the last motion was `fx`, `f` is insufficient to know
     " where to move.
     "
-    " Note that `fFtTssSS` are specific to the  axis `, ;`, but we could want to
+    " Note that `fFtTssSS` are specific to the  axis `,_;`, but we could want to
     " define special  motions on other  axes. That's why,  we need to  reset ALL
     " variables.
     "}}}
@@ -503,9 +503,9 @@ fu! lg#motion#repeatable#make#all(what) abort "{{{2
     "
     "     'axis': {'bwd': 'z,', 'fwd': 'z;'}
     "     →
-    "     'z, z;'
+    "     'z,_z;'
     if has_key(axis, 'bwd') && has_key(axis, 'fwd')
-        let axis_name = axis.bwd.' '.axis.fwd
+        let axis_name = axis.bwd.'_'.axis.fwd
     else
         try
             throw 'E8001:  [repeatable motion]  missing key'
@@ -574,17 +574,17 @@ fu! lg#motion#repeatable#make#all(what) abort "{{{2
 
         " We also install <plug> mappings  to be able to access `s:move_again()`
         " from another script.
-        " These mappings could be useful, for  example, when the axis is `z, z;`
+        " These mappings could be useful, for  example, when the axis is `z,_z;`
         " and we want to create a submode in which we don't have to press `z`.
-        exe mapcmd.'  <expr>  <plug>(backward-'.substitute(axis_name, '\s\+', '_', 'g').')'
+        exe mapcmd.'  <expr>  <plug>(backward-'.axis_name.')'
         \                 ."  <sid>move_again('bwd', ".string(axis_name).')'
-        exe mapcmd.'  <expr>  <plug>(forward-' .substitute(axis_name, '\s\+', '_', 'g').')'
+        exe mapcmd.'  <expr>  <plug>(forward-' .axis_name.')'
         \                 ."  <sid>move_again('fwd', ".string(axis_name).')'
     endif
 endfu
 
 fu! lg#motion#repeatable#make#set_last_used(lhs,axis) abort "{{{2
-    let s:last_motions[a:axis.bwd.' '.a:axis.fwd] = s:translate(a:lhs)
+    let s:last_motions[a:axis.bwd.'_'.a:axis.fwd] = s:translate(a:lhs)
 endfu
 
 " Misc. {{{1
