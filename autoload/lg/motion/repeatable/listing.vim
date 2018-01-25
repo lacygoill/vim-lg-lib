@@ -31,11 +31,16 @@ let g:autoloaded_lg#motion#repeatable#listing = 1
 fu! s:init() abort "{{{1
     let s:repeatable_motions = lg#motion#repeatable#make#share_env()
     let s:axes = uniq(sort(map(deepcopy(s:repeatable_motions), {i,v -> v.axis})))
+    let s:mode2letter = {'normal': 'n', 'visual': 'x', 'operator-pending': 'no', 'nvo': ' '}
 endfu
-call s:init()
 
 " Interface {{{1
 fu! lg#motion#repeatable#listing#complete(arglead, cmdline, _p) abort "{{{2
+    " We  re-init every  time we  complete `:ListRepeatableMotions`,  because we
+    " could make some motions repeatable during  runtime, and use a new axis. In
+    " that case, we want to see the latter in the suggestions after `-axis`.
+    call s:init()
+
     " We always assume that the cursor is at the very end of the command line.
     " That's why we never use `a:_p`.
 
@@ -75,6 +80,10 @@ fu! lg#motion#repeatable#listing#complete(arglead, cmdline, _p) abort "{{{2
 endfu
 
 fu! lg#motion#repeatable#listing#main(...) abort "{{{2
+    " We re-init every time we execute `:ListRepeatableMotions`,
+    " because we could make some motions repeatable during runtime.
+    call s:init()
+
     let cmd_args = split(a:1)
     let opt = {
     \           'axis':     matchstr(a:1, '\v-axis\s+\zs\S+'),
@@ -83,7 +92,8 @@ fu! lg#motion#repeatable#listing#main(...) abort "{{{2
     \           'verbose1': index(cmd_args, '-v') >= 0,
     \           'verbose2': index(cmd_args, '-vv') >= 0,
     \         }
-    let opt.mode = substitute(opt.mode, 'nvo', ' ', '')
+
+    let opt.mode = has_key(s:mode2letter, opt.mode) ? s:mode2letter[opt.mode] : ' '
 
     let axes_asked = !empty(opt.axis) ? [opt.axis] : s:axes
 
@@ -195,9 +205,7 @@ fu! s:populate_listings(opt) abort "{{{2
         let scope = a_list is# s:repeatable_motions ? 'global' : 'local'
         for m in a_list
             if  !empty(a:opt.axis) && a:opt.axis !=# m.axis
-            \|| !empty(a:opt.mode) && a:opt.mode !=# m.bwd.mode && m.bwd.mode ==# ' '
-                " TODO:
-                " Are you sure about the 2nd condition?
+            \|| !empty(a:opt.mode) && a:opt.mode !=# m.bwd.mode
                 continue
             endif
 
