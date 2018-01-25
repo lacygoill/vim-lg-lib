@@ -77,21 +77,46 @@ fu! lg#motion#repeatable#listing#main(...) abort "{{{2
 endfu
 
 " Core {{{1
-fu! s:add_info_to_show(opt, m, scope) abort "{{{2
-    let lines = printf('%s  %s : %s',
-    \                  a:m.bwd.mode, a:m.bwd.untranslated_lhs, a:m.fwd.untranslated_lhs)
+fu! s:add_text_to_write(opt, m, scope) abort "{{{2
+    let line = printf('  %s  %s : %s',
+    \                 a:m.bwd.mode, a:m.bwd.untranslated_lhs, a:m.fwd.untranslated_lhs)
 
-    let lines .= a:opt.verbose1
-    \?               '    '.a:m['original mapping']
-    \:               ''
+    let line .= a:opt.verbose1
+    \?              '    '.a:m['original mapping']
+    \:              ''
 
-    let listing = s:listing_per_axis[a:m.axis][a:scope]
-    call add(listing, '  '.lines)
+    let listing_for_axis_and_scope = s:listing_per_axis[a:m.axis][a:scope]
+    " Why `add()`?{{{
+    "
+    " Why not:
+    "
+    "     let listing_for_axis_and_scope .= line
+    "
+    " For the same reason explained in the next comment.
+    " We're going to write this text via `writefile()`.
+    " The latter expects a list of strings. Not a string.
+    "}}}
+    call add(listing_for_axis_and_scope, line)
+
     if a:opt.verbose2
-        call extend(listing,
-        \                    ['       '.a:m['original mapping']]
-        \                   +['       Made repeatable from '.a:m['made repeatable from']]
-        \                   +[''])
+        " Why `extend()`?{{{
+        "
+        " Why didn't you wrote earlier:
+        "
+        "     let line .= "\n"
+        "     \           .'       '.a:m['original mapping']."\n"
+        "     \           .'       Made repeatable from '.a:m['made repeatable from']
+        "     \           ."\n"
+        "
+        " Because eventually, we're going to write the text via `lg#log#output()`
+        " which itself invokes `writefile()`. And the latter writes "\n" as a NUL.
+        " The only way to make `writefile()` write a newline is to split the lines
+        " into several list items.
+        "}}}
+        call extend(listing_for_axis_and_scope,
+        \                ['       '.a:m['original mapping']]
+        \               +['       Made repeatable from '.a:m['made repeatable from']]
+        \               +[''])
     endif
 endfu
 
@@ -148,7 +173,7 @@ fu! s:populate_listings(opt) abort "{{{2
                 continue
             endif
 
-            call s:add_info_to_show(a:opt, m, scope)
+            call s:add_text_to_write(a:opt, m, scope)
         endfor
     endfor
 endfu
