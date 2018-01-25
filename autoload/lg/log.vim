@@ -7,24 +7,26 @@ fu! lg#log#output(what) abort "{{{1
     "       │      ┌ desired level of verbosity
     "       │      │
     "     • excmd, level    for :Verbose Cmd
-    "     • lines           for :ListRepeatableMotions,
-    "       │               or any custom command for which we manually build the output
-    "       │
-    "       └ lists of lines which we'll use as the output of the command
+    "     • excmd, lines    for :ListRepeatableMotions,
+    "              │        or any custom command for which we manually build the output
+    "              │
+    "              └ lists of lines which we'll use as the output of the command
     "
 "}}}
-    if  !(has_key(a:what, 'lines')
-    \||   has_key(a:what, 'excmd') && has_key(a:what, 'level'))
+    if   !has_key(a:what, 'excmd')
+    \&& (!has_key(a:what, 'level') || !has_key(a:what, 'lines'))
         return
     endif
 
     let tempfile = tempname()
 
+    let excmd = a:what.excmd
     if has_key(a:what, 'lines')
+        let title = ':'.excmd
         let lines = a:what.lines
-        call writefile(lines, tempfile, 'a')
+        call writefile([title], tempfile, '')
+        call writefile(lines, tempfile, 'ab')
     else
-        let excmd = a:what.excmd
         let level = a:what.level
         "                                       ┌ if the level is 1, just write `:Verbose`
         "                                       │ instead of `:1Verbose`

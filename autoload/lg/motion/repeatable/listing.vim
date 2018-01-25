@@ -1,7 +1,3 @@
-" TODO:
-" Show the total command which has been used to produce the output.
-" You'll have to tweak `lg#log#output()`.
-
 if exists('g:autoloaded_lg#motion#repeatable#listing')
     finish
 endif
@@ -83,7 +79,8 @@ fu! lg#motion#repeatable#listing#main(...) abort "{{{2
     let total_listing = s:merge_listings(axes_asked)
 
     " show the result
-    call lg#log#output({'lines': total_listing})
+    let excmd = 'ListRepeatableMotions '.a:1
+    call lg#log#output({'excmd': excmd, 'lines': total_listing})
     call s:customize_preview_window()
 
     " Previously, we also wrote that:
