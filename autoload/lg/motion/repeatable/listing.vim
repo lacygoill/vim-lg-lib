@@ -9,17 +9,13 @@ fu! s:init() abort "{{{1
 endfu
 call s:init()
 
-fu! lg#motion#repeatable#listing#complete(arglead, cmdline, _p) abort "{{{1
-    let opt = [
-    \           '-axis ',
-    \           '-mode ',
-    \           '-scope ',
-    \           '-v ',
-    \           '-vv ',
-    \         ]
+" Interface {{{1
+fu! lg#motion#repeatable#listing#complete(arglead, cmdline, _p) abort "{{{2
+    " We always assume that the cursor is at the very end of the command line.
+    " That's why we never use `a:_p`.
 
     if a:cmdline =~# '-axis\s\+\S*$'
-        return join(map(deepcopy(s:axes), {i,v -> substitute(v, '\s\+', '_', 'g')}), "\n")
+        return join(map(copy(s:axes), {i,v -> substitute(v, '\s\+', '_', '')}), "\n")
 
     elseif a:cmdline =~# '-mode\s\+\w*$'
         let modes = [
@@ -33,51 +29,27 @@ fu! lg#motion#repeatable#listing#complete(arglead, cmdline, _p) abort "{{{1
     elseif a:cmdline =~# '-scope\s\+\w*$'
         return "local\nglobal"
 
-    elseif a:arglead[0] ==# '-' || empty(a:arglead)
+    elseif empty(a:arglead) || a:arglead[0] ==# '-'
         " Why not filtering the options?{{{
         "
         " We don't need to, because the command invoking this completion function is
         " defined with the attribute `-complete=custom`, not `-complete=customlist`,
         " which means Vim performs a basic filtering automatically.
         " }}}
+        let opt = [
+        \           '-axis ',
+        \           '-mode ',
+        \           '-scope ',
+        \           '-v ',
+        \           '-vv ',
+        \         ]
         return join(opt, "\n")
     endif
 
     return ''
 endfu
 
-fu! s:customize_preview_window() abort "{{{1
-    if &l:pvw
-        call matchadd('Title', '^Motions repeated with:')
-        call matchadd('SpecialKey', '^global\|local$')
-        " Why?{{{
-        "
-        " If we  press `gf` on a  filepath, it will replace  the preview buffer.
-        " After that, we won't be able  to load the preview buffer back, because
-        " we've set 'bt=nofile'.
-        "
-        " To avoid  this accident, we  remap `gf` so  that it splits  the window
-        " before reading another file.
-        "}}}
-        nno  <buffer><nowait><silent>  gf  <c-w>Fzv
-        "                                       │└┤
-        "                                       │ └ open possible folds
-        "                                       └── go to line number after colon
-    endif
-endfu
-
-fu! s:get_line_in_listing(m, desired_mode) abort "{{{1
-    let motion_mode = a:m.bwd.mode
-    if !empty(a:desired_mode) && motion_mode !=# a:desired_mode
-        return ''
-    endif
-    let line  = a:m.bwd.mode.'  '
-    let line .= a:m.bwd.untranslated_lhs
-    let line .= ' : '.a:m.fwd.untranslated_lhs
-    return line
-endfu
-
-fu! lg#motion#repeatable#listing#main(...) abort "{{{1
+fu! lg#motion#repeatable#listing#main(...) abort "{{{2
     let cmd_args = split(a:1)
     let opt = {
     \           'axis':     substitute(matchstr(a:1, '\v-axis\s+\zs\S+'), '_', ' ', 'g'),
@@ -108,7 +80,8 @@ fu! lg#motion#repeatable#listing#main(...) abort "{{{1
     keepj keepp %s/\v\n{3,}/\r\r/e
 endfu
 
-fu! s:merge_listings(opt, ...) abort "{{{1
+" Core {{{1
+fu! s:merge_listings(opt, ...) abort "{{{2
     " when the function is called for the 1st time, it's not passed any optional argument
     if !a:0
         let total_listing = []
@@ -150,7 +123,7 @@ fu! s:merge_listings(opt, ...) abort "{{{1
     return lines
 endfu
 
-fu! s:populate_listings_for_all_axes(opt) abort "{{{1
+fu! s:populate_listings_for_all_axes(opt) abort "{{{2
     let lists = a:opt.scope ==# 'local'
     \?              [get(b:, 'repeatable_motions', [])]
     \:          a:opt.scope ==# 'global'
@@ -181,4 +154,36 @@ fu! s:populate_listings_for_all_axes(opt) abort "{{{1
             endif
         endfor
     endfor
+endfu
+
+" Misc. {{{1
+fu! s:customize_preview_window() abort "{{{2
+    if &l:pvw
+        call matchadd('Title', '^Motions repeated with:')
+        call matchadd('SpecialKey', '^global\|local$')
+        " Why?{{{
+        "
+        " If we  press `gf` on a  filepath, it will replace  the preview buffer.
+        " After that, we won't be able  to load the preview buffer back, because
+        " we've set 'bt=nofile'.
+        "
+        " To avoid  this accident, we  remap `gf` so  that it splits  the window
+        " before reading another file.
+        "}}}
+        nno  <buffer><nowait><silent>  gf  <c-w>Fzv
+        "                                       │└┤
+        "                                       │ └ open possible folds
+        "                                       └── go to line number after colon
+    endif
+endfu
+
+fu! s:get_line_in_listing(m, desired_mode) abort "{{{2
+    let motion_mode = a:m.bwd.mode
+    if !empty(a:desired_mode) && motion_mode !=# a:desired_mode
+        return ''
+    endif
+    let line  = a:m.bwd.mode.'  '
+    let line .= a:m.bwd.untranslated_lhs
+    let line .= ' : '.a:m.fwd.untranslated_lhs
+    return line
 endfu
