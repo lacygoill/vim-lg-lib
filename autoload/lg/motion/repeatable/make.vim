@@ -180,9 +180,9 @@ fu! s:make_repeatable(m, mode, is_local, axis, from) abort "{{{2
     "}}}
     let repeatable_motions = {a:is_local ? 'b:' : 's:'}repeatable_motions
 
-    " if s:collides_with_db(motion, repeatable_motions)
-    "     return
-    " endif
+    if s:collides_with_db(motion, repeatable_motions)
+        return
+    endif
 
     call s:install_wrapper(a:mode, a:m, bwd_maparg)
 
@@ -193,21 +193,9 @@ fu! s:make_repeatable(m, mode, is_local, axis, from) abort "{{{2
     if a:is_local
         " Why?{{{
         "
-        " MWE:
-        "
-        "     coD
-        "     :e foo.vim
-        "     :Rename bar.vim
-        "     :Rename baz.vim
-        "
-        " Why these errors?
-        "
-        " This is because `:Rename` execute  `:filetype detect`, which loads Vim
-        " filetype plugins. In the  latter, we call a function  from this plugin
-        " to  make  some  motions  repeatable. When  the  filetype  plugins  are
-        " re-sourced,  Vim  removes  the  mappings  (b:undo_ftplugin). But,  our
-        " current plugin hasn't erased the repeatable wrappers from its database
-        " (b:repeatable_motions).
+        " When the filetype plugins are re-sourced (`:e`), Vim removes the local
+        " mappings (b:undo_ftplugin). But, our current  plugin hasn't erased the
+        " repeatable wrappers from its database (b:repeatable_motions).
         "
         " We  must eliminate  the  database whenever  the  filetype plugins  are
         " resourced.  We could do it directly from the Vim filetype plugins, but
