@@ -19,10 +19,6 @@
 " Show the total command which has been used to produce the output.
 " You'll have to tweak `lg#log#output()`.
 
-" TODO:
-" Show the name of the axis even when using `-axis`.
-" Are there other (combination of) arguments for which there's not enough info?
-
 if exists('g:autoloaded_lg#motion#repeatable#listing')
     finish
 endif
@@ -93,7 +89,7 @@ fu! lg#motion#repeatable#listing#main(...) abort "{{{2
     \           'verbose2': index(cmd_args, '-vv') >= 0,
     \         }
 
-    let opt.mode = has_key(s:mode2letter, opt.mode) ? s:mode2letter[opt.mode] : ' '
+    let opt.mode = has_key(s:mode2letter, opt.mode) ? s:mode2letter[opt.mode] : ''
 
     let axes_asked = !empty(opt.axis) ? [opt.axis] : s:axes
 
@@ -106,7 +102,6 @@ fu! lg#motion#repeatable#listing#main(...) abort "{{{2
     " show the result
     call lg#log#output({'lines': total_listing})
     call s:customize_preview_window()
-    sil! 1/^Motions/?\n\n?d_
     sil keepj keepp %s/\v\n{3,}/\r\r/e
     sil! 1/^Motions/
 endfu
@@ -232,6 +227,9 @@ fu! s:customize_preview_window() abort "{{{2
         "                                       │└┤
         "                                       │ └ open possible folds
         "                                       └── go to line number after colon
+
+        nno  <buffer><nowait><silent>  <c-n>  :<c-u>call search('^Motions repeated with:  ', 'W')<cr>
+        nno  <buffer><nowait><silent>  <c-p>  :<c-u>call search('^Motions repeated with:  ', 'bW')<cr>
     endif
 endfu
 
