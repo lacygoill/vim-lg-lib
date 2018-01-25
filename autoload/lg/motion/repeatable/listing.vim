@@ -1,6 +1,3 @@
-" FIXME:
-" Z<C-J> is displayed as Z<NL>
-
 if exists('g:autoloaded_lg#motion#repeatable#listing')
     finish
 endif
