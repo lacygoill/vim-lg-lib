@@ -235,18 +235,17 @@ endfu
 
 fu! s:move(lhs) abort "{{{2
     let motion = s:get_motion_info(a:lhs)
+
+    " for some reason, no motion in the db matches `a:lhs`
     if type(motion) != type({})
         return ''
     endif
 
     let dir = s:get_direction(a:lhs, motion)
-    if empty(dir)
-        return ''
-    endif
 
     " Why don't we translate `a:lhs`?{{{
     "
-    " There's no need to.
+    " No need to.
     " This function is used in the rhs of wrapper mappings:
     "
     "     exe mapcmd.'  '.a:m.bwd.'  <sid>move('.string(a:m.bwd).')'
@@ -286,7 +285,7 @@ fu! s:move_again(dir, axis) abort "{{{2
     " This function is called by various mappings whose suffix is `,` or `;`.
 
     " make sure the arguments are valid,
-    " and that we've used at least one motion on the axis
+    " and that we've used at least one motion on the axis in the past
     if  s:invalid_axis_or_direction(a:axis, a:dir)
     \|| empty(get(s:last_motions, a:axis, ''))
         return ''
@@ -297,9 +296,9 @@ fu! s:move_again(dir, axis) abort "{{{2
     " How could we get an unrecognized motion?{{{
     "
     " You have a motion defined in a given mode.
-    " You've invoked the function to repeat it in a different mode.
+    " But `s:move_again()` is invoked to repeat it in a different mode.
     "
-    " Another possibility:
+    " Or:
     " The last motion is  local to a buffer, you change the  buffer, and in this
     " one the motion doesn't exist…
     "}}}
@@ -411,7 +410,7 @@ fu! s:move_again(dir, axis) abort "{{{2
     " define special  motions on other  axes. That's why,  we need to  reset ALL
     " variables.
     "}}}
-    call timer_start(0, {-> map(s:is_repeating_motion, { -> 0})})
+    call timer_start(0, {-> map(s:is_repeating_motion, { -> 0 })})
 
     " If we're using  `]q` &friends, we need to redraw  all statuslines, so that
     " the position in the list is updated immediately.
@@ -419,12 +418,10 @@ fu! s:move_again(dir, axis) abort "{{{2
     " TODO:
     " It was needed in the past, but it's not anymore.
     " Because we execute  `:redraw` via `vim-submode`, which  redraws the screen
-    " AND the statuslines. However,  if we get rid of `:redraw`  later, uncomment
-    " the next 3 lines.
+    " AND the  statuslines. However, if we eliminate  `:redraw` later, uncomment
+    " the next line.
     "
-    "     if a:axis ==# 'z, z;'
-    "         call timer_start(0, {-> execute('redraws!')})
-    "     endif
+    "     call timer_start(0, { -> execute('redraws!') })
 
     return ''
 endfu
@@ -437,7 +434,7 @@ fu! s:populate(motion, mode, lhs, is_fwd, maparg) abort "{{{2
         let a:motion[dir] = a:maparg
         if a:motion[dir].rhs =~# '\c<sid>'
             let a:motion[dir].rhs =
-            \    substitute(a:motion[dir].rhs, '\c<sid>', '<snr>'.a:motion[dir].sid.'_', 'g')
+            \       substitute(a:motion[dir].rhs, '\c<sid>', '<snr>'.a:motion[dir].sid.'_', 'g')
         endif
 
     " make a built-in motion repeatable
@@ -478,9 +475,9 @@ fu! s:populate(motion, mode, lhs, is_fwd, maparg) abort "{{{2
     "             Z<c-l>
     "             Z<C-L>
     "
-    " … are different, but describe the same keysequence.
+    " … are different, but both describe the same keysequence.
     "
-    " This difference may cause an issue later when we make some comparison
+    " This difference  may cause an  issue later,  when we make  some comparison
     " between the lhs of a motion and some keysequence.
     " We must make sure, we're always comparing the same (translated) form.
     "}}}
@@ -677,15 +674,9 @@ fu! s:get_mapcmd(mode, maparg) abort "{{{2
     let mapcmd = s:{is_recursive ? '' : 'NON_'}RECURSIVE_MAPCMD[a:mode]
 
     let mapcmd .= '  <expr>'
-    if get(a:maparg, 'buffer', 0)
-        let mapcmd .= '<buffer>'
-    endif
-    if get(a:maparg, 'nowait', 0)
-        let mapcmd .= '<nowait>'
-    endif
-    if get(a:maparg, 'silent', 0)
-        let mapcmd .= '<silent>'
-    endif
+
+    let mapcmd .= join(map(['buffer', 'nowait', 'silent'],
+    \                      { i,v -> get(a:maparg, v, 0) ? '<'.v.'>' : ''}))
 
     return mapcmd
 endfu
