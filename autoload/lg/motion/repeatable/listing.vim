@@ -59,6 +59,7 @@ fu! lg#motion#repeatable#listing#main(...) abort "{{{2
     " because we could make some motions repeatable during runtime.
     call s:init()
 
+    " get the asked options
     let cmd_args = split(a:1)
     let opt = {
     \           'axis':     matchstr(a:1, '\v-axis\s+\zs\S+'),
@@ -67,18 +68,15 @@ fu! lg#motion#repeatable#listing#main(...) abort "{{{2
     \           'verbose1': index(cmd_args, '-v') >= 0,
     \           'verbose2': index(cmd_args, '-vv') >= 0,
     \         }
-
     let opt.mode = has_key(s:mode2letter, opt.mode) ? s:mode2letter[opt.mode] : ''
-
     let axes_asked = !empty(opt.axis) ? [opt.axis] : s:axes
 
+    " get the text to display
     call s:init_listings_for_all_axes(axes_asked)
-
     call s:populate_listings(opt)
-
     let total_listing = s:merge_listings(axes_asked)
 
-    " show the result
+    " display it
     let excmd = 'ListRepeatableMotions '.a:1
     call lg#log#output({'excmd': excmd, 'lines': total_listing})
     call s:customize_preview_window()
