@@ -93,6 +93,7 @@ fu! lg#motion#repeatable#listing#main(...) abort "{{{2
     "
     " TODO:
     " Tidy up this section.
+
     " Remove undesired empty lines, but make sure you never remove sth else
     " accidently.
     sil keepj keepp %s/\v\n{3,}/\r\r/e
@@ -101,26 +102,13 @@ endfu
 
 " Core {{{1
 fu! s:add_text_to_write(opt, m, scope) abort "{{{2
-    let line = printf('  %s  %s | %s',
+    let text = printf('  %s  %s | %s',
     \                 a:m.bwd.mode, a:m.bwd.untranslated_lhs, a:m.fwd.untranslated_lhs)
-
-    let line .= a:opt.verbose1
+    let text .= a:opt.verbose1
     \?              '    '.a:m['original mapping']
     \:              ''
 
-    let listing_for_axis_and_scope = s:listing_per_axis[a:m.axis][a:scope]
-    " Why `add()`?{{{
-    "
-    " Why not:
-    "
-    "     let listing_for_axis_and_scope .= line
-    "
-    " For the same reason explained in the next comment.
-    " We're going to write this text via `writefile()`.
-    " The latter expects a list of strings. Not a string.
-    "}}}
-    call add(listing_for_axis_and_scope, line)
-
+    let lines = [text]
     if a:opt.verbose2
         " Why `extend()`?{{{
         "
@@ -136,11 +124,13 @@ fu! s:add_text_to_write(opt, m, scope) abort "{{{2
         " The only way to make `writefile()` write a newline is to split the lines
         " into several list items.
         "}}}
-        call extend(listing_for_axis_and_scope,
+        call extend(lines,
         \                ['       '.a:m['original mapping']]
         \               +['       Made repeatable from '.a:m['made repeatable from']]
         \               +[''])
     endif
+
+    call extend(s:listing_per_axis[a:m.axis][a:scope], lines)
 endfu
 
 fu! s:merge_listings(axes, ...) abort "{{{2
@@ -206,7 +196,7 @@ endfu
 fu! s:customize_preview_window() abort "{{{2
     if &l:pvw
         call matchadd('Title', '^Motions repeated with:')
-        call matchadd('SpecialKey', '^global\|local$')
+        call matchadd('SpecialKey', '^\%(global\|local\)$')
         " Why?{{{
         "
         " If we  press `gf` on a  filepath, it will replace  the preview buffer.
@@ -221,11 +211,8 @@ fu! s:customize_preview_window() abort "{{{2
         "                                       │ └ open possible folds
         "                                       └── go to line number after colon
 
-        nno  <buffer><nowait><silent>  <c-n>  :<c-u>call search('^Motions repeated with:  ')<cr>
-        nno  <buffer><nowait><silent>  <c-p>  :<c-u>call search('^Motions repeated with:  ', 'b')<cr>
-
-        nno  <buffer><nowait><silent>  <c-j>  :<c-u>call search('^\%(global\<bar>local\)$')<cr>
-        nno  <buffer><nowait><silent>  <c-k>  :<c-u>call search('^\%(global\<bar>local\)$', 'b')<cr>
+        nno  <buffer><nowait><silent>  <c-n>  :<c-u>call search('^\%(Motions\<bar>local\<bar>global\)')<cr>
+        nno  <buffer><nowait><silent>  <c-p>  :<c-u>call search('^\%(Motions\<bar>local\<bar>global\)', 'b')<cr>
     endif
 endfu
 
