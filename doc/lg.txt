@@ -1,4 +1,4 @@
-lg-lib.txt    lg-lib    Last change: January 19 2018
+lg-lib.txt    lg-lib    Last change: January 26 2018
 LG-LIB - TABLE OF CONTENTS                                   *lg-lib* *lg-lib-toc*
 ==============================================================================
 
@@ -19,6 +19,7 @@ LG-LIB - TABLE OF CONTENTS                                   *lg-lib* *lg-lib-to
 
 
 < Interface >_________________________________________________________________~
+
                                         *lg#motion#repeatable#make#all()*
 lg#motion#repeatable#make#all({what})
 

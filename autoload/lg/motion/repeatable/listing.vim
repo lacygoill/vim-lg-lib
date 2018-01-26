@@ -144,7 +144,7 @@ fu! s:merge_listings(axes, ...) abort "{{{2
     else
         for scope in ['global', 'local']
             if !empty(listing_for_this_axis[scope])
-                let lines += ['', scope]
+                let lines += ['', scope, '']
                 for a_line in listing_for_this_axis[scope]
                     let lines += [a_line]
                 endfor
@@ -192,6 +192,10 @@ fu! s:customize_preview_window() abort "{{{2
         "                                       │└┤
         "                                       │ └ open possible folds
         "                                       └── go to line number after colon
+
+        nno  <buffer><nowait><silent>  <c-s>       <c-w>Fzv
+        nno  <buffer><nowait><silent>  <c-t>       <c-w>Fzv<c-w>T
+        nno  <buffer><nowait><silent>  <c-v><c-v>  <c-w>Fzv:wincmd L<cr>
 
         nno  <buffer><nowait><silent>  <c-n>  :<c-u>call search('^\%(Motions\<bar>local\<bar>global\)')<cr>
         nno  <buffer><nowait><silent>  <c-p>  :<c-u>call search('^\%(Motions\<bar>local\<bar>global\)', 'b')<cr>
