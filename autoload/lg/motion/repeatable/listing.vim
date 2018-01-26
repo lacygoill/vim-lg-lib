@@ -82,22 +82,6 @@ fu! lg#motion#repeatable#listing#main(...) abort "{{{2
     let excmd = 'ListRepeatableMotions '.a:1
     call lg#log#output({'excmd': excmd, 'lines': total_listing})
     call s:customize_preview_window()
-
-    " Previously, we also wrote that:
-    "
-    "     sil! 1/^Motions/?\n\n?d_
-    "
-    " I've removed it, because `?\n\n?` was wrongly moving the cursor beyond
-    " the beginning of the file, to the end, on the last line beginning with
-    " `Motions`.
-    "
-    " TODO:
-    " Tidy up this section.
-
-    " Remove undesired empty lines, but make sure you never remove sth else
-    " accidently.
-    sil keepj keepp %s/\v\n{3,}/\r\r/e
-    sil! 1/^Motions/
 endfu
 
 " Core {{{1
@@ -213,6 +197,7 @@ fu! s:customize_preview_window() abort "{{{2
 
         nno  <buffer><nowait><silent>  <c-n>  :<c-u>call search('^\%(Motions\<bar>local\<bar>global\)')<cr>
         nno  <buffer><nowait><silent>  <c-p>  :<c-u>call search('^\%(Motions\<bar>local\<bar>global\)', 'b')<cr>
+        sil! 1/^Motions/
     endif
 endfu
 

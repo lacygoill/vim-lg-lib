@@ -15,6 +15,8 @@ LG-LIB - TABLE OF CONTENTS                                   *lg-lib* *lg-lib-to
 
          document `:ListRepeatableMotions`: arguments, local mappings, …
 
+         document `lg#log#output()`
+
 
 < Interface >_________________________________________________________________~
                                         *lg#motion#repeatable#make#all()*
