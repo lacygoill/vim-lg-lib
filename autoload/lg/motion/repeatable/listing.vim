@@ -179,23 +179,8 @@ fu! s:customize_preview_window() abort "{{{2
     if &l:pvw
         call matchadd('Title', '^Motions repeated with:')
         call matchadd('SpecialKey', '^\%(global\|local\)$')
-        " Why?{{{
-        "
-        " If we  press `gf` on a  filepath, it will replace  the preview buffer.
-        " After that, we won't be able  to load the preview buffer back, because
-        " we've set 'bt=nofile'.
-        "
-        " To avoid  this accident, we  remap `gf` so  that it splits  the window
-        " before reading another file.
-        "}}}
-        nno  <buffer><nowait><silent>  gf  <c-w>Fzv
-        "                                       │└┤
-        "                                       │ └ open possible folds
-        "                                       └── go to line number after colon
 
-        nno  <buffer><nowait><silent>  <c-s>       <c-w>Fzv
-        nno  <buffer><nowait><silent>  <c-t>       <c-w>Fzv<c-w>T
-        nno  <buffer><nowait><silent>  <c-v><c-v>  <c-w>Fzv:wincmd L<cr>
+        call lg#window#openable_anywhere()
 
         nno  <buffer><nowait><silent>  <c-n>  :<c-u>call search('^\%(Motions\<bar>local\<bar>global\)')<cr>
         nno  <buffer><nowait><silent>  <c-p>  :<c-u>call search('^\%(Motions\<bar>local\<bar>global\)', 'b')<cr>

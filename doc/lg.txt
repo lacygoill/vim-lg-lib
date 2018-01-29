@@ -258,6 +258,7 @@ Or, a motion in a database of repeatable motions (global or local) has:
                                              *repeatable-motion-miscellaneous*
 
 
+                                        *lg-lib-1*
                                         *repeatable-motion-absolute-direction*
 
 The key used to repeat a motion always moves the cursor in the same direction.
@@ -277,6 +278,7 @@ After pressing  '[m'  ';' will still move the cursor to the NEXT start of a meth
 In contrast, by default, after  'Fx'  ';' will move the cursor to the PREVIOUS 'x'.
 
 
+                                        *lg-lib-2*
                                         *repeatable-motion-global-local*
 
 You can ask to make a global motion repeatable or a local one (2 possibilities).
@@ -318,3 +320,7 @@ When you ask for:
 
             the plugin will make the 2 global {lhs}
             repeatable (unshadowing one of them)
+
+
+headline
+
