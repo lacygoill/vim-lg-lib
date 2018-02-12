@@ -23,9 +23,9 @@ fu! lg#map#restore(map_save) abort "{{{1
     "     • the mode ''             , `lg#map#save()` will have returned a list
     "                                                                    of up to 3 dictionaries
     "}}}
-    if type(a:map_save) == type({})
+    if type(a:map_save) ==# type({})
         call s:restore(a:map_save)
-    elseif type(a:map_save) == type([])
+    elseif type(a:map_save) ==# type([])
         for a_map_save in a:map_save
             call s:restore(a_map_save)
         endfor
@@ -89,7 +89,7 @@ fu! lg#map#save(mode, is_local, keys) abort "{{{1
         return filter([n_map_save, x_map_save, o_map_save], {i,v -> !empty(v)})
     endif
 
-    let keys = type(a:keys) == type([]) ? a:keys : [a:keys]
+    let keys = type(a:keys) ==# type([]) ? a:keys : [a:keys]
 
     let map_save = {}
     " get info about local mappings
