@@ -164,8 +164,8 @@ fu! s:populate_listings(opt) abort "{{{2
     for a_list in lists
         let scope = a_list is# s:repeatable_motions ? 'global' : 'local'
         for m in a_list
-            if  !empty(a:opt.axis) && a:opt.axis !=# m.axis
-            \|| !empty(a:opt.mode) && a:opt.mode !=# m.bwd.mode
+            if  !empty(a:opt.axis) && a:opt.axis isnot# m.axis
+            \|| !empty(a:opt.mode) && a:opt.mode isnot# m.bwd.mode
                 continue
             endif
 
