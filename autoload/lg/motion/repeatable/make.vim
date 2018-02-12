@@ -237,7 +237,7 @@ fu! s:move(lhs) abort "{{{2
     let motion = s:get_motion_info(a:lhs)
 
     " for some reason, no motion in the db matches `a:lhs`
-    if type(motion) != type({})
+    if type(motion) !=# type({})
         return ''
     endif
 
@@ -302,7 +302,7 @@ fu! s:move_again(dir, axis) abort "{{{2
     " The last motion is  local to a buffer, you change the  buffer, and in this
     " one the motion doesn't exist…
     "}}}
-    if type(motion) != type({})
+    if type(motion) !=# type({})
         return ''
     endif
 

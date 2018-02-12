@@ -117,11 +117,11 @@ fu! lg#window#qf_open(type) abort "{{{1
         let loc_id  = win_getid()
         let id      = get(filter(copy(win_ids), {i,v ->    get(getloclist(v, {'winid': 0}), 'winid', 0)
         \                                               ==# loc_id
-        \                                               && v != loc_id })
+        \                                               && v !=# loc_id })
         \                 ,0,0)
     endif
 
-    if id != 0
+    if id !=# 0
         call win_gotoid(id)
     endif
     return ''

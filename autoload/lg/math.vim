@@ -126,7 +126,7 @@ fu! lg#math#matrix_transposition(...) abort "{{{1
     " Check that all the arguments are lists and have the same length
     let length = len(a:1)
     for list in a:000
-        if type(list) != type([]) || len(list) != length
+        if type(list) !=# type([]) || len(list) !=# length
             return -1
         endif
     endfor

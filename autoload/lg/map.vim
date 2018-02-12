@@ -46,7 +46,7 @@ fu! s:restore(map_save) abort "{{{1
         " If the mapping is local to a buffer, check we're in the right one.
         " Also make sure we have at least the 'lhs' key; just to be sure we
         " have received relevant information.
-        if  get(maparg, 'buffer', 0) && bufnr('%') != get(maparg, 'bufnr', 0)
+        if  get(maparg, 'buffer', 0) && bufnr('%') !=# get(maparg, 'bufnr', 0)
         \|| !has_key(maparg, 'lhs')
             continue
         endif
@@ -74,7 +74,7 @@ endfu
 
 fu! lg#map#save(mode, is_local, keys) abort "{{{1
     " The function accepts a list of keys, or just a single key (in a string).
-    if type(a:keys) != type([]) && type(a:keys) != type('')
+    if type(a:keys) !=# type([]) && type(a:keys) !=# type('')
         return
     endif
 
