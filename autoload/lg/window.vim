@@ -65,13 +65,13 @@ fu! lg#window#openable_anywhere() abort "{{{1
 endfu
 
 fu! lg#window#qf_open(type) abort "{{{1
-    let we_are_in_qf = &l:bt ==# 'quickfix'
+    let we_are_in_qf = &bt is# 'quickfix'
 
     if !we_are_in_qf
         "
         "   ┌ dictionary: {'winid': 42}
         "   │
-        let id = a:type ==# 'loc'
+        let id = a:type is# 'loc'
         \            ?    getloclist(0, {'winid':0})
         \            :    getqflist(   {'winid':0})
         if get(id, 'winid', 0) == 0
@@ -97,22 +97,22 @@ fu! lg#window#qf_open(type) abort "{{{1
             " Could we write sth simpler?{{{
             "
             " Yes:
-            "         return (a:type ==# 'loc' ? 'l' : 'c').'open'
+            "         return (a:type is# 'loc' ? 'l' : 'c').'open'
             "
             " But, it wouldn't  open the qf window like our  autocmd in `vim-qf`
             " does.
             "}}}
-            exe 'doautocmd <nomodeline> QuickFixCmdPost '.(a:type ==# 'loc' ? 'l' : 'c').'open'
+            exe 'doautocmd <nomodeline> QuickFixCmdPost '.(a:type is# 'loc' ? 'l' : 'c').'open'
             return ''
         endif
         let id = id.winid
 
     " if we are already in the qf window, get back to the previous one
-    elseif we_are_in_qf && a:type ==# 'qf'
+    elseif we_are_in_qf && a:type is# 'qf'
             return 'wincmd p'
 
     " if we are already in the ll window, get to the associated window
-    elseif we_are_in_qf && a:type ==# 'loc'
+    elseif we_are_in_qf && a:type is# 'loc'
         let win_ids = gettabinfo(tabpagenr())[0].windows
         let loc_id  = win_getid()
         let id      = get(filter(copy(win_ids), {i,v ->    get(getloclist(v, {'winid': 0}), 'winid', 0)
@@ -145,7 +145,7 @@ fu! lg#window#quit() abort "{{{1
         qall
 
     " In neovim, we could also test the existence of `b:terminal_job_pid`.
-    elseif &bt == 'terminal'
+    elseif &bt is# 'terminal'
         bw!
 
     else
@@ -162,7 +162,7 @@ fu! lg#window#quit() abort "{{{1
 
         " same thing for preview window, but only in a help buffer outside of
         " preview winwow
-        if &bt ==# 'help' && !&previewwindow
+        if &bt is# 'help' && !&previewwindow
             pclose
         endif
 

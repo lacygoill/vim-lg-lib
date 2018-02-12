@@ -340,7 +340,7 @@ fu! s:move_again(dir, axis) abort "{{{2
     "         …
     "     endif
     "}}}
-    let s:is_repeating_motion[a:axis] = a:dir ==# 'fwd' ? 1 : -1
+    let s:is_repeating_motion[a:axis] = a:dir is# 'fwd' ? 1 : -1
 
     " Why not returning the sequence of keys directly?{{{
     "
@@ -566,7 +566,7 @@ fu! lg#motion#repeatable#make#all(what) abort "{{{2
         "         → nnoremap
         "           ^
         "}}}
-        let mapcmd = get(axis, 'mode', '') == ''
+        let mapcmd = get(axis, 'mode', '') is# ''
         \?               'noremap'
         \:               axis.mode . 'noremap'
         exe mapcmd.'  <expr>  '.axis.bwd."  <sid>move_again('bwd', ".string(axis_name).')'
@@ -623,8 +623,8 @@ fu! s:collides_with_db(motion, repeatable_motions) abort "{{{2
     "   ┌ Motion
     "   │
     for m in a:repeatable_motions
-        if  [m.bwd.lhs, m.bwd.mode] ==# [a:motion.bwd.lhs, a:motion.bwd.mode]
-        \|| [m.fwd.lhs, m.fwd.mode] ==# [a:motion.fwd.lhs, a:motion.fwd.mode]
+        if  [m.bwd.lhs, m.bwd.mode] is# [a:motion.bwd.lhs, a:motion.bwd.mode]
+        \|| [m.fwd.lhs, m.fwd.mode] is# [a:motion.fwd.lhs, a:motion.fwd.mode]
             try
                 throw printf('E8003:  [repeatable motion]  cannot process motion  %s : %s',
                 \             m.bwd.lhs, m.fwd.lhs)
@@ -657,7 +657,7 @@ fu! s:get_direction(lhs, motion) abort "{{{2
     "            ┌ no need to translate: it has been translated in a mapping
     "            │         ┌ no need to translate: it has been translated in `s:populate()`
     "            │         │
-    let is_fwd = a:lhs ==# a:motion.fwd.lhs
+    let is_fwd = a:lhs is# a:motion.fwd.lhs
     return is_fwd ? 'fwd' : 'bwd'
 endfu
 

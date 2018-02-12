@@ -34,7 +34,7 @@ fu! lg#motion#repeatable#listing#complete(arglead, cmdline, _p) abort "{{{2
     elseif a:cmdline =~# '-scope\s\+\w*$'
         return "local\nglobal"
 
-    elseif empty(a:arglead) || a:arglead[0] ==# '-'
+    elseif empty(a:arglead) || a:arglead[0] is# '-'
         " Why not filtering the options?{{{
         "
         " We don't need to, because the command invoking this completion function is
@@ -155,9 +155,9 @@ fu! s:merge_listings(axes, ...) abort "{{{2
 endfu
 
 fu! s:populate_listings(opt) abort "{{{2
-    let lists = a:opt.scope ==# 'local'
+    let lists = a:opt.scope is# 'local'
     \?              [get(b:, 'repeatable_motions', [])]
-    \:          a:opt.scope ==# 'global'
+    \:          a:opt.scope is# 'global'
     \?              [s:repeatable_motions]
     \:              [get(b:, 'repeatable_motions', []), s:repeatable_motions]
 

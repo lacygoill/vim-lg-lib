@@ -80,7 +80,7 @@ fu! lg#map#save(mode, is_local, keys) abort "{{{1
 
     " If we pass the mode '', the function should interpret it as 'nvo',
     " like `maparg()` does.
-    if a:mode ==# ''
+    if a:mode is# ''
         let n_map_save = lg#map#save('n', a:is_local, a:keys)
         let x_map_save = lg#map#save('x', a:is_local, a:keys)
         let o_map_save = lg#map#save('o', a:is_local, a:keys)

@@ -13,7 +13,7 @@ fu! lg#motion#regex#go(kwd, is_fwd, mode) abort "{{{1
         return
     endif
 
-    if a:mode ==# 'n'
+    if a:mode is# 'n'
         norm! m'
     elseif index(['v', 'V', "\<c-v>"], a:mode) >= 0
         " If we  were initially  in visual mode,  we've left it  as soon  as the
@@ -29,7 +29,7 @@ fu! lg#motion#regex#go(kwd, is_fwd, mode) abort "{{{1
 
     " If you  try to  simplify this  block in a  single statement,  don't forget
     " this: the function shouldn't do anything in operator-pending mode.
-    if a:mode ==# 'n'
+    if a:mode is# 'n'
         norm! zMzv
     elseif index(['v', 'V', "\<c-v>"], a:mode) >= 0
         norm! zv
@@ -49,7 +49,7 @@ fu! lg#motion#regex#rhs(kwd, is_fwd) abort "{{{1
     "     “insert the next character literally”
     "
     " The solution is to double `C-v`.
-    if mode ==# "\<c-v>"
+    if mode is# "\<c-v>"
         let mode = "\<c-v>\<c-v>"
     endif
 

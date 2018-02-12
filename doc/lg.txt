@@ -321,6 +321,3 @@ When you ask for:
             the plugin will make the 2 global {lhs}
             repeatable (unshadowing one of them)
 
-
-headline
-
