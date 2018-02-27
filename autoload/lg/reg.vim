@@ -3,7 +3,7 @@ if exists('g:loaded_lg#lib#reg')
 endif
 let g:loaded_lg#lib#reg = 1
 
-let s:reg_translations = {
+let s:REG_TRANSLATIONS = {
 \                          '"': 'unnamed',
 \                          '+': 'plus',
 \                          '-': 'minus',
@@ -13,7 +13,7 @@ let s:reg_translations = {
 
 fu! lg#reg#restore(names) abort "{{{1
     for name in a:names
-        let prefix   = get(s:reg_translations, name, name)
+        let prefix   = get(s:REG_TRANSLATIONS, name, name)
         let contents = s:{prefix}_save[0]
         let type     = s:{prefix}_save[1]
 
@@ -61,7 +61,7 @@ endfu
 
 fu! lg#reg#save(names) abort "{{{1
     for name in a:names
-        let prefix          = get(s:reg_translations, name, name)
+        let prefix          = get(s:REG_TRANSLATIONS, name, name)
         let s:{prefix}_save = [getreg(name), getregtype(name)]
     endfor
 endfu
