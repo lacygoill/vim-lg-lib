@@ -4,9 +4,9 @@ endif
 let g:autoloaded_lg#motion#repeatable#listing = 1
 
 fu! s:init() abort "{{{1
-    let s:repeatable_motions = lg#motion#repeatable#make#share_env()
-    let s:axes = uniq(sort(map(deepcopy(s:repeatable_motions), {i,v -> v.axis})))
-    let s:mode2letter = {'normal': 'n', 'visual': 'x', 'operator-pending': 'no', 'nvo': ' '}
+    let s:REPEATABLE_MOTIONS = lg#motion#repeatable#make#share_env()
+    let s:AXES = uniq(sort(map(deepcopy(s:REPEATABLE_MOTIONS), {i,v -> v.axis})))
+    let s:MODE2LETTER = {'normal': 'n', 'visual': 'x', 'operator-pending': 'no', 'nvo': ' '}
 endfu
 
 " Interface {{{1
@@ -20,7 +20,7 @@ fu! lg#motion#repeatable#listing#complete(arglead, cmdline, _p) abort "{{{2
     " That's why we never use `a:_p`.
 
     if a:cmdline =~# '-axis\s\+\S*$'
-        return join(s:axes, "\n")
+        return join(s:AXES, "\n")
 
     elseif a:cmdline =~# '-mode\s\+\w*$'
         let modes = [
@@ -68,8 +68,8 @@ fu! lg#motion#repeatable#listing#main(...) abort "{{{2
     \           'verbose1': index(cmd_args, '-v') >= 0,
     \           'verbose2': index(cmd_args, '-vv') >= 0,
     \         }
-    let opt.mode = has_key(s:mode2letter, opt.mode) ? s:mode2letter[opt.mode] : ''
-    let axes_asked = !empty(opt.axis) ? [opt.axis] : s:axes
+    let opt.mode = has_key(s:MODE2LETTER, opt.mode) ? s:MODE2LETTER[opt.mode] : ''
+    let axes_asked = !empty(opt.axis) ? [opt.axis] : s:AXES
 
     " get the text to display
     call s:init_listings_for_all_axes(axes_asked)
@@ -158,11 +158,11 @@ fu! s:populate_listings(opt) abort "{{{2
     let lists = a:opt.scope is# 'local'
     \?              [get(b:, 'repeatable_motions', [])]
     \:          a:opt.scope is# 'global'
-    \?              [s:repeatable_motions]
-    \:              [get(b:, 'repeatable_motions', []), s:repeatable_motions]
+    \?              [s:REPEATABLE_MOTIONS]
+    \:              [get(b:, 'repeatable_motions', []), s:REPEATABLE_MOTIONS]
 
     for a_list in lists
-        let scope = a_list is# s:repeatable_motions ? 'global' : 'local'
+        let scope = a_list is# s:REPEATABLE_MOTIONS ? 'global' : 'local'
         for m in a_list
             if  !empty(a:opt.axis) && a:opt.axis isnot# m.axis
             \|| !empty(a:opt.mode) && a:opt.mode isnot# m.bwd.mode
