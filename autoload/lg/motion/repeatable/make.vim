@@ -623,8 +623,8 @@ fu! s:collides_with_db(motion, repeatable_motions) abort "{{{2
     "   ┌ Motion
     "   │
     for m in a:repeatable_motions
-        if  [m.bwd.lhs, m.bwd.mode] is# [a:motion.bwd.lhs, a:motion.bwd.mode]
-        \|| [m.fwd.lhs, m.fwd.mode] is# [a:motion.fwd.lhs, a:motion.fwd.mode]
+        if  [m.bwd.lhs, m.bwd.mode] ==# [a:motion.bwd.lhs, a:motion.bwd.mode]
+        \|| [m.fwd.lhs, m.fwd.mode] ==# [a:motion.fwd.lhs, a:motion.fwd.mode]
             try
                 throw printf('E8003:  [repeatable motion]  cannot process motion  %s : %s',
                 \             m.bwd.lhs, m.fwd.lhs)
