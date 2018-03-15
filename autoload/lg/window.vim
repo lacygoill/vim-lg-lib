@@ -264,7 +264,10 @@ fu! lg#window#restore_closed(cnt) abort "{{{1
             \              session_file)
         endif
 
-        exe 'so '.session_file
+        " ┌ don't display the last filename;
+        " │ if it's too long to fit on a single line,
+        " │ it will trigger a press-enter prompt
+        sil exe 'so '.session_file
         let s:undo_sessions = a:cnt ==# 1 ? s:undo_sessions[:-2] : []
         "                                                           │
         "            if we gave a count to restore several windows, ┘
