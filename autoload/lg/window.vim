@@ -16,13 +16,13 @@ fu! lg#window#get_modifier(...) abort "{{{1
     else
         " are we at the bottom of the tabpage?
         noautocmd wincmd b
-        if winnr() == origin
+        if winnr() ==# origin
             let mod = 'botright'
         else
             noautocmd wincmd p
             " or maybe at the top?
             noautocmd wincmd t
-            if winnr() == origin
+            if winnr() ==# origin
                 let mod = 'topleft'
             else
                 " ok we're in a middle window
@@ -74,7 +74,7 @@ fu! lg#window#qf_open(type) abort "{{{1
         let id = a:type is# 'loc'
         \            ?    getloclist(0, {'winid':0})
         \            :    getqflist(   {'winid':0})
-        if get(id, 'winid', 0) == 0
+        if get(id, 'winid', 0) ==# 0
             " Why :[cl]open? Are they valid commands here?{{{
             "
             " Probably not, because these commands  don't populate the qfl, they
@@ -116,12 +116,12 @@ fu! lg#window#qf_open(type) abort "{{{1
         let win_ids = gettabinfo(tabpagenr())[0].windows
         let loc_id  = win_getid()
         let id      = get(filter(copy(win_ids), {i,v ->    get(getloclist(v, {'winid': 0}), 'winid', 0)
-        \                                               == loc_id
-        \                                               && v != loc_id })
+        \                                               ==# loc_id
+        \                                               && v !=# loc_id })
         \                 ,0,0)
     endif
 
-    if id != 0
+    if id !=# 0
         call win_gotoid(id)
     endif
     return ''
@@ -139,7 +139,7 @@ fu! lg#window#quit() abort "{{{1
         return
     endif
 
-    if tabpagenr('$') == 1 && winnr('$') == 1
+    if tabpagenr('$') ==# 1 && winnr('$') ==# 1
         " If there's only one tab page and only one window, we want to close
         " the session.
         qall
@@ -268,7 +268,7 @@ fu! lg#window#restore_closed(cnt) abort "{{{1
         " │ if it's too long to fit on a single line,
         " │ it will trigger a press-enter prompt
         sil exe 'so '.session_file
-        let s:undo_sessions = a:cnt == 1 ? s:undo_sessions[:-2] : []
+        let s:undo_sessions = a:cnt ==# 1 ? s:undo_sessions[:-2] : []
         "                                                           │
         "            if we gave a count to restore several windows, ┘
         "
