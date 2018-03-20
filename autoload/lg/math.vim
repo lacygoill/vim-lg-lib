@@ -1,6 +1,6 @@
 fu! lg#math#is_prime(n) abort "{{{1
     let n = a:n
-    if type(n) !=# type(0) || n < 0
+    if type(n) != type(0) || n < 0
         echo 'Not a positive number'
         return ''
     endif
@@ -8,9 +8,9 @@ fu! lg#math#is_prime(n) abort "{{{1
     " 1, 2 and 3 are special cases.
     " 2 and 3 are prime, 1 is not prime.
 
-    if n ==# 2 || n ==# 3
+    if n == 2 || n == 3
         return 1
-    elseif n ==# 1 || n % 2 ==# 0 || n % 3 ==# 0
+    elseif n == 1 || n % 2 == 0 || n % 3 == 0
         return 0
 
     " Why do we test whether `n` is divisible by 2 or 3?{{{
@@ -74,7 +74,7 @@ fu! lg#math#is_prime(n) abort "{{{1
     "          n not prime             ⇒    n has a factor < √n
     "     ⇔    n has no factor < √n    ⇒    n is prime
 "}}}
-        if n % divisor ==# 0
+        if n % divisor == 0
             return 0
         endif
 
@@ -119,14 +119,14 @@ fu! lg#math#matrix_transposition(...) abort "{{{1
 
 
     " handle special case where only 1 list was received (instead of 2)
-    if a:0 ==# 1
+    if a:0 == 1
         return map(range(len(a:1)), {i -> [a:1[i]]})
     endif
 
     " Check that all the arguments are lists and have the same length
     let length = len(a:1)
     for list in a:000
-        if type(list) !=# type([]) || len(list) !=# length
+        if type(list) != type([]) || len(list) != length
             return -1
         endif
     endfor
