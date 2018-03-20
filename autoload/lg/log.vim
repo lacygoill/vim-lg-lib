@@ -28,10 +28,10 @@ fu! lg#log#output(what) abort "{{{1
         call writefile(lines, tempfile, 'ab')
     else
         let level = a:what.level
-        "                                        ┌ if the level is 1, just write `:Verbose`
-        "                                        │ instead of `:1Verbose`
-        "               ┌────────────────────────┤
-        let title = ':'.(level ==# 1 ? '' : level).'Verbose '.excmd
+        "                                       ┌ if the level is 1, just write `:Verbose`
+        "                                       │ instead of `:1Verbose`
+        "               ┌───────────────────────┤
+        let title = ':'.(level == 1 ? '' : level).'Verbose '.excmd
         call writefile([ title ], tempfile, 'b')
         "                                    │
         "                                    └─ use binary mode to NOT add a linefeed after the title
@@ -54,7 +54,7 @@ fu! lg#log#output(what) abort "{{{1
         "
         "        it should be `0`
         "        if, instead, it's a string, then an error has occurred: bail out
-        if type(s:redirect_to_tempfile(tempfile, level, excmd)) ==# type('')
+        if type(s:redirect_to_tempfile(tempfile, level, excmd)) == type('')
             return
         endif
     endif
