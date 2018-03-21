@@ -8,7 +8,7 @@ fu! lg#motion#regex#go(kwd, is_fwd, mode) abort "{{{1
     \               'ref':             '\[.\{-1,}\](\zs.\{-1,})',
     \               'path':            '\v%(\s\.%(\=|,))@!&%(^|\s)\zs[./~]\f+',
     \               'url':             '\vhttps?://',
-    \               'concealed_url':   '\v\[.{-}\]\(.{-}\)',
+    \               'concealed_url':   '\v\[.{-}\zs\]\(.{-}\)',
     \             }, a:kwd, '')
 
     if empty(pat)
