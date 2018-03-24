@@ -224,8 +224,8 @@ fu! lg#window#restore_closed(cnt) abort "{{{1
         return
     endif
 
-    sil! tabdo tabclose
-    sil! windo close
+    sil! noa tabdo tabclose
+    sil! noa windo close
 
     try
         let session_save = v:this_session
