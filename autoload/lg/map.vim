@@ -109,13 +109,13 @@ fu! lg#map#save(mode, is_local, keys) abort "{{{1
             endif
 
             let map_save[a_key] = !empty(maparg)
-            \?                           maparg
-            \:                           {
-            \                              'unmapped' : 1,
-            \                              'buffer'   : 1,
-            \                              'lhs'      : a_key,
-            \                              'mode'     : a:mode,
-            \                            }
+                              \ ?        maparg
+                              \ :        {
+                              \            'unmapped' : 1,
+                              \            'buffer'   : 1,
+                              \            'lhs'      : a_key,
+                              \            'mode'     : a:mode,
+                              \          }
             " Save the  buffer number, so that  we can check we're  in the right
             " buffer when we want to restore a buffer-local mapping.
             call extend(map_save[a_key], {'bufnr': bufnr('%')})

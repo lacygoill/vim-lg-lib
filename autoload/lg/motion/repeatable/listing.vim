@@ -87,8 +87,8 @@ fu! s:add_text_to_write(opt, m, scope) abort "{{{2
     let text = printf('  %s  %s | %s',
     \                 a:m.bwd.mode, a:m.bwd.untranslated_lhs, a:m.fwd.untranslated_lhs)
     let text .= a:opt.verbose1
-    \?              '    '.a:m['original mapping']
-    \:              ''
+            \ ?     '    '.a:m['original mapping']
+            \ :     ''
 
     let lines = [text]
     if a:opt.verbose2
@@ -156,10 +156,10 @@ endfu
 
 fu! s:populate_listings(opt) abort "{{{2
     let lists = a:opt.scope is# 'local'
-    \?              [get(b:, 'repeatable_motions', [])]
-    \:          a:opt.scope is# 'global'
-    \?              [s:REPEATABLE_MOTIONS]
-    \:              [get(b:, 'repeatable_motions', []), s:REPEATABLE_MOTIONS]
+            \ ?     [get(b:, 'repeatable_motions', [])]
+            \ : a:opt.scope is# 'global'
+            \ ?     [s:REPEATABLE_MOTIONS]
+            \ :     [get(b:, 'repeatable_motions', []), s:REPEATABLE_MOTIONS]
 
     for a_list in lists
         let scope = a_list is# s:REPEATABLE_MOTIONS ? 'global' : 'local'

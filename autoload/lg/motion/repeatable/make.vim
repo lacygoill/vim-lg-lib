@@ -277,8 +277,8 @@ fu! s:move(lhs) abort "{{{2
     " We need to emulate this behavior, and that's why we invoke `s:translate()`.
     "}}}
     return motion[dir].expr
-    \?         eval(motion[dir].rhs)
-    \:         s:translate(motion[dir].rhs)
+       \ ?     eval(motion[dir].rhs)
+       \ :     s:translate(motion[dir].rhs)
 endfu
 
 fu! s:move_again(dir, axis) abort "{{{2
@@ -567,8 +567,8 @@ fu! lg#motion#repeatable#make#all(what) abort "{{{2
         "           ^
         "}}}
         let mapcmd = get(axis, 'mode', '') is# ''
-        \?               'noremap'
-        \:               axis.mode . 'noremap'
+                 \ ?     'noremap'
+                 \ :     axis.mode . 'noremap'
         exe mapcmd.'  <expr>  '.axis.bwd."  <sid>move_again('bwd', ".string(axis_name).')'
         exe mapcmd.'  <expr>  '.axis.fwd."  <sid>move_again('fwd', ".string(axis_name).')'
 
@@ -691,8 +691,8 @@ fu! s:get_motion_info(lhs) abort "{{{2
 
     let mode = s:get_current_mode()
     let motions = get(maparg(a:lhs, mode, 0, 1), 'buffer', 0)
-    \?                get(b:, 'repeatable_motions', [])
-    \:                s:repeatable_motions
+              \ ?     get(b:, 'repeatable_motions', [])
+              \ :     s:repeatable_motions
 
     for m in motions
         " Why don't you translate `a:lhs` to normalize it?{{{
