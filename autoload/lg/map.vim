@@ -148,13 +148,13 @@ fu! lg#map#save(mode, is_local, keys) abort "{{{1
             endif
 
             let map_save[a_key] = !empty(maparg)
-            \?                           maparg
-            \:                           {
-            \                              'unmapped' : 1,
-            \                              'buffer'   : 0,
-            \                              'lhs'      : a_key,
-            \                              'mode'     : a:mode,
-            \                            }
+                              \ ?        maparg
+                              \ :        {
+                              \            'unmapped' : 1,
+                              \            'buffer'   : 0,
+                              \            'lhs'      : a_key,
+                              \            'mode'     : a:mode,
+                              \          }
 
             " If there's no mapping, why do we still save this dictionary: {{{
 
