@@ -49,10 +49,11 @@ fu! lg#window#openable_anywhere() abort "{{{1
     " After that, we won't be able  to load the preview buffer back, because
     " we've set 'bt=nofile'.
     "
-    " To avoid  this accident, we  remap `gf` so  that it splits  the window
-    " before reading another file.
+    " To avoid this accident, we remap `gf` so that it suggests the `ZF` mapping
+    " instead.  The latter will split the window before reading another file.
     "}}}
-    nno  <buffer><nowait><silent>  gf  <c-w>Fzv
+    nno  <buffer><nowait><silent>  gf  :echo 'press ZF instead'<cr>
+    nno  <buffer><nowait><silent>  ZF  <c-w>Fzv
     "                                       │└┤
     "                                       │ └ open possible folds
     "                                       └── go to line number after colon
