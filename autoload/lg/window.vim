@@ -43,11 +43,9 @@ fu! lg#window#get_modifier(...) abort "{{{1
 endfu
 
 fu! lg#window#openable_anywhere() abort "{{{1
-    nno  <buffer><nowait><silent>  ZF  <c-w>Fzv
-    "                                       │└┤
-    "                                       │ └ open possible folds
-    "                                       └── go to line number after colon
-
+    "                                               ┌ go to line number after colon
+    "                                               │ ┌ open possible folds
+    "                                          ┌────┤┌┤
     nno  <buffer><nowait><silent>  <c-s>       <c-w>Fzv
     nno  <buffer><nowait><silent>  <c-v><c-v>  <c-w>Fzv:wincmd L<cr>
     nno  <buffer><nowait><silent>  <c-t>       <c-w>gFzv
