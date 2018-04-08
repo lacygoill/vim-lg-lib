@@ -43,16 +43,6 @@ fu! lg#window#get_modifier(...) abort "{{{1
 endfu
 
 fu! lg#window#openable_anywhere() abort "{{{1
-    " Why?{{{
-    "
-    " If we  press `gf` on a  filepath, it will replace  the preview buffer.
-    " After that, we won't be able  to load the preview buffer back, because
-    " we've set 'bt=nofile'.
-    "
-    " To avoid this accident, we remap `gf` so that it suggests the `ZF` mapping
-    " instead.  The latter will split the window before reading another file.
-    "}}}
-    nno  <buffer><nowait><silent>  gf  :echo 'press ZF instead'<cr>
     nno  <buffer><nowait><silent>  ZF  <c-w>Fzv
     "                                       │└┤
     "                                       │ └ open possible folds
