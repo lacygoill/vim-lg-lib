@@ -69,7 +69,7 @@ fu! lg#log#output(what) abort "{{{1
     wincmd P
     " if we really got there …
     if &l:pvw
-        setl bh=wipe bt=nofile nobl noswf nowrap
+        setl bt=nofile nobl noswf nowrap
         nno  <buffer><nowait><silent>  q  :<c-u>call lg#window#quit()<cr>
         call lg#window#openable_anywhere()
     endif
