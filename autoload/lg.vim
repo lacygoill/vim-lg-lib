@@ -30,7 +30,7 @@ fu! lg#man_k(pgm) abort "{{{1
 
     try
         " populate location list
-        exe 'lvim /\<\C'.cur_word.'\>/ %'
+        noa exe 'lvim /\<\C'.cur_word.'\>/ %'
         " set its title
         call setloclist(0, [], 'a', { 'title': cur_word })
 
