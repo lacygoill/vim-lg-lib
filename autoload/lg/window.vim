@@ -15,18 +15,18 @@ fu! lg#window#get_modifier(...) abort "{{{1
         let mod = 'vert leftabove'
     else
         " are we at the bottom of the tabpage?
-        noautocmd wincmd b
+        noa wincmd b
         if winnr() ==# origin
             let mod = 'botright'
         else
-            noautocmd wincmd p
+            noa wincmd p
             " or maybe at the top?
-            noautocmd wincmd t
+            noa wincmd t
             if winnr() ==# origin
                 let mod = 'topleft'
             else
                 " ok we're in a middle window
-                noautocmd wincmd p
+                noa wincmd p
                 " this will cause a vertical split to be opened on the left
                 " if you would prefer on the right, write this instead:
                 "

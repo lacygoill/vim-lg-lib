@@ -62,4 +62,3 @@ fu! lg#man_k(pgm) abort "{{{1
         endtry
     endtry
 endfu
-
