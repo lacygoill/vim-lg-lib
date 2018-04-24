@@ -131,7 +131,7 @@ fu! lg#window#quit() abort "{{{1
     if tabpagenr('$') ==# 1 && winnr('$') ==# 1
         " If there's only one tab page and only one window, we want to close
         " the session.
-        qall
+        qall!
 
     " In neovim, we could also test the existence of `b:terminal_job_pid`.
     elseif &bt is# 'terminal'
