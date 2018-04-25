@@ -7,6 +7,7 @@ fu! lg#catch_error() abort "{{{1
         if !empty(func_name)
             echom 'Error detected while processing function '.func_name.':'
         else
+            " the error comes from a (temporary?) file
             echom 'Error detected while processing '.matchstr(v:throwpoint, '.\{-}\ze,').':'
         endif
         echohl LineNr
