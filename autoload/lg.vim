@@ -1,10 +1,14 @@
 fu! lg#catch_error() abort "{{{1
     if get(g:, 'my_verbose_errors', 0)
         let func_name = matchstr(v:throwpoint, 'function \zs.\{-}\ze,')
-        let line = matchstr(v:throwpoint, 'function .\{-}, \zsline \d\+')
+        let line = matchstr(v:throwpoint, '\%(function \)\?.\{-}, \zsline \d\+')
 
         echohl ErrorMsg
-        echom 'Error detected while processing function '.func_name.':'
+        if !empty(func_name)
+            echom 'Error detected while processing function '.func_name.':'
+        else
+            echom 'Error detected while processing '.matchstr(v:throwpoint, '.\{-}\ze,').':'
+        endif
         echohl LineNr
         echom line.':'
     endif
