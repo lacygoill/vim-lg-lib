@@ -201,7 +201,7 @@ fu! lg#window#quit() abort "{{{1
             "
             " :close doesn't close a window if it's the last one.
             "}}}
-            " Why adding a bang if `&bh is# 'wipe'`?{{{
+            " Why adding a bang if `&l:bh is# 'wipe'`?{{{
             "
             " To avoid E37.
             " Vim refuses to wipe a modified buffer without a bang.
@@ -209,7 +209,7 @@ fu! lg#window#quit() abort "{{{1
             " buffer (ex: the one opened by `:DebugVimrc`).
             " So, I don't want to be bothered by an error.
             "}}}
-            exe 'close'.(&bh is# 'wipe' ? '!' : '')
+            exe 'close'.(&l:bh is# 'wipe' ? '!' : '')
         catch
             return lg#catch_error()
         endtry
