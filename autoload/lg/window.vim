@@ -201,7 +201,7 @@ fu! lg#window#quit() abort "{{{1
             "
             " :close doesn't close a window if it's the last one.
             "}}}
-            close
+            exe 'close'.(&bh is# 'wipe' ? '!' : '')
         catch
             return lg#catch_error()
         endtry
