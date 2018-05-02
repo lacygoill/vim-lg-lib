@@ -46,8 +46,8 @@ fu! s:restore(map_save) abort "{{{1
         " If the mapping is local to a buffer, check we're in the right one.
         " Also make sure we have at least the 'lhs' key; just to be sure we
         " have received relevant information.
-        if  get(maparg, 'buffer', 0) && bufnr('%') !=# get(maparg, 'bufnr', 0)
-        \|| !has_key(maparg, 'lhs')
+        if    get(maparg, 'buffer', 0) && bufnr('%') !=# get(maparg, 'bufnr', 0)
+        \ || !has_key(maparg, 'lhs')
             continue
         endif
 
@@ -57,17 +57,17 @@ fu! s:restore(map_save) abort "{{{1
 
         " restore a saved mapping
         else
-            exe maparg.mode
-            \. (maparg.noremap ? 'noremap   ' : 'map ')
-            \. (maparg.buffer  ? ' <buffer> ' : '')
-            \. (maparg.expr    ? ' <expr>   ' : '')
-            \. (maparg.nowait  ? ' <nowait> ' : '')
-            \. (maparg.silent  ? ' <silent> ' : '')
-            \.  maparg.lhs
-            \. ' '
-            \. substitute(
-            \             substitute(maparg.rhs, '<SID>', '<SNR>'.maparg.sid.'_', 'g'),
-            \             '|', '<bar>', 'g')
+            exe  maparg.mode
+            \ . (maparg.noremap ? 'noremap   ' : 'map ')
+            \ . (maparg.buffer  ? ' <buffer> ' : '')
+            \ . (maparg.expr    ? ' <expr>   ' : '')
+            \ . (maparg.nowait  ? ' <nowait> ' : '')
+            \ . (maparg.silent  ? ' <silent> ' : '')
+            \ .  maparg.lhs
+            \ . ' '
+            \ . substitute(
+            \              substitute(maparg.rhs, '<SID>', '<SNR>'.maparg.sid.'_', 'g'),
+            \              '|', '<bar>', 'g')
         endif
     endfor
 endfu
