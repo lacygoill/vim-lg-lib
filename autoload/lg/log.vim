@@ -13,8 +13,8 @@ fu! lg#log#output(what) abort "{{{1
     "              └ lists of lines which we'll use as the output of the command
     "
 "}}}
-    if   !has_key(a:what, 'excmd')
-    \&& (!has_key(a:what, 'level') || !has_key(a:what, 'lines'))
+    if    !has_key(a:what, 'excmd')
+    \ && (!has_key(a:what, 'level') || !has_key(a:what, 'lines'))
         return
     endif
 
