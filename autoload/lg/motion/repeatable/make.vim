@@ -114,8 +114,8 @@ fu! s:make_repeatable(m, mode, is_local, axis, from) abort "{{{2
 
     " if we ask for a local motion to be made repeatable,
     " the 2 lhs should be used in local mappings
-    if   a:is_local
-    \&& (!get(bwd_maparg, 'buffer', 0) || !get(fwd_maparg, 'buffer', 0))
+    if    a:is_local
+    \ && (!get(bwd_maparg, 'buffer', 0) || !get(fwd_maparg, 'buffer', 0))
         try
             throw 'E8002:  [repeatable motion]  invalid motion: '.a:from
         catch
@@ -150,7 +150,7 @@ fu! s:make_repeatable(m, mode, is_local, axis, from) abort "{{{2
     \              'axis':                 a:axis,
     \              'made repeatable from': a:from,
     \              'original mapping':     origin,
-    \}
+    \ }
     " Why don't we write an assignment to populate `motion`?{{{
     "
     " `motion` is an array (!= scalar), so Vim passes it to `s:populate()`
@@ -286,8 +286,8 @@ fu! s:move_again(dir, axis) abort "{{{2
 
     " make sure the arguments are valid,
     " and that we've used at least one motion on the axis in the past
-    if  s:invalid_axis_or_direction(a:axis, a:dir)
-    \|| empty(get(s:last_motions, a:axis, ''))
+    if   s:invalid_axis_or_direction(a:axis, a:dir)
+    \ || empty(get(s:last_motions, a:axis, ''))
         return ''
     endif
 
@@ -540,8 +540,8 @@ fu! lg#motion#repeatable#make#all(what) abort "{{{2
         " buffer-local  mapping using  the same  lhs. We handle  this particular
         " case by temporarily removing the latter.
         "}}}
-        if !is_local && (    execute(mode.'map <buffer> '.m.bwd) !~# '^\n\nNo mapping found$'
-                         \|| execute(mode.'map <buffer> '.m.fwd) !~# '^\n\nNo mapping found$')
+        if !is_local && (     execute(mode.'map <buffer> '.m.bwd) !~# '^\n\nNo mapping found$'
+                         \ || execute(mode.'map <buffer> '.m.fwd) !~# '^\n\nNo mapping found$')
             let map_save = s:unshadow(m, mode)
             call s:make_repeatable(m, mode, is_local, axis_name, from)
             call lg#map#restore(map_save)
@@ -623,8 +623,8 @@ fu! s:collides_with_db(motion, repeatable_motions) abort "{{{2
     "   ┌ Motion
     "   │
     for m in a:repeatable_motions
-        if  [m.bwd.lhs, m.bwd.mode] ==# [a:motion.bwd.lhs, a:motion.bwd.mode]
-        \|| [m.fwd.lhs, m.fwd.mode] ==# [a:motion.fwd.lhs, a:motion.fwd.mode]
+        if   [m.bwd.lhs, m.bwd.mode] ==# [a:motion.bwd.lhs, a:motion.bwd.mode]
+        \ || [m.fwd.lhs, m.fwd.mode] ==# [a:motion.fwd.lhs, a:motion.fwd.mode]
             try
                 throw printf('E8003:  [repeatable motion]  cannot process motion  %s : %s',
                 \             m.bwd.lhs, m.fwd.lhs)
@@ -721,8 +721,8 @@ fu! s:get_motion_info(lhs) abort "{{{2
         " No need to.
         " We've done it already in `s:populate()`.
         "}}}
-        if  index([m.bwd.lhs, m.fwd.lhs], a:lhs) >= 0
-        \&& index([mode, ' '], m.bwd.mode) >= 0
+        if   index([m.bwd.lhs, m.fwd.lhs], a:lhs) >= 0
+        \ && index([mode, ' '], m.bwd.mode) >= 0
         "                      └────────┤
         "                               └ mode of the motion:
         "                                 originally obtained with `maparg()`
