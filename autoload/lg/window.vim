@@ -76,11 +76,11 @@ fu! lg#window#qf_open(type) abort "{{{1
             "
             " It allows us to do this in any plugin populating the qfl:
             "
-            "         doautocmd <nomodeline> QuickFixCmdPost cwindow
+            "         do <nomodeline> QuickFixCmdPost cwindow
             "             → open  the qf window  on the condition  it contains
             "               at  least 1 valid entry
             "
-            "         doautocmd <nomodeline> QuickFixCmdPost copen
+            "         do <nomodeline> QuickFixCmdPost copen
             "             → open the qf window unconditionally
             "}}}
             " Could we write sth simpler?{{{
@@ -91,7 +91,7 @@ fu! lg#window#qf_open(type) abort "{{{1
             " But, it wouldn't  open the qf window like our  autocmd in `vim-qf`
             " does.
             "}}}
-            exe 'doautocmd <nomodeline> QuickFixCmdPost '.(a:type is# 'loc' ? 'l' : 'c').'open'
+            exe 'do <nomodeline> QuickFixCmdPost '.(a:type is# 'loc' ? 'l' : 'c').'open'
             return ''
         endif
         let id = id.winid
