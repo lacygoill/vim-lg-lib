@@ -78,7 +78,7 @@ fu! lg#motion#repeatable#listing#main(...) abort "{{{2
 
     " display it
     let excmd = 'ListRepeatableMotions '.a:1
-    call lg#log#output({'excmd': excmd, 'lines': total_listing})
+    call debug#log#output({'excmd': excmd, 'lines': total_listing})
     call s:customize_preview_window()
 endfu
 
@@ -101,7 +101,7 @@ fu! s:add_text_to_write(opt, m, scope) abort "{{{2
         "     \           .'       Made repeatable from '.a:m['made repeatable from']
         "     \           ."\n"
         "
-        " Because eventually, we're going to write the text via `lg#log#output()`
+        " Because eventually, we're going to write the text via `debug#log#output()`
         " which itself invokes `writefile()`. And the latter writes "\n" as a NUL.
         " The only way to make `writefile()` write a newline is to split the lines
         " into several list items.
