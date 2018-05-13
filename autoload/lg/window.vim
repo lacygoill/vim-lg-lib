@@ -42,17 +42,6 @@ fu! lg#window#get_modifier(...) abort "{{{1
     return mod
 endfu
 
-fu! lg#window#openable_anywhere() abort "{{{1
-    "                                               ┌ go to line number after colon
-    "                                               │ ┌ open possible folds
-    "                                          ┌────┤┌┤
-    nno  <buffer><nowait><silent>  <c-s>       <c-w>Fzv
-    nno  <buffer><nowait><silent>  <c-v><c-v>  <c-w>Fzv:wincmd L<cr>
-    nno  <buffer><nowait><silent>  <c-t>       <c-w>gFzv
-    "                                          └───────┤
-    "                                                  └ Alternative:  <c-w>Fzv<c-w>T
-endfu
-
 fu! lg#window#qf_open(type) abort "{{{1
     let we_are_in_qf = &bt is# 'quickfix'
 
