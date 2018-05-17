@@ -44,19 +44,19 @@ fu! lg#window#has_neighbor(dir, ...) abort "{{{1
     let neighbors = range(1, winnr('$'))
 
     if a:dir is# 'right'
-        let rightedge = win_screenpos(0)[1] + winwidth(0) - 1
+        let rightedge = win_screenpos(winnr)[1] + winwidth(winnr) - 1
         let neighbors = map(neighbors, {i,v ->  v != winnr && win_screenpos(v)[1] > rightedge})
 
     elseif a:dir is# 'left'
-        let leftedge = win_screenpos(0)[1] - 1
+        let leftedge = win_screenpos(winnr)[1] - 1
         let neighbors = map(neighbors, {i,v ->  v != winnr && win_screenpos(v)[1] < leftedge})
 
     elseif a:dir is# 'up'
-        let upedge = win_screenpos(0)[0] - 1
+        let upedge = win_screenpos(winnr)[0] - 1
         let neighbors = map(neighbors, {i,v ->  v != winnr && win_screenpos(v)[0] < upedge})
 
     elseif a:dir is# 'down'
-        let downedge = win_screenpos(0)[0] + winheight(0) - 1
+        let downedge = win_screenpos(winnr)[0] + winheight(winnr) - 1
         let neighbors = map(neighbors, {i,v ->  v != winnr && win_screenpos(v)[0] > downedge})
     endif
 
