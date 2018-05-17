@@ -15,11 +15,14 @@ fu! lg#window#get_modifier(...) abort "{{{1
         let mod = 'vert leftabove'
     else
         " are we at the bottom of the tabpage?
-        if winnr() ==# winnr('$')
+        noa wincmd b
+        if winnr() ==# origin
             let mod = 'botright'
         else
+            noa wincmd p
             " or maybe at the top?
-            if winnr() ==# 1
+            noa wincmd t
+            if winnr() ==# origin
                 let mod = 'topleft'
             else
                 " ok we're in a middle window
