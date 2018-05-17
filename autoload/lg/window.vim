@@ -42,6 +42,33 @@ fu! lg#window#get_modifier(...) abort "{{{1
     return mod
 endfu
 
+fu! lg#window#has_neighbor(dir) abort "{{{1
+    let winnr = winnr()
+    let neighbors = range(1, winnr('$'))
+
+    if a:dir is# 'right'
+        let rightedge = win_screenpos(0)[1] + winwidth(0) - 1
+        let neighbors = map(neighbors, {i,v ->  v != winnr && win_screenpos(v)[1] > rightedge})
+
+    elseif a:dir is# 'left'
+        let leftedge = win_screenpos(0)[1] - 1
+        let neighbors = map(neighbors, {i,v ->  v != winnr && win_screenpos(v)[1] < leftedge})
+
+    elseif a:dir is# 'up'
+        let upedge = win_screenpos(0)[0] - 1
+        let neighbors = map(neighbors, {i,v ->  v != winnr && win_screenpos(v)[0] < upedge})
+
+    elseif a:dir is# 'down'
+        let downedge = win_screenpos(0)[0] + winheight(0) - 1
+        let neighbors = map(neighbors, {i,v ->  v != winnr && win_screenpos(v)[0] > downedge})
+    endif
+
+    if index(neighbors, 1) >=0
+        return 1
+    endif
+    return 0
+endfu
+
 fu! lg#window#qf_open(type) abort "{{{1
     let we_are_in_qf = &bt is# 'quickfix'
 
