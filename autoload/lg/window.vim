@@ -13,27 +13,30 @@ fu! lg#window#get_modifier(...) abort "{{{1
     "  │      │
     if a:0 && get(getloclist(0, {'title': 0}), 'title', '') =~# '\<TOC$'
         let mod = 'vert leftabove'
-    else
-        " are we at the bottom of the tabpage?
-        if winnr() ==# winnr('$')
-            let mod = 'botright'
-        else
-            " or maybe at the top?
-            if winnr() ==# 1
-                let mod = 'topleft'
-            else
-                " ok we're in a middle window
 
-                " this will cause a vertical split to be opened on the left
-                " if you would prefer on the right, write this instead:
-                "
-                "     let mod = 'vert rightbelow'
-                "
-                " For the moment, I prefer on the left, to be consistent with
-                " how a TOC window is opened (on the left).
-                let mod = 'vert leftabove'
-            endif
-        endif
+    " there's nothing above or below us
+    elseif !lg#window#has_neighbor('up') && !lg#window#has_neighbor('down')
+        let mod = 'botright'
+
+    " we're at the top
+    elseif lg#window#has_neighbor('down') && !lg#window#has_neighbor('up')
+        let mod = 'topleft'
+
+    " we're at the bottom
+    elseif lg#window#has_neighbor('up') && !lg#window#has_neighbor('down')
+        let mod = 'botright'
+
+    " we're in a middle window
+    else
+
+        " this will cause a vertical split to be opened on the left
+        " if you would prefer on the right, write this instead:
+        "
+        "     let mod = 'vert rightbelow'
+        "
+        " For the moment, I prefer on the left, to be consistent with
+        " how a TOC window is opened (on the left).
+        let mod = 'vert leftabove'
     endif
 
     return mod
