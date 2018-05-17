@@ -23,7 +23,7 @@ fu! lg#window#get_modifier(...) abort "{{{1
                 let mod = 'topleft'
             else
                 " ok we're in a middle window
-                noa wincmd p
+
                 " this will cause a vertical split to be opened on the left
                 " if you would prefer on the right, write this instead:
                 "
