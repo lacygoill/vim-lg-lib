@@ -39,8 +39,8 @@ fu! lg#window#get_modifier(...) abort "{{{1
     return mod
 endfu
 
-fu! lg#window#has_neighbor(dir) abort "{{{1
-    let winnr = winnr()
+fu! lg#window#has_neighbor(dir, ...) abort "{{{1
+    let winnr = a:0 ? a:1 : winnr()
     let neighbors = range(1, winnr('$'))
 
     if a:dir is# 'right'
