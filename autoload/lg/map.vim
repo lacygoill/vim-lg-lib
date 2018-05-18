@@ -53,21 +53,28 @@ fu! s:restore(map_save) abort "{{{1
 
         " remove a possible mapping if it didn't exist when we tried to save it
         if has_key(maparg, 'unmapped')
-            sil! exe maparg.mode.'unmap '.(maparg.buffer ? ' <buffer> ' : '').maparg.lhs
+
+            " `maparg.mode` could contain several modes (`nox` for example).
+            " So we must split iterate over all characters inside.
+            for c in split(maparg.mode, '\zs')
+                sil! exe c.'unmap '.(maparg.buffer ? ' <buffer> ' : '').maparg.lhs
+            endfor
 
         " restore a saved mapping
         else
-            exe  maparg.mode
-            \ . (maparg.noremap ? 'noremap   ' : 'map ')
-            \ . (maparg.buffer  ? ' <buffer> ' : '')
-            \ . (maparg.expr    ? ' <expr>   ' : '')
-            \ . (maparg.nowait  ? ' <nowait> ' : '')
-            \ . (maparg.silent  ? ' <silent> ' : '')
-            \ .  maparg.lhs
-            \ . ' '
-            \ . substitute(
-            \              substitute(maparg.rhs, '<SID>', '<SNR>'.maparg.sid.'_', 'g'),
-            \              '|', '<bar>', 'g')
+            for c in split(maparg.mode, '\zs')
+                exe  c
+                \ . (maparg.noremap ? 'noremap   ' : 'map ')
+                \ . (maparg.buffer  ? ' <buffer> ' : '')
+                \ . (maparg.expr    ? ' <expr>   ' : '')
+                \ . (maparg.nowait  ? ' <nowait> ' : '')
+                \ . (maparg.silent  ? ' <silent> ' : '')
+                \ .  maparg.lhs
+                \ . ' '
+                \ . substitute(
+                \              substitute(maparg.rhs, '<SID>', '<SNR>'.maparg.sid.'_', 'g'),
+                \              '|', '<bar>', 'g')
+            endfor
         endif
     endfor
 endfu
