@@ -19,11 +19,11 @@ fu! lg#window#get_modifier(...) abort "{{{1
         let mod = 'botright'
 
     " we're at the top
-    elseif lg#window#has_neighbor('down') && !lg#window#has_neighbor('up')
+    elseif !lg#window#has_neighbor('up')
         let mod = 'topleft'
 
     " we're at the bottom
-    elseif lg#window#has_neighbor('up') && !lg#window#has_neighbor('down')
+    elseif !lg#window#has_neighbor('down')
         let mod = 'botright'
 
     " we're in a middle window
