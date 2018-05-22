@@ -144,6 +144,13 @@ fu! lg#window#quit() abort "{{{1
         return
     endif
 
+    " If we're recording a macro, don't close the window;
+    " stop the recording.
+    " TODO: remove `has()` once neovim has `reg_recording()`
+    if !has('nvim') && reg_recording() isnot# ''
+        return feedkeys('q', 'int')
+    endif
+
     if tabpagenr('$') ==# 1 && winnr('$') ==# 1
         " If there's only one tab page and only one window, we want to close
         " the session.
