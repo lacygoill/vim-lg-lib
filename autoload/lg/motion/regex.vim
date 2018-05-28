@@ -6,7 +6,7 @@ fu! lg#motion#regex#go(kwd, is_fwd, mode) abort "{{{1
     \               'fu':              '^\s*fu\%[nction]!\s\+',
     \               'endfu':           '^\s*endfu\%[nction]\s*$',
     \               'ref':             '\[.\{-1,}\](\zs.\{-1,})',
-    \               'path':            '\v%(\s\.%(\=|,))@!&%(^|\s)\zs[./~]\f+',
+    \               'path':            '\v%(\s\.%(\=|,))@!&%(^|\s|`)\zs[./~]\f+',
     \               'url':             '\vhttps?://',
     \               'concealed_url':   '\v\[.{-}\zs\]\(.{-}\)',
     \             }, a:kwd, '')
