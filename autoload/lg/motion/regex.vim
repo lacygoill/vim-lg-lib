@@ -5,7 +5,7 @@ fu! lg#motion#regex#go(kwd, is_fwd, mode) abort "{{{1
     \               '#':               '^#\|^=',
     \               'fu':              '^\s*fu\%[nction]!\s\+',
     \               'endfu':           '^\s*endfu\%[nction]\s*$',
-    \               'sh_fu':           '^\s*[-a-z]\+\s*()\s*{\%(\s*#\s*{{{\d*\s*\)\=$',
+    \               'sh_fu':           '^\s*[-a-z]\+\s*()\s*{\%(\s*#\s*{{'..'{\d*\s*\)\=$',
     \               'sh_endfu':        '^}$',
     \               'ref':             '\[.\{-1,}\](\zs.\{-1,})',
     \               'path':            '\v%(\s\.%(\=|,))@!&%(^|\s|`)\zs[./~]\f+',
