@@ -1,17 +1,24 @@
+if exists('g:autoloaded_lg#motion#regex')
+    finish
+endif
+let g:autoloaded_lg#motion#regex = 1
+
+let s:patterns = {
+                 \ '{{':              '\v\{{3}%(\d+)?\s*$',
+                 \ '#':               '^#\|^=',
+                 \ 'fu':              '^\s*fu\%[nction]!\s\+',
+                 \ 'endfu':           '^\s*endfu\%[nction]\s*$',
+                 \ 'sh_fu':           '^\s*\S\+\s*()\s*{\%(\s*#\s*{{'.'{\d*\s*\)\=$',
+                 \ 'sh_endfu':        '^}$',
+                 \ 'ref':             '\[.\{-1,}\](\zs.\{-1,})',
+                 \ 'path':            '\v%(\s\.%(\=|,))@!&%(^|\s|`)\zs[./~]\f+',
+                 \ 'url':             '\vhttps?://',
+                 \ 'concealed_url':   '\v\[.{-}\zs\]\(.{-}\)',
+                 \ }
+
 fu! lg#motion#regex#go(kwd, is_fwd, mode) abort "{{{1
     let cnt = v:count1
-    let pat = get({
-                \   '{{':              '\v\{{3}%(\d+)?\s*$',
-                \   '#':               '^#\|^=',
-                \   'fu':              '^\s*fu\%[nction]!\s\+',
-                \   'endfu':           '^\s*endfu\%[nction]\s*$',
-                \   'sh_fu':           '^\s*[-:_a-z]\+\s*()\s*{\%(\s*#\s*{{'.'{\d*\s*\)\=$',
-                \   'sh_endfu':        '^}$',
-                \   'ref':             '\[.\{-1,}\](\zs.\{-1,})',
-                \   'path':            '\v%(\s\.%(\=|,))@!&%(^|\s|`)\zs[./~]\f+',
-                \   'url':             '\vhttps?://',
-                \   'concealed_url':   '\v\[.{-}\zs\]\(.{-}\)',
-                \ }, a:kwd, '')
+    let pat = get(s:patterns, a:kwd, '')
 
     if empty(pat)
         return
