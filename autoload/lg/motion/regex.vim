@@ -1,17 +1,17 @@
 fu! lg#motion#regex#go(kwd, is_fwd, mode) abort "{{{1
     let cnt = v:count1
     let pat = get({
-    \               '{{':              '\v\{{3}%(\d+)?\s*$',
-    \               '#':               '^#\|^=',
-    \               'fu':              '^\s*fu\%[nction]!\s\+',
-    \               'endfu':           '^\s*endfu\%[nction]\s*$',
-    \               'sh_fu':           '^\s*[-a-z]\+\s*()\s*{\%(\s*#\s*{{'..'{\d*\s*\)\=$',
-    \               'sh_endfu':        '^}$',
-    \               'ref':             '\[.\{-1,}\](\zs.\{-1,})',
-    \               'path':            '\v%(\s\.%(\=|,))@!&%(^|\s|`)\zs[./~]\f+',
-    \               'url':             '\vhttps?://',
-    \               'concealed_url':   '\v\[.{-}\zs\]\(.{-}\)',
-    \             }, a:kwd, '')
+                \   '{{':              '\v\{{3}%(\d+)?\s*$',
+                \   '#':               '^#\|^=',
+                \   'fu':              '^\s*fu\%[nction]!\s\+',
+                \   'endfu':           '^\s*endfu\%[nction]\s*$',
+                \   'sh_fu':           '^\s*[-a-z]\+\s*()\s*{\%(\s*#\s*{{'..'{\d*\s*\)\=$',
+                \   'sh_endfu':        '^}$',
+                \   'ref':             '\[.\{-1,}\](\zs.\{-1,})',
+                \   'path':            '\v%(\s\.%(\=|,))@!&%(^|\s|`)\zs[./~]\f+',
+                \   'url':             '\vhttps?://',
+                \   'concealed_url':   '\v\[.{-}\zs\]\(.{-}\)',
+                \ }, a:kwd, '')
 
     if empty(pat)
         return
