@@ -179,7 +179,7 @@ fu! lg#window#quit() abort "{{{1
         endif
 
         " create a new temporary file for the session we're going to save
-        let s:undo_sessions = get(s:, 'undo_sessions', []) + [ tempname() ]
+        let s:undo_sessions = get(s:, 'undo_sessions', []) + [tempname()]
 
         try
             let session_save = v:this_session
@@ -249,9 +249,9 @@ fu! lg#window#restore_closed(cnt) abort "{{{1
 
     try
         let session_save = v:this_session
-        "                                  ┌─ handle the case where we hit a too big number
+        "                                  ┌ handle the case where we hit a too big number
         "                                  │
-        let session_file = s:undo_sessions[max([ -a:cnt, -len(s:undo_sessions) ])]
+        let session_file = s:undo_sessions[max([-a:cnt, -len(s:undo_sessions)])]
 
         if !has('nvim')
             " Eliminate terminal buffers, to avoid E947.{{{
