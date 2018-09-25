@@ -24,11 +24,11 @@ fu! lg#motion#repeatable#listing#complete(arglead, cmdline, _p) abort "{{{2
 
     elseif a:cmdline =~# '-mode\s\+\w*$'
         let modes = [
-        \             'normal',
-        \             'visual',
-        \             'operator-pending',
-        \             'nvo',
-        \           ]
+            \ 'normal',
+            \ 'visual',
+            \ 'operator-pending',
+            \ 'nvo',
+            \ ]
         return join(modes, "\n")
 
     elseif a:cmdline =~# '-scope\s\+\w*$'
@@ -42,12 +42,12 @@ fu! lg#motion#repeatable#listing#complete(arglead, cmdline, _p) abort "{{{2
         " which means Vim performs a basic filtering automatically.
         " }}}
         let opt = [
-        \           '-axis ',
-        \           '-mode ',
-        \           '-scope ',
-        \           '-v ',
-        \           '-vv ',
-        \         ]
+            \ '-axis ',
+            \ '-mode ',
+            \ '-scope ',
+            \ '-v ',
+            \ '-vv ',
+            \ ]
         return join(opt, "\n")
     endif
 
