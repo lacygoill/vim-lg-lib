@@ -10,7 +10,7 @@ fu! s:init() abort "{{{1
 endfu
 
 " Interface {{{1
-fu! lg#motion#repeatable#listing#complete(arglead, cmdline, _p) abort "{{{2
+fu! lg#motion#repeatable#listing#complete(arglead, cmdline, _pos) abort "{{{2
     " We  re-init every  time we  complete `:ListRepeatableMotions`,  because we
     " could make some motions repeatable during  runtime, and use a new axis. In
     " that case, we want to see the latter in the suggestions after `-axis`.
