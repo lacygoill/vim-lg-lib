@@ -35,12 +35,6 @@ fu! lg#motion#repeatable#listing#complete(arglead, cmdline, _pos) abort "{{{2
         return "local\nglobal"
 
     elseif empty(a:arglead) || a:arglead[0] is# '-'
-        " Why not filtering the options?{{{
-        "
-        " We don't need to, because the command invoking this completion function is
-        " defined with the attribute `-complete=custom`, not `-complete=customlist`,
-        " which means Vim performs a basic filtering automatically.
-        " }}}
         let opt = [
             \ '-axis ',
             \ '-mode ',
