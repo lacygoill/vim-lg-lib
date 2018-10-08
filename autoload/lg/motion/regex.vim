@@ -7,7 +7,7 @@ let s:patterns = {
                  \ '{{':              '\v\{{3}%(\d+)?\s*$',
                  \ '#':               '^#\|^=',
                  \ 'fu':              '^\s*fu\%[nction]!\s\+',
-                 \ 'endfu':           '^\s*endfu\%[nction]\s*$',
+                 \ 'endfu':           '^\s*endf\%[unction]\s*$',
                  \ 'sh_fu':           '^\s*\S\+\s*()\s*{\%(\s*#\s*{{'.'{\d*\s*\)\=$',
                  \ 'sh_endfu':        '^}$',
                  \ 'ref':             '\[.\{-1,}\](\zs.\{-1,})',
