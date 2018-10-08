@@ -7,7 +7,7 @@ let s:patterns = {
                  \ '{{':              '\v\{{3}%(\d+)?\s*$',
                  \ '#':               '^#\|^=',
                  \ 'fu':              '^\s*fu\%[nction]!\s\+',
-                 \ 'endfu':           '^\s*endf\%[unction]\s*$',
+                 \ 'endfu':           '^\s*endf\%[unction]\%(\s\|"\|$\)',
                  \ 'sh_fu':           '^\s*\S\+\s*()\s*{\%(\s*#\s*{{'.'{\d*\s*\)\=$',
                  \ 'sh_endfu':        '^}$',
                  \ 'ref':             '\[.\{-1,}\](\zs.\{-1,})',
@@ -34,6 +34,7 @@ fu! lg#motion#regex#go(kwd, is_fwd, mode) abort "{{{1
     endif
 
     while cnt > 0
+        let g:d_pat = deepcopy(pat)
         call search(pat, a:is_fwd ? 'W' : 'bW')
         let cnt -= 1
     endwhile
