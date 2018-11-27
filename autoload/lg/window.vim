@@ -120,10 +120,22 @@ fu! lg#window#qf_open(type) abort "{{{1
     elseif we_are_in_qf && a:type is# 'loc'
         let win_ids = gettabinfo(tabpagenr())[0].windows
         let loc_id  = win_getid()
-        let id      = get(filter(copy(win_ids), {i,v ->    get(getloclist(v, {'winid': 0}), 'winid', 0)
-        \                                               ==# loc_id
-        \                                               && v !=# loc_id })
-        \                 ,0,0)
+        " TODO: simplify the code by inspecting the 'filewinid' property of the location list.
+        " What would the code look like?{{{
+        "
+        "     let id = get(getloclist(0, {'filewinid': 0}), 'filewinid', 0)
+        "}}}
+        " Why don't you use it now?{{{
+        "
+        " Not supported in Neovim atm.
+        " Requires a patch:
+        "
+        "     https://github.com/vim/vim/releases/tag/v8.1.0345
+        "}}}
+        let id = get(filter(copy(win_ids), {i,v ->
+            \ get(getloclist(v, {'winid': 0}), 'winid', 0) ==# loc_id
+            \ && v !=# loc_id })
+            \ , 0, 0)
     endif
 
     if id !=# 0
