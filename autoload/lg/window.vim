@@ -118,11 +118,12 @@ fu! lg#window#qf_open(type) abort "{{{1
 
     " if we are already in the ll window, get to the associated window
     elseif we_are_in_qf && a:type is# 'loc'
-        let win_ids = gettabinfo(tabpagenr())[0].windows
         " TODO: simplify the code by inspecting the 'filewinid' property of the location list.
         " What would the code look like?{{{
         "
         "     let id = get(getloclist(0, {'filewinid': 0}), 'filewinid', 0)
+        "
+        " Yes, you could replace the next 3 statements, with a single one.
         "}}}
         " Why don't you use it now?{{{
         "
@@ -131,6 +132,7 @@ fu! lg#window#qf_open(type) abort "{{{1
         "
         "     https://github.com/vim/vim/releases/tag/v8.1.0345
         "}}}
+        let win_ids = gettabinfo(tabpagenr())[0].windows
         let loc_id  = win_getid()
         let id = get(filter(copy(win_ids), {i,v ->
             \ get(getloclist(v, {'winid': 0}), 'winid', 0) ==# loc_id
