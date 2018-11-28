@@ -134,7 +134,7 @@ fu! lg#window#qf_open(type) abort "{{{1
         "}}}
         let win_ids = gettabinfo(tabpagenr())[0].windows
         let loc_id  = win_getid()
-        let id = get(filter(copy(win_ids), {i,v ->
+        let id = get(filter(win_ids, {i,v ->
             \ get(getloclist(v, {'winid': 0}), 'winid', 0) ==# loc_id
             \ && v !=# loc_id })
             \ , 0, 0)
