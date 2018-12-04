@@ -35,6 +35,16 @@ if exists('g:autoloaded_lg#motion#repeatable#make')
 endif
 let g:autoloaded_lg#motion#repeatable#make = 1
 
+" FIXME: `C-j` can't be made repeatable.{{{
+"
+" Read this plugin (only 65 sloc atm):
+"
+"     https://github.com/Houl/repmo-vim
+"
+" It doesn't suffer from this issue.
+" Understand how it works.
+"}}}
+
 fu! s:init() abort "{{{1
     " database for global motions, which will be populated progressively
     let s:repeatable_motions = []
