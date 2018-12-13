@@ -16,7 +16,7 @@ fu! lg#motion#repeatable#listing#complete(arglead, cmdline, _pos) abort "{{{2
     " that case, we want to see the latter in the suggestions after `-axis`.
     call s:init()
 
-    " We always assume that the cursor is at the very end of the command line.
+    " We always assume that the cursor is at the very end of the command-line.
     " That's why we never use `a:_p`.
 
     if a:cmdline =~# '-axis\s\+\S*$'

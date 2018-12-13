@@ -381,7 +381,7 @@ fu! s:move_again(dir, axis) abort "{{{2
     "       only prevents the rhs from being  echo'ed. But it can still
     "       display  a message  if it wants to.
     "
-    "     • Sometimes, the command line may seem to flash.
+    "     • Sometimes, the command-line may seem to flash.
     "       Currently,  it  happens when  we  cycle  through the  levels  of
     "       lightness of the colorscheme (]oL  co;  ;).
     "}}}
