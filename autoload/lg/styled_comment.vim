@@ -84,6 +84,8 @@ fu! lg#styled_comment#syntax() abort "{{{2
     let cml_1 = '\V'.cml.'\m'
     let cml_0_1 = '\V\%('.cml.'\)\=\m'
 
+    let containedin = filetype . 'Comment' . (filetype is# 'vim' ? ',vimLineComment' : '')
+
     " replace noisy markers, used in folds, with ❭ and ❬
     " Why not `containedin=ALL`?{{{
     "
@@ -109,10 +111,9 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "
     " In the end, you will have 3 conceal characters, instead of 1.
     "}}}
-    exe 'syn match '.filetype.'FoldMarkers /'.cml_0_1.'\s*{'.'{{\d*\s*\ze\n/ conceal cchar=❭ contained containedin=vimComment,vimLineComment'
-    exe 'syn match '.filetype.'FoldMarkers /'.cml_0_1.'\s*}'.'}}\d*\s*\ze\n/ conceal cchar=❬ contained containedin=vimComment,vimLineComment'
+    exe 'syn match '.filetype.'FoldMarkers /'.cml_0_1.'\s*{'.'{{\d*\s*\ze\n/ conceal cchar=❭ contained containedin='.containedin
+    exe 'syn match '.filetype.'FoldMarkers /'.cml_0_1.'\s*}'.'}}\d*\s*\ze\n/ conceal cchar=❬ contained containedin='.containedin
 
-    let group_name = filetype . (filetype is# 'vim' ? 'LineComment' : 'Comment')
     " What does `matchroup` do?{{{
     "
     " From `:h :syn-matchgroup`:
@@ -163,9 +164,9 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "
     " >    the item IS ALLOWED to be inside `Foo`
     "}}}
-    exe 'syn region '.filetype.'CommentCodeSpan matchgroup=Comment start=/`\@<!``\@!/ end=/`\@<!``\@!/ oneline concealends contained containedin='.group_name
-    exe 'syn region '.filetype.'CommentEmphasis matchgroup=Comment start=/\*\@<!\*\*\@!/ end=/\*\@<!\*\*\@!/ oneline concealends contained containedin='.group_name
-    exe 'syn region '.filetype.'CommentStrong matchgroup=Comment start=/\*\*/ end=/\*\*/ oneline concealends contained containedin='.group_name
+    exe 'syn region '.filetype.'CommentCodeSpan matchgroup=Comment start=/`\@<!``\@!/ end=/`\@<!``\@!/ oneline concealends contained containedin='.containedin
+    exe 'syn region '.filetype.'CommentEmphasis matchgroup=Comment start=/\*\@<!\*\*\@!/ end=/\*\@<!\*\*\@!/ oneline concealends contained containedin='.containedin
+    exe 'syn region '.filetype.'CommentStrong matchgroup=Comment start=/\*\*/ end=/\*\*/ oneline concealends contained containedin='.containedin
 
     " TODO: `containedin=ALL`: should we be more specific?
     " Update:
