@@ -111,8 +111,10 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "
     " In the end, you will have 3 conceal characters, instead of 1.
     "}}}
-    exe 'syn match '.filetype.'FoldMarkers /'.cml_0_1.'\s*{'.'{{\d*\s*\ze\n/ conceal cchar=❭ contained containedin='.containedin
-    exe 'syn match '.filetype.'FoldMarkers /'.cml_0_1.'\s*}'.'}}\d*\s*\ze\n/ conceal cchar=❬ contained containedin='.containedin
+    exe 'syn match '.filetype.'FoldMarkers /'.cml_0_1.'\s*{'.'{{\d*\s*\ze\n/'
+        \ . ' conceal cchar=❭ contained containedin='.containedin
+    exe 'syn match '.filetype.'FoldMarkers /'.cml_0_1.'\s*}'.'}}\d*\s*\ze\n/'
+        \ . ' conceal cchar=❬ contained containedin='.containedin
 
     " What does `matchroup` do?{{{
     "
@@ -164,9 +166,12 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "
     " >    the item IS ALLOWED to be inside `Foo`
     "}}}
-    exe 'syn region '.filetype.'CommentCodeSpan matchgroup=Comment start=/`\@<!``\@!/ end=/`\@<!``\@!/ oneline concealends contained containedin='.containedin
-    exe 'syn region '.filetype.'CommentEmphasis matchgroup=Comment start=/\*\@<!\*\*\@!/ end=/\*\@<!\*\*\@!/ oneline concealends contained containedin='.containedin
-    exe 'syn region '.filetype.'CommentStrong matchgroup=Comment start=/\*\*/ end=/\*\*/ oneline concealends contained containedin='.containedin
+    exe 'syn region '.filetype.'CommentCodeSpan matchgroup=Comment start=/`\@<!``\@!/ end=/`\@<!``\@!/'
+        \ . ' oneline concealends contained containedin='.containedin
+    exe 'syn region '.filetype.'CommentEmphasis matchgroup=Comment start=/\*\@<!\*\*\@!/ end=/\*\@<!\*\*\@!/'
+        \ . ' oneline concealends contained containedin='.containedin
+    exe 'syn region '.filetype.'CommentStrong matchgroup=Comment start=/\*\*/ end=/\*\*/'
+        \ . ' oneline concealends contained containedin='.containedin
 
     " TODO: `containedin=ALL`: should we be more specific?
     " Update:
@@ -219,7 +224,8 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " space between  the beginning  of the  line and  the comment  leader), then
     " `xCommentCodeBlock` will start *before* `xComment`.
     "}}}
-    exe 'syn match '.filetype.'CommentCodeBlock /\%(^\s*\)\@<='.cml_1.'\s\{4}[^•│└┌─]*$/ contained containedin=ALL'
+    exe 'syn match '.filetype.'CommentCodeBlock /\%(^\s*\)\@<='.cml_1.'\s\{4}[^•│└┌─]*$/'
+        \ . ' contained containedin=ALL'
     " define blockquote
     " Why do you allow `xCommentStrong` to be contained in `xCommentBlockQuote`?{{{
     "
@@ -228,13 +234,16 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " To stay  consistent, we should be able  to do the same in  the comments of
     " other filetypes.
     "}}}
-    exe 'syn match '.filetype.'CommentBlockQuote /^\s*'.cml_1.'\s*>.*/ contained containedin=ALL contains='.filetype.'CommentStrong'
+    exe 'syn match '.filetype.'CommentBlockQuote /^\s*'.cml_1.'\s*>.*/'
+        \ . ' contained containedin=ALL contains='.filetype.'CommentStrong'
     " conceal the leading `>`
-    exe 'syn match '.filetype.'CommentBlockQuote /\%(^\s*'.cml_1.'\s*\)\@<=>/ contained containedin='.filetype.'CommentBlockQuote conceal'
+    exe 'syn match '.filetype.'CommentBlockQuote /\%(^\s*'.cml_1.'\s*\)\@<=>/'
+        \ . ' contained containedin='.filetype.'CommentBlockQuote conceal'
 
     if filetype isnot# 'vim'
         " TODO: Explain how the code works.
-        exe 'syn match '.filetype.'CommentTitle /'.cml_1.'\s*\u\w*\(\s\+\u\w*\)*:/hs=s+'.nr.' contained contains='.filetype.'CommentTitleLeader,'.filetype.'Todo'
+        exe 'syn match '.filetype.'CommentTitle /'.cml_1.'\s*\u\w*\(\s\+\u\w*\)*:/hs=s+'.nr
+            \ . ' contained contains='.filetype.'CommentTitleLeader,'.filetype.'Todo'
         exe 'syn match '.filetype.'CommentTitleLeader /'.cml_1.'\s\+/ms=s+'.nr.' contained'
     endif
 endfu
