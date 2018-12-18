@@ -37,6 +37,22 @@ fu! s:define_cluster(filetype) abort "{{{2
         \ )
 endfu
 
+fu! s:get_filetype() abort "{{{2
+    let filetype = expand('<amatch>')
+    if filetype is# 'snippets' | let filetype = 'snip' | endif
+    return filetype
+endfu
+
+fu! lg#styled_comment#highlight() abort "{{{2
+    let filetype = s:get_filetype()
+    exe 'hi link  '.filetype.'CommentStrong     CommentStrong'
+    exe 'hi link  '.filetype.'CommentEmphasis   CommentEmphasis'
+    exe 'hi link  '.filetype.'CommentCodeSpan   CommentCodeSpan'
+    exe 'hi link  '.filetype.'CommentCodeBlock  CommentCodeSpan'
+    exe 'hi link  '.filetype.'CommentBlockQuote CommentBlockQuote'
+    exe 'hi link  '.filetype.'CommentTitle      PreProc'
+endfu
+
 fu! lg#styled_comment#syntax() abort "{{{2
     " Purpose: define the following syntax groups{{{
     "
@@ -52,7 +68,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "}}}
 
     " TODO: integrate most of the comments from this function into our notes
-    let filetype = expand('<amatch>')
+    let filetype = s:get_filetype()
 
     call s:define_cluster(filetype)
 
@@ -246,15 +262,5 @@ fu! lg#styled_comment#syntax() abort "{{{2
             \ . ' contained contains='.filetype.'CommentTitleLeader,'.filetype.'Todo'
         exe 'syn match '.filetype.'CommentTitleLeader /'.cml_1.'\s\+/ms=s+'.nr.' contained'
     endif
-endfu
-
-fu! lg#styled_comment#highlight() abort "{{{2
-    let filetype = expand('<amatch>')
-    exe 'hi link  '.filetype.'CommentStrong     CommentStrong'
-    exe 'hi link  '.filetype.'CommentEmphasis   CommentEmphasis'
-    exe 'hi link  '.filetype.'CommentCodeSpan   CommentCodeSpan'
-    exe 'hi link  '.filetype.'CommentCodeBlock  CommentCodeSpan'
-    exe 'hi link  '.filetype.'CommentBlockQuote CommentBlockQuote'
-    exe 'hi link  '.filetype.'CommentTitle      PreProc'
 endfu
 
