@@ -51,6 +51,8 @@ fu! lg#styled_comment#highlight() abort "{{{2
     exe 'hi link  '.filetype.'CommentCodeBlock  CommentCodeSpan'
     exe 'hi link  '.filetype.'CommentBlockQuote CommentBlockQuote'
     exe 'hi link  '.filetype.'CommentTitle      PreProc'
+
+    exe 'hi '      .filetype.'FoldMarkers term=bold cterm=bold gui=bold'
 endfu
 
 fu! lg#styled_comment#syntax() abort "{{{2
@@ -85,7 +87,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " Why capturing it now?{{{
     "
     " The next statement invokes `escape()` which may add backslashes, and alter
-    " the real number of character inside the comment leader.
+    " the real number of characters inside the comment leader.
     "}}}
     let nr = strchars(cml, 1)
     " Why do you escape the slashes?{{{
@@ -127,6 +129,9 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "
     " In the end, you will have 3 conceal characters, instead of 1.
     "}}}
+    " ❭❬
+    " ❯❮
+    " ❱❰
     exe 'syn match '.filetype.'FoldMarkers /'.cml_0_1.'\s*{'.'{{\d*\s*\ze\n/'
         \ . ' conceal cchar=❭ contained containedin='.containedin
     exe 'syn match '.filetype.'FoldMarkers /'.cml_0_1.'\s*}'.'}}\d*\s*\ze\n/'
