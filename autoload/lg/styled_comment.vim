@@ -36,8 +36,8 @@ fu! s:define_cluster(filetype) abort "{{{2
         \   'syn cluster %sMyCustomGroups contains='
         \ . '%sFoldMarkers,'
         \ . '%sCommentCodeSpan,'
-        \ . '%sCommentEmphasis,'
-        \ . '%sCommentStrong,'
+        \ . '%sCommentItalic,'
+        \ . '%sCommentBold,'
         \ . '%sCommentCodeBlock,'
         \ . '%sCommentBlockQuote,'
         \ . '%sCommentTitle,'
@@ -56,15 +56,15 @@ endfu
 fu! lg#styled_comment#highlight() abort "{{{2
     let filetype = s:get_filetype()
     exe 'hi link  '.filetype.'CommentTitle               PreProc'
-    exe 'hi link  '.filetype.'CommentStrong              CommentStrong'
-    exe 'hi link  '.filetype.'CommentEmphasis            CommentEmphasis'
-    exe 'hi link  '.filetype.'CommentStrongEmphasis      CommentStrongEmphasis'
+    exe 'hi link  '.filetype.'CommentItalic              CommentItalic'
+    exe 'hi link  '.filetype.'CommentBold                CommentBold'
+    exe 'hi link  '.filetype.'CommentBoldItalic          CommentBoldItalic'
     exe 'hi link  '.filetype.'CommentCodeSpan            CommentCodeSpan'
     exe 'hi link  '.filetype.'CommentCodeBlock           CommentCodeSpan'
     exe 'hi link  '.filetype.'CommentBlockQuote          CommentBlockQuote'
-    exe 'hi link  '.filetype.'CommentBlockQuoteEmphasis  CommentBlockQuoteEmphasis'
-    exe 'hi link  '.filetype.'CommentBlockQuoteStrong    CommentBlockQuoteStrong'
     exe 'hi link  '.filetype.'CommentBlockQuoteLeader    Comment'
+    exe 'hi link  '.filetype.'CommentBlockQuoteItalic    CommentBlockQuoteItalic'
+    exe 'hi link  '.filetype.'CommentBlockQuoteBold      CommentBlockQuoteBold'
     exe 'hi link  '.filetype.'CommentBlockQuoteCodeSpan  CommentBlockQuoteCodeSpan'
 
     exe 'hi '      .filetype.'FoldMarkers term=bold cterm=bold gui=bold'
@@ -77,8 +77,8 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "     xFoldMarkers
     "
     "     xCommentCodeSpan
-    "     xCommentEmphasis
-    "     xCommentStrong
+    "     xCommentItalic
+    "     xCommentBold
     "     xCommentCodeBlock
     "     xCommentBlockQuote
     "     xCommentTitle
@@ -186,8 +186,8 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " It's definitely necessary for:
     "
     "     CommentCodeSpan
-    "     CommentEmphasis
-    "     CommentStrong
+    "     CommentItalic
+    "     CommentBold
     "
     " Otherwise, your code may be applied wrong graphical attributes:
     "
@@ -209,8 +209,8 @@ fu! lg#styled_comment#syntax() abort "{{{2
         \ . ' containedin='.commentGroup
         \ . ' oneline'
 
-    " some *emphasized* comment
-    exe 'syn region '.filetype.'CommentEmphasis'
+    " some *italic* comment
+    exe 'syn region '.filetype.'CommentItalic'
         \ . ' matchgroup=Comment'
         \ . ' start=/\*\@<!\*\*\@!/'
         \ . '   end=/\*\@<!\*\*\@!/'
@@ -219,8 +219,8 @@ fu! lg#styled_comment#syntax() abort "{{{2
         \ . ' containedin='.commentGroup
         \ . ' oneline'
 
-    " some **strong** comment
-    exe 'syn region '.filetype.'CommentStrong'
+    " some **bold** comment
+    exe 'syn region '.filetype.'CommentBold'
         \ . ' matchgroup=Comment'
         \ . ' start=/\*\*/'
         \ . '  end=/\*\*/'
@@ -229,8 +229,8 @@ fu! lg#styled_comment#syntax() abort "{{{2
         \ . ' containedin='.commentGroup
         \ . ' oneline'
 
-    " some ***strong and emphasized*** comment
-    exe 'syn region '.filetype.'CommentStrongEmphasis'
+    " some ***bold and italic*** comment
+    exe 'syn region '.filetype.'CommentBoldItalic'
         \ . ' matchgroup=Comment'
         \ . ' start=/\*\*\*/'
         \ . '  end=/\*\*\*/'
@@ -241,7 +241,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
 
     " > some quote
     " <not> a quote
-    " Why do you allow `xCommentStrong` to be contained in `xCommentBlockQuote`?{{{
+    " Why do you allow `xCommentBold` to be contained in `xCommentBlockQuote`?{{{
     "
     " In a  markdown buffer,  we can make  some text be  displayed in  bold even
     " inside a blockquote.
@@ -252,7 +252,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
         \ . ' contained'
         \ . ' containedin='.commentGroup
         \ . ' contains='.filetype.'CommentBlockQuoteLeader,'.filetype.'CommentBlockQuoteConceal'
-        \ . ' contains='.filetype.'CommentStrong'
+        \ . ' contains='.filetype.'CommentBold'
         \ . ' oneline'
     exe 'syn match '.filetype.'CommentBlockQuoteConceal'
         \ . ' /\%(^\s*'.cml_1.'\s*\)\@<=>\s/'
@@ -262,18 +262,8 @@ fu! lg#styled_comment#syntax() abort "{{{2
         \ . ' /^\s*'.cml_1.'/'
         \ . ' contained'
 
-    " > some *emphasized* quote
-    exe 'syn region '.filetype.'CommentBlockQuoteEmphasis'
-        \ . ' matchgroup=PreProc'
-        \ . ' start=/\*/'
-        \ . '   end=/\*/'
-        \ . ' concealends'
-        \ . ' contained'
-        \ . ' containedin='.filetype.'CommentBlockQuote'
-        \ . ' oneline'
-
     " > some **bold** quote
-    exe 'syn region '.filetype.'CommentBlockQuoteStrong'
+    exe 'syn region '.filetype.'CommentBlockQuoteBold'
         \ . ' matchgroup=PreProc'
         \ . ' start=/\*\*/'
         \ . '   end=/\*\*/'
