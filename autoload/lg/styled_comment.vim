@@ -301,6 +301,14 @@ fu! lg#styled_comment#syntax() abort "{{{2
         \ . ' end=/$/'
         \ . ' containedin='.commentGroup
 
+    " TODO:  add support for code output in comment
+    "
+    "     $ shell command
+    "     output~
+    "     ├─────┘
+    "     └ should be highlighted with PreProc,
+    "       and the tilde should be concealed
+
     " FIXME: the second item should be blue, and all comment leaders should be green
     " - some list item 1
     " - some list item 2
