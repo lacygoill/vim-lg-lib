@@ -39,7 +39,7 @@ fu! s:define_cluster(filetype) abort "{{{2
         \ . '%sCommentItalic,'
         \ . '%sCommentBold,'
         \ . '%sCommentCodeBlock,'
-        \ . '%sCommentBlockQuote,'
+        \ . '%sCommentBlockquote,'
         \ . '%sCommentTitle,'
         \ . '%sCommentTitleLeader'
         \ ]
@@ -61,11 +61,11 @@ fu! lg#styled_comment#highlight() abort "{{{2
     exe 'hi link  '.filetype.'CommentBoldItalic          CommentBoldItalic'
     exe 'hi link  '.filetype.'CommentCodeSpan            CommentCodeSpan'
     exe 'hi link  '.filetype.'CommentCodeBlock           CommentCodeSpan'
-    exe 'hi link  '.filetype.'CommentBlockQuote          CommentBlockQuote'
-    exe 'hi link  '.filetype.'CommentBlockQuoteLeader    Comment'
-    exe 'hi link  '.filetype.'CommentBlockQuoteItalic    CommentBlockQuoteItalic'
-    exe 'hi link  '.filetype.'CommentBlockQuoteBold      CommentBlockQuoteBold'
-    exe 'hi link  '.filetype.'CommentBlockQuoteCodeSpan  CommentBlockQuoteCodeSpan'
+    exe 'hi link  '.filetype.'CommentBlockquote          CommentBlockquote'
+    exe 'hi link  '.filetype.'CommentBlockquoteLeader    Comment'
+    exe 'hi link  '.filetype.'CommentBlockquoteItalic    CommentBlockquoteItalic'
+    exe 'hi link  '.filetype.'CommentBlockquoteBold      CommentBlockquoteBold'
+    exe 'hi link  '.filetype.'CommentBlockquoteCodeSpan  CommentBlockquoteCodeSpan'
 
     exe 'hi '      .filetype.'FoldMarkers term=bold cterm=bold gui=bold'
 endfu
@@ -80,7 +80,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "     xCommentItalic
     "     xCommentBold
     "     xCommentCodeBlock
-    "     xCommentBlockQuote
+    "     xCommentBlockquote
     "     xCommentTitle
     "     xCommentTitleLeader
     "}}}
@@ -241,45 +241,45 @@ fu! lg#styled_comment#syntax() abort "{{{2
 
     " > some quote
     " <not> a quote
-    " Why do you allow `xCommentBold` to be contained in `xCommentBlockQuote`?{{{
+    " Why do you allow `xCommentBold` to be contained in `xCommentBlockquote`?{{{
     "
     " In a  markdown buffer,  we can make  some text be  displayed in  bold even
     " inside a blockquote.
     " To stay  consistent, we should be able  to do the same in  the comments of
     " other filetypes.
     "}}}
-    exe 'syn match '.filetype.'CommentBlockQuote /^\s*'.cml_1.'\s*>.*/'
+    exe 'syn match '.filetype.'CommentBlockquote /^\s*'.cml_1.'\s*>.*/'
         \ . ' contained'
         \ . ' containedin='.commentGroup
-        \ . ' contains='.filetype.'CommentBlockQuoteLeader,'.filetype.'CommentBlockQuoteConceal'
+        \ . ' contains='.filetype.'CommentBlockquoteLeader,'.filetype.'CommentBlockquoteConceal'
         \ . ' contains='.filetype.'CommentBold'
         \ . ' oneline'
-    exe 'syn match '.filetype.'CommentBlockQuoteConceal'
+    exe 'syn match '.filetype.'CommentBlockquoteConceal'
         \ . ' /\%(^\s*'.cml_1.'\s*\)\@<=>\s/'
         \ . ' contained'
         \ . ' conceal'
-    exe 'syn match '.filetype.'CommentBlockQuoteLeader'
+    exe 'syn match '.filetype.'CommentBlockquoteLeader'
         \ . ' /^\s*'.cml_1.'/'
         \ . ' contained'
 
     " > some **bold** quote
-    exe 'syn region '.filetype.'CommentBlockQuoteBold'
+    exe 'syn region '.filetype.'CommentBlockquoteBold'
         \ . ' matchgroup=PreProc'
         \ . ' start=/\*\*/'
         \ . '   end=/\*\*/'
         \ . ' concealends'
         \ . ' contained'
-        \ . ' containedin='.filetype.'CommentBlockQuote'
+        \ . ' containedin='.filetype.'CommentBlockquote'
         \ . ' oneline'
 
     " > some `code span` in a quote
-    exe 'syn region '.filetype.'CommentBlockQuoteCodeSpan'
+    exe 'syn region '.filetype.'CommentBlockquoteCodeSpan'
         \ . ' matchgroup=PreProc'
         \ . ' start=/`\@<!``\@!/'
         \ . '   end=/`\@<!``\@!/'
         \ . ' concealends'
         \ . ' contained'
-        \ . ' containedin='.filetype.'CommentBlockQuote'
+        \ . ' containedin='.filetype.'CommentBlockquote'
         \ . ' oneline'
 
     "     some codeblock
