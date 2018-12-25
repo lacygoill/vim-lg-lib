@@ -55,17 +55,22 @@ endfu
 
 fu! lg#styled_comment#highlight() abort "{{{2
     let filetype = s:get_filetype()
+
     exe 'hi link  '.filetype.'CommentTitle               PreProc'
+
     exe 'hi link  '.filetype.'CommentItalic              CommentItalic'
     exe 'hi link  '.filetype.'CommentBold                CommentBold'
     exe 'hi link  '.filetype.'CommentBoldItalic          CommentBoldItalic'
     exe 'hi link  '.filetype.'CommentCodeSpan            CommentCodeSpan'
     exe 'hi link  '.filetype.'CommentCodeBlock           CommentCodeSpan'
-    exe 'hi link  '.filetype.'CommentBlockquote          CommentBlockquote'
+
+    exe 'hi link  '.filetype.'CommentBlockquote          markdownBlockquote'
     exe 'hi link  '.filetype.'CommentBlockquoteLeader    Comment'
-    exe 'hi link  '.filetype.'CommentBlockquoteItalic    CommentBlockquoteItalic'
-    exe 'hi link  '.filetype.'CommentBlockquoteBold      CommentBlockquoteBold'
-    exe 'hi link  '.filetype.'CommentBlockquoteCodeSpan  CommentBlockquoteCodeSpan'
+    exe 'hi link  '.filetype.'CommentBlockquoteItalic    markdownBlockquoteItalic'
+    exe 'hi link  '.filetype.'CommentBlockquoteBold      markdownBlockquoteBold'
+    exe 'hi link  '.filetype.'CommentBlockquoteCodeSpan  markdownBlockquoteCodeSpan'
+
+    exe 'hi link  '.filetype.'CommentList                markdownList'
 
     exe 'hi '      .filetype.'FoldMarkers term=bold cterm=bold gui=bold'
 endfu
@@ -202,8 +207,8 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " some `code span` in a comment
     exe 'syn region '.filetype.'CommentCodeSpan'
         \ . ' matchgroup=Comment'
-        \ . ' start=/`\@<!``\@!/'
-        \ . '   end=/`\@<!``\@!/'
+        \ . ' start=/`\@1<!``\@!/'
+        \ . '   end=/`\@1<!``\@!/'
         \ . ' concealends'
         \ . ' contained'
         \ . ' containedin='.commentGroup
@@ -212,8 +217,8 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " some *italic* comment
     exe 'syn region '.filetype.'CommentItalic'
         \ . ' matchgroup=Comment'
-        \ . ' start=/\*\@<!\*\*\@!/'
-        \ . '   end=/\*\@<!\*\*\@!/'
+        \ . ' start=/\*\@1<!\*\*\@!/'
+        \ . '   end=/\*\@1<!\*\*\@!/'
         \ . ' concealends'
         \ . ' contained'
         \ . ' containedin='.commentGroup
@@ -275,8 +280,8 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " > some `code span` in a quote
     exe 'syn region '.filetype.'CommentBlockquoteCodeSpan'
         \ . ' matchgroup=PreProc'
-        \ . ' start=/`\@<!``\@!/'
-        \ . '   end=/`\@<!``\@!/'
+        \ . ' start=/`\@1<!``\@!/'
+        \ . '   end=/`\@1<!``\@!/'
         \ . ' concealends'
         \ . ' contained'
         \ . ' containedin='.filetype.'CommentBlockquote'
@@ -295,6 +300,24 @@ fu! lg#styled_comment#syntax() abort "{{{2
         \ . ' matchgroup=NONE'
         \ . ' end=/$/'
         \ . ' containedin='.commentGroup
+
+    " FIXME: the second item should be blue, and all comment leaders should be green
+    " - some list item 1
+    " - some list item 2
+    " - some list item 3
+    " TODO:  add support  for codespan,  italic, bold,  bold+italic, blockquote,
+    " codeblock, ... inside list
+    exe 'syn region '.filetype.'CommentList'
+        \ . ' start=/^\s*'.cml_1.' \{,4\}\%([-*+•]\|\d\+\.\)\s\+\S/'
+        \ . ' end=/^\s*'.cml_1.'\%(\s*\n\s*'.cml_1.'\s\=\S\)\@=\|^\s*\%('.cml_1.'\)\@!/'
+        \ . ' contained'
+        \ . ' containedin='.commentGroup
+        \ . ' contains='.filetype.'FoldMarkers,'.filetype.'CommentCodeBlock'
+
+    "     ^ \{,3\}\%([-*+•]\|\d\+\.\)\s\+\S
+    "     \_.\{-}
+    "     \n\s*\n \{,2}\%([^-*+• \t]\|\%$\)\@=
+    "     contained contains=markdownListItalic,markdownListBold,markdownListBoldItalic,markdownListCodeSpan
 
     if filetype isnot# 'vim'
         " TODO: Explain how the code works.
