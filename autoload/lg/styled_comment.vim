@@ -22,6 +22,16 @@ endfu
 " }}}1
 " syntax plugin {{{1
 fu! s:define_cluster(filetype) abort "{{{2
+    " Why not `:call call()`?{{{
+    "
+    " It would be equivalent to:
+    "
+    "     call printf(...)
+    "
+    " Which would do nothing, except printing a string.
+    " We don't want to print a string.
+    " We want to execute its contents.
+    "}}}
     exe call('printf', [
         \   'syn cluster %sMyCustomGroups contains='
         \ . '%sFoldMarkers,'
@@ -45,17 +55,23 @@ endfu
 
 fu! lg#styled_comment#highlight() abort "{{{2
     let filetype = s:get_filetype()
-    exe 'hi link  '.filetype.'CommentStrong     CommentStrong'
-    exe 'hi link  '.filetype.'CommentEmphasis   CommentEmphasis'
-    exe 'hi link  '.filetype.'CommentCodeSpan   CommentCodeSpan'
-    exe 'hi link  '.filetype.'CommentCodeBlock  CommentCodeSpan'
-    exe 'hi link  '.filetype.'CommentBlockQuote CommentBlockQuote'
-    exe 'hi link  '.filetype.'CommentTitle      PreProc'
+    exe 'hi link  '.filetype.'CommentTitle               PreProc'
+    exe 'hi link  '.filetype.'CommentStrong              CommentStrong'
+    exe 'hi link  '.filetype.'CommentEmphasis            CommentEmphasis'
+    exe 'hi link  '.filetype.'CommentStrongEmphasis      CommentStrongEmphasis'
+    exe 'hi link  '.filetype.'CommentCodeSpan            CommentCodeSpan'
+    exe 'hi link  '.filetype.'CommentCodeBlock           CommentCodeSpan'
+    exe 'hi link  '.filetype.'CommentBlockQuote          CommentBlockQuote'
+    exe 'hi link  '.filetype.'CommentBlockQuoteEmphasis  CommentBlockQuoteEmphasis'
+    exe 'hi link  '.filetype.'CommentBlockQuoteStrong    CommentBlockQuoteStrong'
+    exe 'hi link  '.filetype.'CommentBlockQuoteLeader    Comment'
+    exe 'hi link  '.filetype.'CommentBlockQuoteCodeSpan  CommentBlockQuoteCodeSpan'
 
     exe 'hi '      .filetype.'FoldMarkers term=bold cterm=bold gui=bold'
 endfu
 
 fu! lg#styled_comment#syntax() abort "{{{2
+    " TODO: Update the lists of the syntax groups that this function defines.
     " Purpose: define the following syntax groups{{{
     "
     "     xFoldMarkers
@@ -102,7 +118,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
     let cml_1 = '\V'.cml.'\m'
     let cml_0_1 = '\V\%('.cml.'\)\=\m'
 
-    let containedin = filetype . 'Comment' . (filetype is# 'vim' ? ',vimLineComment' : '')
+    let commentGroup = filetype . 'Comment' . (filetype is# 'vim' ? ',vimLineComment' : '')
 
     " replace noisy markers, used in folds, with ❭ and ❬
     " Why not `containedin=ALL`?{{{
@@ -132,10 +148,18 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " ❭❬
     " ❯❮
     " ❱❰
-    exe 'syn match '.filetype.'FoldMarkers /'.cml_0_1.'\s*{'.'{{\d*\s*\ze\n/'
-        \ . ' conceal cchar=❭ contained containedin='.containedin
-    exe 'syn match '.filetype.'FoldMarkers /'.cml_0_1.'\s*}'.'}}\d*\s*\ze\n/'
-        \ . ' conceal cchar=❬ contained containedin='.containedin
+    exe 'syn match '.filetype.'FoldMarkers'
+        \ . ' /'.cml_0_1.'\s*{'.'{{\d*\s*\ze\n/'
+        \ . ' conceal'
+        \ . ' cchar=❭'
+        \ . ' contained'
+        \ . ' containedin='.commentGroup
+    exe 'syn match '.filetype.'FoldMarkers'
+        \ . ' /'.cml_0_1.'\s*}'.'}}\d*\s*\ze\n/'
+        \ . ' contained'
+        \ . ' containedin='.commentGroup
+        \ . ' conceal'
+        \ . ' cchar=❬'
 
     " What does `matchroup` do?{{{
     "
@@ -175,79 +199,48 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "
     "     $ vim !$
     "}}}
-    " But, isn't `containedin=` enough?{{{
-    "
-    " No.
-    "
-    " `containedin=Foo` doesn't mean:
-    "
-    " >    the item MUST be inside `Foo`
-    "
-    " but:
-    "
-    " >    the item IS ALLOWED to be inside `Foo`
-    "}}}
-    exe 'syn region '.filetype.'CommentCodeSpan matchgroup=Comment start=/`\@<!``\@!/ end=/`\@<!``\@!/'
-        \ . ' oneline concealends contained containedin='.containedin
-    exe 'syn region '.filetype.'CommentEmphasis matchgroup=Comment start=/\*\@<!\*\*\@!/ end=/\*\@<!\*\*\@!/'
-        \ . ' oneline concealends contained containedin='.containedin
-    exe 'syn region '.filetype.'CommentStrong matchgroup=Comment start=/\*\*/ end=/\*\*/'
-        \ . ' oneline concealends contained containedin='.containedin
+    " some `code span` in a comment
+    exe 'syn region '.filetype.'CommentCodeSpan'
+        \ . ' matchgroup=Comment'
+        \ . ' start=/`\@<!``\@!/'
+        \ . '   end=/`\@<!``\@!/'
+        \ . ' concealends'
+        \ . ' contained'
+        \ . ' containedin='.commentGroup
+        \ . ' oneline'
 
-    " TODO: `containedin=ALL`: should we be more specific?
-    " Update:
-    " I don't know, but a blockquote may be inside a Vim function.
-    " So, you need  to tell Vim that `vimCommentBlockQuote` may  be contained in
-    " `vimFuncBody`, otherwise  you won't  have the italic  style even  when you
-    " start a comment with `>` in a Vim comment.
-    " And who knows what others syntax groups a blockquote could be contained in...
+    " some *emphasized* comment
+    exe 'syn region '.filetype.'CommentEmphasis'
+        \ . ' matchgroup=Comment'
+        \ . ' start=/\*\@<!\*\*\@!/'
+        \ . '   end=/\*\@<!\*\*\@!/'
+        \ . ' concealends'
+        \ . ' contained'
+        \ . ' containedin='.commentGroup
+        \ . ' oneline'
 
-    " Why `\%(..\)\@<=`?{{{
-    "
-    " I want `xCommentCodeBlock` to highlight  only from the comment leader (and
-    " not complete lines).
-    " It's less noisy.
-    "}}}
-    " Warning: Do *not* use `\zs` instead of `\%(...\)\@<=`!{{{
-    "
-    " It would sometimes break `xCommentCodeBlock`.
-    " MWE:
-    "     $ echo ' #    codeblock' >/tmp/awk.awk
-    "             ^
-    "             ✘ indentation breaks syntax
-    "
-    "     $ vim /tmp/awk.awk
-    "
-    " The text `#    codeblock` is not properly highlighted.
-    "
-    " Why?
-    " The beginning of a nested item must be inside the containing item.
-    " From `:h syn-contains`:
-    "
-    " >    These groups will be allowed to begin **inside** the item...
-    "
-    " In particular,  a nested item can  *not* begin before the  containing item
-    " has begun.
-    "
-    " If you use `\zs`, `xCommentCodeBlock`  will start right from the beginning
-    " of the line, because the regex starts with the anchor `^`.
-    " Yes, `\zs` doesn't change the start of the item.
-    "
-    " But `xCommentCodeBlock` is supposed to be contained in `xComment`.
-    " OTOH, `xComment` may sometimes begin *after* the beginning of the line.
-    " Example:
-    "
-    "     syn match awkComment "#.*" contains=@Spell,awkTodo
-    "
-    " Here, `awkComment` doesn't start at the  beginning of the line, but at the
-    " comment leader.
-    " As  a  result, if  your  comment  is indented  (i.e.  there's  at least  1
-    " space between  the beginning  of the  line and  the comment  leader), then
-    " `xCommentCodeBlock` will start *before* `xComment`.
-    "}}}
-    exe 'syn match '.filetype.'CommentCodeBlock /\%(^\s*\)\@<='.cml_1.'\s\{4}[^•│└┌─]*$/'
-        \ . ' contained containedin=ALL'
-    " define blockquote
+    " some **strong** comment
+    exe 'syn region '.filetype.'CommentStrong'
+        \ . ' matchgroup=Comment'
+        \ . ' start=/\*\*/'
+        \ . '  end=/\*\*/'
+        \ . ' concealends'
+        \ . ' contained'
+        \ . ' containedin='.commentGroup
+        \ . ' oneline'
+
+    " some ***strong and emphasized*** comment
+    exe 'syn region '.filetype.'CommentStrongEmphasis'
+        \ . ' matchgroup=Comment'
+        \ . ' start=/\*\*\*/'
+        \ . '  end=/\*\*\*/'
+        \ . ' concealends'
+        \ . ' contained'
+        \ . ' containedin='.commentGroup
+        \ . ' oneline'
+
+    " > some quote
+    " <not> a quote
     " Why do you allow `xCommentStrong` to be contained in `xCommentBlockQuote`?{{{
     "
     " In a  markdown buffer,  we can make  some text be  displayed in  bold even
@@ -256,16 +249,113 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " other filetypes.
     "}}}
     exe 'syn match '.filetype.'CommentBlockQuote /^\s*'.cml_1.'\s*>.*/'
-        \ . ' contained containedin=ALL contains='.filetype.'CommentStrong'
-    " conceal the leading `>`
-    exe 'syn match '.filetype.'CommentBlockQuote /\%(^\s*'.cml_1.'\s*\)\@<=>/'
-        \ . ' contained containedin='.filetype.'CommentBlockQuote conceal'
+        \ . ' contained'
+        \ . ' containedin='.commentGroup
+        \ . ' contains='.filetype.'CommentBlockQuoteLeader,'.filetype.'CommentBlockQuoteConceal'
+        \ . ' contains='.filetype.'CommentStrong'
+        \ . ' oneline'
+    exe 'syn match '.filetype.'CommentBlockQuoteConceal'
+        \ . ' /\%(^\s*'.cml_1.'\s*\)\@<=>\s/'
+        \ . ' contained'
+        \ . ' conceal'
+    exe 'syn match '.filetype.'CommentBlockQuoteLeader'
+        \ . ' /^\s*'.cml_1.'/'
+        \ . ' contained'
+
+    " > some *emphasized* quote
+    exe 'syn region '.filetype.'CommentBlockQuoteEmphasis'
+        \ . ' matchgroup=PreProc'
+        \ . ' start=/\*/'
+        \ . '   end=/\*/'
+        \ . ' concealends'
+        \ . ' contained'
+        \ . ' containedin='.filetype.'CommentBlockQuote'
+        \ . ' oneline'
+
+    " > some **bold** quote
+    exe 'syn region '.filetype.'CommentBlockQuoteStrong'
+        \ . ' matchgroup=PreProc'
+        \ . ' start=/\*\*/'
+        \ . '   end=/\*\*/'
+        \ . ' concealends'
+        \ . ' contained'
+        \ . ' containedin='.filetype.'CommentBlockQuote'
+        \ . ' oneline'
+
+    " > some `code span` in a quote
+    exe 'syn region '.filetype.'CommentBlockQuoteCodeSpan'
+        \ . ' matchgroup=PreProc'
+        \ . ' start=/`\@<!``\@!/'
+        \ . '   end=/`\@<!``\@!/'
+        \ . ' concealends'
+        \ . ' contained'
+        \ . ' containedin='.filetype.'CommentBlockQuote'
+        \ . ' oneline'
+
+    "     some codeblock
+    " Why a region?{{{
+    "
+    " I  want `xCommentCodeBlock`  to highlight  only  after 5  spaces from  the
+    " comment leader (instead of complete lines).
+    " It's less noisy.
+    "}}}
+    exe 'syn region '.filetype.'CommentCodeBlock'
+        \ . ' matchgroup=Comment'
+        \ . ' start=/^\s*'.cml_1.'\s\{5}/'
+        \ . ' matchgroup=NONE'
+        \ . ' end=/$/'
+        \ . ' containedin='.commentGroup
 
     if filetype isnot# 'vim'
         " TODO: Explain how the code works.
-        exe 'syn match '.filetype.'CommentTitle /'.cml_1.'\s*\u\w*\(\s\+\u\w*\)*:/hs=s+'.nr
-            \ . ' contained contains='.filetype.'CommentTitleLeader,'.filetype.'Todo'
-        exe 'syn match '.filetype.'CommentTitleLeader /'.cml_1.'\s\+/ms=s+'.nr.' contained'
+        exe 'syn match '.filetype.'CommentTitle'
+            \ . ' /'.cml_1.'\s*\u\w*\%(\s\+\u\w*\)*:/hs=s+'.nr
+            \ . ' contained'
+            \ . ' contains='.filetype.'CommentTitleLeader,'.filetype.'Todo'
+        exe 'syn match '.filetype.'CommentTitleLeader'
+            \ . ' /'.cml_1.'\s\+/ms=s+'.nr
+            \ . ' contained'
     endif
+
+    " TODO: highlight commented urls (like in markdown)?
+    "
+    "     markdownLinkText xxx matchgroup=markdownLinkTextDelimiter
+    "                          start=/!\=\[\%(\_[^]]*]\%( \=[[(]\)\)\@=/
+    "                          end=/\]\%( \=[[(]\)\@=/
+    "                          concealends
+    "                          contains=@markdownInline,markdownLineStart
+    "                          nextgroup=markdownLink,markdownId
+    "                          skipwhite
+    "     links to Conditional
+    "
+    "     markdownUrl    xxx match /\S\+/
+    "                        contained nextgroup=markdownUrlTitle
+    "                        skipwhite
+    "                        matchgroup=markdownUrlDelimiter
+    "                        start=/</
+    "                        end=/>/
+    "                        contained
+    "                        oneline
+    "                        keepend
+    "                        nextgroup=markdownUrlTitle
+    "                        skipwhite
+    "     links to Float
+    "
+    " TODO: highlight bullets in lists with `Repeat`.
+    " Or highlight lists as a whole (with text)?
+    "
+    " TODO:
+    " Read:
+    "     https://daringfireball.net/projects/markdown/syntax
+    "     https://daringfireball.net/projects/markdown/basics
+    "
+    " `markdown` provides some useful syntax which our comments
+    " don't emulate yet.
+    "
+    " Like the fact that  a list item can include a blockquote  or a code block.
+    " Make some tests on github,  stackexchange, reddit, and with `:Preview`, to
+    " see what the current syntax is (markdown has evolved I guess...).
+    "
+    " And try to emulate every interesting syntax you find.
 endfu
 
