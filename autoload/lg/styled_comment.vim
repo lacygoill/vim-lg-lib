@@ -158,11 +158,11 @@ fu! lg#styled_comment#syntax() abort "{{{2
         \ . ' conceal'
         \ . ' cchar=❭'
         \ . ' contained'
-        \ . ' containedin='.commentGroup
+        \ . ' containedin='.commentGroup.','.filetype.'CommentCodeBlock'
     exe 'syn match '.filetype.'FoldMarkers'
         \ . ' /'.cml_0_1.'\s*}'.'}}\d*\s*\ze\n/'
         \ . ' contained'
-        \ . ' containedin='.commentGroup
+        \ . ' containedin='.commentGroup.','.filetype.'CommentCodeBlock'
         \ . ' conceal'
         \ . ' cchar=❬'
 
@@ -308,6 +308,8 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "     ├─────┘
     "     └ should be highlighted with PreProc,
     "       and the tilde should be concealed
+    exe 'syn match '.filetype.'CommentOutput /^\s*'.cml_1.'.*\~$/ contained containedin='.filetype.'CommentCodeBlock nextgroup='.filetype.'CommentIgnore'
+    exe 'syn match '.filetype.'CommentIgnore /^\s*'.cml_1.'.$/ contained containedin='.filetype.'CommentOutput conceal'
 
     " FIXME: the second item should be blue, and all comment leaders should be green
     " - some list item 1
