@@ -56,23 +56,24 @@ endfu
 fu! lg#styled_comment#highlight() abort "{{{2
     let filetype = s:get_filetype()
 
-    exe 'hi link  '.filetype.'CommentTitle               PreProc'
+    exe 'hi '     .filetype.'FoldMarkers term=bold cterm=bold gui=bold'
 
-    exe 'hi link  '.filetype.'CommentItalic              CommentItalic'
-    exe 'hi link  '.filetype.'CommentBold                CommentBold'
-    exe 'hi link  '.filetype.'CommentBoldItalic          CommentBoldItalic'
-    exe 'hi link  '.filetype.'CommentCodeSpan            CommentCodeSpan'
-    exe 'hi link  '.filetype.'CommentCodeBlock           CommentCodeSpan'
+    exe 'hi link '.filetype.'CommentList                markdownList'
 
-    exe 'hi link  '.filetype.'CommentBlockquote          markdownBlockquote'
-    exe 'hi link  '.filetype.'CommentBlockquoteLeader    Comment'
-    exe 'hi link  '.filetype.'CommentBlockquoteItalic    markdownBlockquoteItalic'
-    exe 'hi link  '.filetype.'CommentBlockquoteBold      markdownBlockquoteBold'
-    exe 'hi link  '.filetype.'CommentBlockquoteCodeSpan  markdownBlockquoteCodeSpan'
+    exe 'hi link '.filetype.'CommentTitle               PreProc'
+    exe 'hi link '.filetype.'CommentOutput              PreProc'
 
-    exe 'hi link  '.filetype.'CommentList                markdownList'
+    exe 'hi link '.filetype.'CommentItalic              CommentItalic'
+    exe 'hi link '.filetype.'CommentBold                CommentBold'
+    exe 'hi link '.filetype.'CommentBoldItalic          CommentBoldItalic'
+    exe 'hi link '.filetype.'CommentCodeSpan            CommentCodeSpan'
+    exe 'hi link '.filetype.'CommentCodeBlock           CommentCodeSpan'
 
-    exe 'hi '      .filetype.'FoldMarkers term=bold cterm=bold gui=bold'
+    exe 'hi link '.filetype.'CommentBlockquote          markdownBlockquote'
+    exe 'hi link '.filetype.'CommentBlockquoteLeader    Comment'
+    exe 'hi link '.filetype.'CommentBlockquoteItalic    markdownBlockquoteItalic'
+    exe 'hi link '.filetype.'CommentBlockquoteBold      markdownBlockquoteBold'
+    exe 'hi link '.filetype.'CommentBlockquoteCodeSpan  markdownBlockquoteCodeSpan'
 endfu
 
 fu! lg#styled_comment#syntax() abort "{{{2
@@ -209,6 +210,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
         \ . ' matchgroup=Comment'
         \ . ' start=/`\@1<!``\@!/'
         \ . '   end=/`\@1<!``\@!/'
+        \ . ' keepend'
         \ . ' concealends'
         \ . ' contained'
         \ . ' containedin='.commentGroup
@@ -219,6 +221,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
         \ . ' matchgroup=Comment'
         \ . ' start=/\*\@1<!\*\*\@!/'
         \ . '   end=/\*\@1<!\*\*\@!/'
+        \ . ' keepend'
         \ . ' concealends'
         \ . ' contained'
         \ . ' containedin='.commentGroup
@@ -229,6 +232,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
         \ . ' matchgroup=Comment'
         \ . ' start=/\*\*/'
         \ . '  end=/\*\*/'
+        \ . ' keepend'
         \ . ' concealends'
         \ . ' contained'
         \ . ' containedin='.commentGroup
@@ -239,6 +243,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
         \ . ' matchgroup=Comment'
         \ . ' start=/\*\*\*/'
         \ . '  end=/\*\*\*/'
+        \ . ' keepend'
         \ . ' concealends'
         \ . ' contained'
         \ . ' containedin='.commentGroup
@@ -272,6 +277,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
         \ . ' matchgroup=PreProc'
         \ . ' start=/\*\*/'
         \ . '   end=/\*\*/'
+        \ . ' keepend'
         \ . ' concealends'
         \ . ' contained'
         \ . ' containedin='.filetype.'CommentBlockquote'
@@ -282,6 +288,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
         \ . ' matchgroup=PreProc'
         \ . ' start=/`\@1<!``\@!/'
         \ . '   end=/`\@1<!``\@!/'
+        \ . ' keepend'
         \ . ' concealends'
         \ . ' contained'
         \ . ' containedin='.filetype.'CommentBlockquote'
@@ -299,17 +306,13 @@ fu! lg#styled_comment#syntax() abort "{{{2
         \ . ' start=/^\s*'.cml_1.'\s\{5}/'
         \ . ' matchgroup=NONE'
         \ . ' end=/$/'
+        \ . ' keepend'
         \ . ' containedin='.commentGroup
 
-    " TODO:  add support for code output in comment
-    "
     "     $ shell command
     "     output~
-    "     ├─────┘
-    "     └ should be highlighted with PreProc,
-    "       and the tilde should be concealed
-    exe 'syn match '.filetype.'CommentOutput /^\s*'.cml_1.'.*\~$/ contained containedin='.filetype.'CommentCodeBlock nextgroup='.filetype.'CommentIgnore'
-    exe 'syn match '.filetype.'CommentIgnore /^\s*'.cml_1.'.$/ contained containedin='.filetype.'CommentOutput conceal'
+    exe 'syn match '.filetype.'CommentOutput /\%(^ *'.cml_1.' \{5}\)\@<=.*\~$/ contained containedin='.filetype.'CommentCodeBlock nextgroup='.filetype.'CommentIgnore'
+    exe 'syn match '.filetype.'CommentIgnore /\%(^ *'.cml_1.'.*\)\@<=.$/ contained containedin='.filetype.'CommentOutput conceal'
 
     " FIXME: the second item should be blue, and all comment leaders should be green
     " - some list item 1
@@ -320,6 +323,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
     exe 'syn region '.filetype.'CommentList'
         \ . ' start=/^\s*'.cml_1.' \{,4\}\%([-*+•]\|\d\+\.\)\s\+\S/'
         \ . ' end=/^\s*'.cml_1.'\%(\s*\n\s*'.cml_1.'\s\=\S\)\@=\|^\s*\%('.cml_1.'\)\@!/'
+        \ . ' keepend'
         \ . ' contained'
         \ . ' containedin='.commentGroup
         \ . ' contains='.filetype.'FoldMarkers,'.filetype.'CommentCodeBlock'
