@@ -368,9 +368,6 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "                        skipwhite
     "     links to Float
     "
-    " TODO: highlight bullets in lists with `Repeat`.
-    " Or highlight lists as a whole (with text)?
-    "
     " TODO:
     " Read:
     "     https://daringfireball.net/projects/markdown/syntax
