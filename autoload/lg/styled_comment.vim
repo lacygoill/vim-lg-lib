@@ -180,6 +180,19 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " comment leader (instead of complete lines).
     " It's less noisy.
     "}}}
+    " Can I move this statement somewhere below?{{{
+    "
+    " No.
+    "
+    " `xCommentPointer` must be defined *after* `xCommentCodeBlock`.
+    "
+    " Otherwise its  highlighting would  fail when the  pointer is  located more
+    " than 4 characters away from the comment leader.
+    " I suspect there are other items which may sometimes break if they're defined
+    " before `xCommentCodeBlock`.
+    "
+    " So, unless you know what you're doing, leave this statement here.
+    "}}}
     exe 'syn region '.filetype.'CommentCodeBlock'
         \ . ' matchgroup=Comment'
         \ . ' start=/^\s*'.cml_1.'     /'
@@ -384,11 +397,6 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " not a pointer v
     " v
     "       v
-    " This item must be defined *after* `xCommentCodeBlock`?{{{
-    "
-    " Otherwise its  highlighting would  fail when the  pointer is  located more
-    " than 4 characters away from the comment leader.
-    "}}}
     exe 'syn match '.filetype.'CommentPointer'
         \ . ' /^\s*'.cml_1.'\s*\%([v^✘✔]\+\s*\)\+$/'
         \ . ' contained'
@@ -431,16 +439,40 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " - some list item 1
     " - some list item 2
     " - some list item 3
+    "
+    " Also, write the list outside a function (e.g. at the top of this file).
+    " All the lines are considered as list items (✔).
+    " All the comment leaders are colored in blue instead of green (✘).
+    "
     " TODO:  add support  for codespan,  italic, bold,  bold+italic, blockquote,
     " code block, ... inside list
+    " The end pattern is long... What does it mean?{{{
+    "
+    " It contains 3 main branches:
+    "
+    "     '^\s*'.cml_1.'\%(\s*\n\s*'.cml_1.'\s\=\S\)\@='
+    "
+    " An empty  line (except for  the comment  leader), followed by  a non-empty
+    " line.
+    "
+    "     '\n\%(\s*'.cml_1.'\s*\%(}'.'}}\|{'.'{{\)\)\@='
+    "
+    " The end/beginning of a fold right after the end of the list (no empty line
+    " in-between).
+    "
+    "     '^\s*\%('.cml_1.'\)\@!'
+    "
+    " A non-commented line.
+    "}}}
     exe 'syn region '.filetype.'CommentList'
         \ . ' start=/^\s*'.cml_1.' \{,4\}\%([-*+•]\|\d\+\.\)\s\+\S/'
-        \ . ' end=/^\s*'.cml_1.'\%(\s*\n\s*'.cml_1.'\s\=\S\)\@=\|^\s*\%('.cml_1.'\)\@!/'
+        \ . ' end=/^\s*'.cml_1.'\%(\s*\n\s*'.cml_1.'\s\=\S\)\@='
+        \       . '\|\n\%(\s*'.cml_1.'\s*\%(}'.'}}\|{'.'{{\)\)\@='
+        \       . '\|^\s*\%('.cml_1.'\)\@!/'
         \ . ' keepend'
         \ . ' contained'
         \ . ' containedin='.commentGroup
         \ . ' contains='.filetype.'FoldMarkers,'.filetype.'CommentCodeBlock'
-    " should we add `oneline`?
 
     "     ^ \{,3\}\%([-*+•]\|\d\+\.\)\s\+\S
     "     \_.\{-}
@@ -495,14 +527,16 @@ fu! lg#styled_comment#syntax() abort "{{{2
         \ . ' /'.cml_0_1.'\s*{'.'{{\d*\s*\ze\n/'
         \ . ' conceal'
         \ . ' cchar=❭'
+        \ . ' contains='.filetype.'CommentLeader'
         \ . ' contained'
         \ . ' containedin='.commentGroup.','.filetype.'CommentCodeBlock'
     exe 'syn match '.filetype.'FoldMarkers'
         \ . ' /'.cml_0_1.'\s*}'.'}}\d*\s*\ze\n/'
-        \ . ' contained'
-        \ . ' containedin='.commentGroup.','.filetype.'CommentCodeBlock'
         \ . ' conceal'
         \ . ' cchar=❬'
+        \ . ' contains='.filetype.'CommentLeader'
+        \ . ' contained'
+        \ . ' containedin='.commentGroup.','.filetype.'CommentCodeBlock'
 
     " TODO: highlight commented urls (like in markdown)?
     "
