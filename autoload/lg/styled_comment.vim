@@ -1,7 +1,7 @@
 " filetype plugin {{{1
 fu! lg#styled_comment#fold() abort "{{{2
-    let filetype = expand('<amatch>')
-    exe 'augroup my_'.filetype
+    let ft = expand('<amatch>')
+    exe 'augroup my_'.ft
         au! *            <buffer>
         au  BufWinEnter  <buffer>  setl fdm=marker
                                \ | setl fdt=fold#fdt#get()
@@ -11,17 +11,35 @@ fu! lg#styled_comment#fold() abort "{{{2
 endfu
 
 fu! lg#styled_comment#undo_ftplugin() abort "{{{2
-    let filetype = expand('<amatch>')
+    let ft = expand('<amatch>')
     let b:undo_ftplugin = get(b:, 'undo_ftplugin', '')
         \ . (empty(get(b:, 'undo_ftplugin', '')) ? '' : '|')
         \ . "
         \   setl cocu< cole< fdm< fdt<
-        \ | exe 'au! my_".filetype." * <buffer>'
+        \ | exe 'au! my_".ft." * <buffer>'
         \ "
 endfu
 " }}}1
 " syntax plugin {{{1
-fu! s:define_cluster(filetype) abort "{{{2
+fu! s:define_cluster(ft) abort "{{{2
+    " TODO:{{{
+    " Make sure all the syntax groups and clusters you define in `lg#styled_comment#syntax()`
+    " are included in the cluster `@{filetype}MyCustomGroups`.
+    " Otherwise, you may have a broken syntax highlighting in any filetype whose default
+    " syntax plugin uses `ALLBUT`.
+    "
+    " In the future, if you add new syntax groups, you'll probably forget to add them here.
+    " So, define a script-local variable at the top of `lg#styled_comment#syntax()`,
+    " which will the  complete list of custom syntax  groups/clusters defined in
+    " the function.
+    " And  here,  instead of  referring  to  each  syntax  group, refer  to  the
+    " variable.
+    " It's more reliable.
+    "
+    " Besides, leave a warning in `lg#styled_comment#syntax()` above the variable,
+    " to remember to update it whenever you add a new syntax group.
+    "}}}
+
     " Why not `:call call()`?{{{
     "
     " It would be equivalent to:
@@ -41,6 +59,7 @@ fu! s:define_cluster(filetype) abort "{{{2
         \ . '%sCommentBoldItalic,'
         \ . '%sCommentCodeBlock,'
         \ . '%sCommentCodeSpan,'
+        \ . '%sCommentLeader,'
         \ . '%sCommentIgnore,'
         \ . '%sCommentItalic,'
         \ . '%sCommentList,'
@@ -51,41 +70,44 @@ fu! s:define_cluster(filetype) abort "{{{2
         \ . '%sCommentTitleLeader,'
         \ . '%sFoldMarkers'
         \ ]
-        \ + repeat([a:filetype], 17)
+        \ + repeat([a:ft], 18)
         \ )
 endfu
 
 fu! s:get_filetype() abort "{{{2
-    let filetype = expand('<amatch>')
-    if filetype is# 'snippets' | let filetype = 'snip' | endif
-    return filetype
+    let ft = expand('<amatch>')
+    if ft is# 'snippets' | let ft = 'snip' | endif
+    return ft
 endfu
 
 fu! lg#styled_comment#highlight() abort "{{{2
-    let filetype = s:get_filetype()
+    let ft = s:get_filetype()
 
-    exe 'hi '     .filetype.'FoldMarkers term=bold cterm=bold gui=bold'
+    exe 'hi '     .ft.'FoldMarkers term=bold cterm=bold gui=bold'
 
-    exe 'hi link '.filetype.'CommentLeader              Comment'
-    exe 'hi link '.filetype.'CommentOption              markdownOption'
-    exe 'hi link '.filetype.'CommentList                markdownList'
-    exe 'hi link '.filetype.'CommentPointer             markdownPointer'
-    exe 'hi link '.filetype.'CommentTable               markdownTable'
+    exe 'hi link '.ft.'CommentLeader              Comment'
+    exe 'hi link '.ft.'CommentOption              markdownOption'
+    exe 'hi link '.ft.'CommentList                markdownList'
+    exe 'hi link '.ft.'CommentListItalic          markdownListItalic'
+    exe 'hi link '.ft.'CommentListBold            markdownListBold'
+    exe 'hi link '.ft.'CommentListBoldItalic      markdownListBoldItalic'
+    exe 'hi link '.ft.'CommentListCodeSpan        markdownListCodeSpan'
+    exe 'hi link '.ft.'CommentPointer             markdownPointer'
+    exe 'hi link '.ft.'CommentTable               markdownTable'
 
-    exe 'hi link '.filetype.'CommentTitle               PreProc'
-    exe 'hi link '.filetype.'CommentOutput              PreProc'
+    exe 'hi link '.ft.'CommentTitle               PreProc'
+    exe 'hi link '.ft.'CommentOutput              PreProc'
 
-    exe 'hi link '.filetype.'CommentItalic              CommentItalic'
-    exe 'hi link '.filetype.'CommentBold                CommentBold'
-    exe 'hi link '.filetype.'CommentBoldItalic          CommentBoldItalic'
-    exe 'hi link '.filetype.'CommentCodeSpan            CommentCodeSpan'
-    exe 'hi link '.filetype.'CommentCodeBlock           CommentCodeSpan'
+    exe 'hi link '.ft.'CommentItalic              CommentItalic'
+    exe 'hi link '.ft.'CommentBold                CommentBold'
+    exe 'hi link '.ft.'CommentBoldItalic          CommentBoldItalic'
+    exe 'hi link '.ft.'CommentCodeSpan            CommentCodeSpan'
+    exe 'hi link '.ft.'CommentCodeBlock           CommentCodeSpan'
 
-    exe 'hi link '.filetype.'CommentBlockquote          markdownBlockquote'
-    exe 'hi link '.filetype.'CommentBlockquoteLeader    Comment'
-    exe 'hi link '.filetype.'CommentBlockquoteItalic    markdownBlockquoteItalic'
-    exe 'hi link '.filetype.'CommentBlockquoteBold      markdownBlockquoteBold'
-    exe 'hi link '.filetype.'CommentBlockquoteCodeSpan  markdownBlockquoteCodeSpan'
+    exe 'hi link '.ft.'CommentBlockquote          markdownBlockquote'
+    exe 'hi link '.ft.'CommentBlockquoteItalic    markdownBlockquoteItalic'
+    exe 'hi link '.ft.'CommentBlockquoteBold      markdownBlockquoteBold'
+    exe 'hi link '.ft.'CommentBlockquoteCodeSpan  markdownBlockquoteCodeSpan'
 endfu
 
 fu! lg#styled_comment#syntax() abort "{{{2
@@ -106,7 +128,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " We want a single location from which we can change the highlighting of our
     " comments consistently.
 
-    let filetype = s:get_filetype()
+    let ft = s:get_filetype()
 
     " What does it do?{{{
     "
@@ -136,9 +158,9 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " Use the same original definition, with one change:
     " add `@xMyCustomGroups` after `contains=ALLBUT,...`.
     " }}}
-    call s:define_cluster(filetype)
+    call s:define_cluster(ft)
 
-    let cml = filetype is# 'gitconfig'
+    let cml = ft is# 'gitconfig'
         \ ?     '#'
         \ :     matchstr(get(split(&l:cms, '%s'), 0, ''), '\S*')
     " What do you need this `nr` for?{{{
@@ -166,12 +188,11 @@ fu! lg#styled_comment#syntax() abort "{{{2
     let cml_1 = '\V'.cml.'\m'
     let cml_0_1 = '\V\%('.cml.'\)\=\m'
 
-    let commentGroup = filetype . 'Comment' . (filetype is# 'vim' ? ',vimLineComment' : '')
+    let commentGroup = ft . 'Comment' . (ft is# 'vim' ? ',vimLineComment' : '')
 
-    exe 'syn match '.filetype.'CommentLeader'
+    exe 'syn match '.ft.'CommentLeader'
         \ . ' /^\s*'.cml_1.'/'
         \ . ' contained'
-        \ . ' containedin='.filetype.'CommentPointer'
 
     "     some code block
     " Why a region?{{{
@@ -193,7 +214,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "
     " So, unless you know what you're doing, leave this statement here.
     "}}}
-    exe 'syn region '.filetype.'CommentCodeBlock'
+    exe 'syn region '.ft.'CommentCodeBlock'
         \ . ' matchgroup=Comment'
         \ . ' start=/^\s*'.cml_1.'     /'
         \ . ' matchgroup=NONE'
@@ -242,7 +263,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "     $ vim !$
     "}}}
     " some `code span` in a comment
-    exe 'syn region '.filetype.'CommentCodeSpan'
+    exe 'syn region '.ft.'CommentCodeSpan'
         \ . ' matchgroup=Comment'
         \ . ' start=/`\@1<!``\@!/'
         \ . '   end=/`\@1<!``\@!/'
@@ -252,8 +273,18 @@ fu! lg#styled_comment#syntax() abort "{{{2
         \ . ' containedin='.commentGroup
         \ . ' oneline'
 
+    " - some `code span` item
+    exe 'syn region '.ft.'CommentListCodeSpan'
+        \ . ' matchgroup=markdownList'
+        \ . ' start=/`\@1<!``\@!/'
+        \ . '   end=/`\@1<!``\@!/'
+        \ . ' keepend'
+        \ . ' concealends'
+        \ . ' contained'
+        \ . ' oneline'
+
     " some *italic* comment
-    exe 'syn region '.filetype.'CommentItalic'
+    exe 'syn region '.ft.'CommentItalic'
         \ . ' matchgroup=Comment'
         \ . ' start=/\*\@1<!\*\*\@!/'
         \ . '   end=/\*\@1<!\*\*\@!/'
@@ -263,8 +294,18 @@ fu! lg#styled_comment#syntax() abort "{{{2
         \ . ' containedin='.commentGroup
         \ . ' oneline'
 
+    " - some *italic* item
+    exe 'syn region '.ft.'CommentListItalic'
+        \ . ' matchgroup=markdownList'
+        \ . ' start=/\*\@1<!\*\*\@!/'
+        \ . '   end=/\*\@1<!\*\*\@!/'
+        \ . ' keepend'
+        \ . ' concealends'
+        \ . ' contained'
+        \ . ' oneline'
+
     " some **bold** comment
-    exe 'syn region '.filetype.'CommentBold'
+    exe 'syn region '.ft.'CommentBold'
         \ . ' matchgroup=Comment'
         \ . ' start=/\*\*/'
         \ . '  end=/\*\*/'
@@ -274,8 +315,18 @@ fu! lg#styled_comment#syntax() abort "{{{2
         \ . ' containedin='.commentGroup
         \ . ' oneline'
 
+    " - some **bold** item
+    exe 'syn region '.ft.'CommentListBold'
+        \ . ' matchgroup=markdownList'
+        \ . ' start=/\*\*/'
+        \ . '  end=/\*\*/'
+        \ . ' keepend'
+        \ . ' concealends'
+        \ . ' contained'
+        \ . ' oneline'
+
     " some ***bold and italic*** comment
-    exe 'syn region '.filetype.'CommentBoldItalic'
+    exe 'syn region '.ft.'CommentBoldItalic'
         \ . ' matchgroup=Comment'
         \ . ' start=/\*\*\*/'
         \ . '  end=/\*\*\*/'
@@ -283,6 +334,16 @@ fu! lg#styled_comment#syntax() abort "{{{2
         \ . ' concealends'
         \ . ' contained'
         \ . ' containedin='.commentGroup
+        \ . ' oneline'
+
+    " - some ***bold and italic*** item
+    exe 'syn region '.ft.'CommentListBoldItalic'
+        \ . ' matchgroup=markdownList'
+        \ . ' start=/\*\*\*/'
+        \ . '  end=/\*\*\*/'
+        \ . ' keepend'
+        \ . ' concealends'
+        \ . ' contained'
         \ . ' oneline'
 
     " > some quote
@@ -294,40 +355,36 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " To stay  consistent, we should be able  to do the same in  the comments of
     " other filetypes.
     "}}}
-    exe 'syn match '.filetype.'CommentBlockquote /^\s*'.cml_1.'\s*>.*/'
+    exe 'syn match '.ft.'CommentBlockquote /^\s*'.cml_1.'\s*>.*/'
         \ . ' contained'
         \ . ' containedin='.commentGroup
-        \ . ' contains='.filetype.'CommentBlockquoteLeader,'.filetype.'CommentBlockquoteConceal'
-        \ . ' contains='.filetype.'CommentBold'
+        \ . ' contains='.ft.'CommentLeader,'.ft.'CommentBlockquoteConceal,'.ft.'CommentBold'
         \ . ' oneline'
-    exe 'syn match '.filetype.'CommentBlockquoteConceal'
-        \ . ' /\%(^\s*'.cml_1.'\s*\)\@<=>\s/'
+    exe 'syn match '.ft.'CommentBlockquoteConceal'
+        \ . ' /\%(^\s*'.cml_1.'\s*\)\@<=>\s\=/'
         \ . ' contained'
         \ . ' conceal'
-    exe 'syn match '.filetype.'CommentBlockquoteLeader'
-        \ . ' /^\s*'.cml_1.'/'
-        \ . ' contained'
 
     " > some **bold** quote
-    exe 'syn region '.filetype.'CommentBlockquoteBold'
+    exe 'syn region '.ft.'CommentBlockquoteBold'
         \ . ' matchgroup=PreProc'
         \ . ' start=/\*\*/'
         \ . '   end=/\*\*/'
         \ . ' keepend'
         \ . ' concealends'
         \ . ' contained'
-        \ . ' containedin='.filetype.'CommentBlockquote'
+        \ . ' containedin='.ft.'CommentBlockquote'
         \ . ' oneline'
 
     " > some `code span` in a quote
-    exe 'syn region '.filetype.'CommentBlockquoteCodeSpan'
+    exe 'syn region '.ft.'CommentBlockquoteCodeSpan'
         \ . ' matchgroup=PreProc'
         \ . ' start=/`\@1<!``\@!/'
         \ . '   end=/`\@1<!``\@!/'
         \ . ' keepend'
         \ . ' concealends'
         \ . ' contained'
-        \ . ' containedin='.filetype.'CommentBlockquote'
+        \ . ' containedin='.ft.'CommentBlockquote'
         \ . ' oneline'
 
     "     $ shell command
@@ -377,28 +434,29 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " the supported  number of indentation levels  from 3 to 4,  which should be
     " enough for most comments.
     "}}}
-    exe 'syn match '.filetype.'CommentOutput'
+    exe 'syn match '.ft.'CommentOutput'
         \ . ' /\%(^ *'.cml_1.'     \)\@18<=.*\~$/'
         \ . ' contained'
-        \ . ' containedin='.filetype.'CommentCodeBlock'
-        \ . ' nextgroup='.filetype.'CommentIgnore'
-    exe 'syn match '.filetype.'CommentIgnore'
+        \ . ' containedin='.ft.'CommentCodeBlock'
+        \ . ' nextgroup='.ft.'CommentIgnore'
+    exe 'syn match '.ft.'CommentIgnore'
         \ . ' /\%(^ *'.cml_1.'.*\)\@<=.$/'
         \ . ' contained'
-        \ . ' containedin='.filetype.'CommentOutput'
+        \ . ' containedin='.ft.'CommentOutput'
         \ . ' conceal'
 
     " some `'option'`
-    exe 'syn match '.filetype.'CommentOption'
+    exe 'syn match '.ft.'CommentOption'
         \ . ' /`\@1<=''.\{-}''`\@=/'
         \ . ' contained'
-        \ . ' containedin='.filetype.'CommentCodeSpan'
+        \ . ' containedin='.ft.'CommentCodeSpan'
 
     " not a pointer v
     " v
     "       v
-    exe 'syn match '.filetype.'CommentPointer'
+    exe 'syn match '.ft.'CommentPointer'
         \ . ' /^\s*'.cml_1.'\s*\%([v^✘✔]\+\s*\)\+$/'
+        \ . ' contains='.ft.'CommentLeader'
         \ . ' contained'
         \ . ' containedin='.commentGroup
 
@@ -425,7 +483,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " Although, I  guess you could  include a  code span without  concealing the
     " backticks, but you would need to define another code span syntax item.
     "}}}
-    exe 'syn region '.filetype.'CommentTable'
+    exe 'syn region '.ft.'CommentTable'
         \ . ' matchgroup=Comment'
         \ . ' start=/^\s*'.cml_1.'    [│─┌└├]\@=/'
         \ . ' matchgroup=Structure'
@@ -435,17 +493,18 @@ fu! lg#styled_comment#syntax() abort "{{{2
         \ . ' contained'
         \ . ' containedin='.commentGroup
 
-    " FIXME: the second item should be blue, and all comment leaders should be green
-    " - some list item 1
-    " - some list item 2
-    " - some list item 3
+    exe 'syn cluster '.ft.'CommentListStyles contains='
+        \ .ft.'CommentListItalic,'
+        \ .ft.'CommentListBold,'
+        \ .ft.'CommentListBoldItalic,'
+        \ .ft.'CommentListCodeSpan'
+
+    " - some item 1
+    "   some text
     "
-    " Also, write the list outside a function (e.g. at the top of this file).
-    " All the lines are considered as list items (✔).
-    " All the comment leaders are colored in blue instead of green (✘).
+    " - some item 2
     "
-    " TODO:  add support  for codespan,  italic, bold,  bold+italic, blockquote,
-    " code block, ... inside list
+    " TODO: add support for blockquote and code block inside a list
     " The end pattern is long... What does it mean?{{{
     "
     " It contains 3 main branches:
@@ -460,32 +519,33 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " The end/beginning of a fold right after the end of the list (no empty line
     " in-between).
     "
-    "     '^\s*\%('.cml_1.'\)\@!'
+    "     '^\%(.*'.cml_1.'\)\@!'
     "
     " A non-commented line.
     "}}}
-    exe 'syn region '.filetype.'CommentList'
+    exe 'syn region '.ft.'CommentList'
         \ . ' start=/^\s*'.cml_1.' \{,4\}\%([-*+•]\|\d\+\.\)\s\+\S/'
         \ . ' end=/^\s*'.cml_1.'\%(\s*\n\s*'.cml_1.'\s\=\S\)\@='
         \       . '\|\n\%(\s*'.cml_1.'\s*\%(}'.'}}\|{'.'{{\)\)\@='
-        \       . '\|^\s*\%('.cml_1.'\)\@!/'
+        \       . '\|^\%(.*'.cml_1.'\)\@!/'
         \ . ' keepend'
+        \ . ' contains='.ft.'CommentLeader,@'.ft.'CommentListStyles'
         \ . ' contained'
         \ . ' containedin='.commentGroup
-        \ . ' contains='.filetype.'FoldMarkers,'.filetype.'CommentCodeBlock'
+        \ . ' contains='.ft.'FoldMarkers,'.ft.'CommentCodeBlock'
 
     "     ^ \{,3\}\%([-*+•]\|\d\+\.\)\s\+\S
     "     \_.\{-}
     "     \n\s*\n \{,2}\%([^-*+• \t]\|\%$\)\@=
     "     contained contains=markdownListItalic,markdownListBold,markdownListBoldItalic,markdownListCodeSpan
 
-    if filetype isnot# 'vim'
+    if ft isnot# 'vim'
         " TODO: Explain how the code works.
-        exe 'syn match '.filetype.'CommentTitle'
+        exe 'syn match '.ft.'CommentTitle'
             \ . ' /'.cml_1.'\s*\u\w*\%(\s\+\u\w*\)*:/hs=s+'.nr
             \ . ' contained'
-            \ . ' contains='.filetype.'CommentTitleLeader,'.filetype.'Todo'
-        exe 'syn match '.filetype.'CommentTitleLeader'
+            \ . ' contains='.ft.'CommentTitleLeader,'.ft.'Todo'
+        exe 'syn match '.ft.'CommentTitleLeader'
             \ . ' /'.cml_1.'\s\+/ms=s+'.nr
             \ . ' contained'
     endif
@@ -523,20 +583,20 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "    ❯❮
     "    ❱❰
     "}}}
-    exe 'syn match '.filetype.'FoldMarkers'
+    exe 'syn match '.ft.'FoldMarkers'
         \ . ' /'.cml_0_1.'\s*{'.'{{\d*\s*\ze\n/'
         \ . ' conceal'
         \ . ' cchar=❭'
-        \ . ' contains='.filetype.'CommentLeader'
+        \ . ' contains='.ft.'CommentLeader'
         \ . ' contained'
-        \ . ' containedin='.commentGroup.','.filetype.'CommentCodeBlock'
-    exe 'syn match '.filetype.'FoldMarkers'
+        \ . ' containedin='.commentGroup.','.ft.'CommentCodeBlock'
+    exe 'syn match '.ft.'FoldMarkers'
         \ . ' /'.cml_0_1.'\s*}'.'}}\d*\s*\ze\n/'
         \ . ' conceal'
         \ . ' cchar=❬'
-        \ . ' contains='.filetype.'CommentLeader'
+        \ . ' contains='.ft.'CommentLeader'
         \ . ' contained'
-        \ . ' containedin='.commentGroup.','.filetype.'CommentCodeBlock'
+        \ . ' containedin='.commentGroup.','.ft.'CommentCodeBlock'
 
     " TODO: highlight commented urls (like in markdown)?
     "
