@@ -1,3 +1,33 @@
+" Init {{{1
+
+let s:custom_groups = [
+    \ 'CommentBlockquote',
+    \ 'CommentBlockquoteBold',
+    \ 'CommentBlockquoteCodeSpan',
+    \ 'CommentBlockquoteConceal',
+    \ 'CommentBold',
+    \ 'CommentBoldItalic',
+    \ 'CommentCodeBlock',
+    \ 'CommentCodeSpan',
+    \ 'CommentIgnore',
+    \ 'CommentItalic',
+    \ 'CommentLeader',
+    \ 'CommentList',
+    \ 'CommentListBold',
+    \ 'CommentListBoldItalic',
+    \ 'CommentListCodeSpan',
+    \ 'CommentListItalic',
+    \ 'CommentOption',
+    \ 'CommentOutput',
+    \ 'CommentPointer',
+    \ 'CommentTable',
+    \ 'CommentTitle',
+    \ 'CommentTitleLeader',
+    \ 'FoldMarkers',
+    \ '@CommentListStyles',
+\ ]
+" }}}1
+
 " filetype plugin {{{1
 fu! lg#styled_comment#fold() abort "{{{2
     let ft = expand('<amatch>')
@@ -21,59 +51,6 @@ fu! lg#styled_comment#undo_ftplugin() abort "{{{2
 endfu
 " }}}1
 " syntax plugin {{{1
-fu! s:define_cluster(ft) abort "{{{2
-    " TODO:{{{
-    " Make sure all the syntax groups and clusters you define in `lg#styled_comment#syntax()`
-    " are included in the cluster `@{filetype}MyCustomGroups`.
-    " Otherwise, you may have a broken syntax highlighting in any filetype whose default
-    " syntax plugin uses `ALLBUT`.
-    "
-    " In the future, if you add new syntax groups, you'll probably forget to add them here.
-    " So, define a script-local variable at the top of `lg#styled_comment#syntax()`,
-    " which will the  complete list of custom syntax  groups/clusters defined in
-    " the function.
-    " And  here,  instead of  referring  to  each  syntax  group, refer  to  the
-    " variable.
-    " It's more reliable.
-    "
-    " Besides, leave a warning in `lg#styled_comment#syntax()` above the variable,
-    " to remember to update it whenever you add a new syntax group.
-    "}}}
-
-    " Why not `:call call()`?{{{
-    "
-    " It would be equivalent to:
-    "
-    "     call printf(...)
-    "
-    " Which would do nothing, except printing a string.
-    " We don't want to print a string.
-    " We want to execute its contents.
-    "}}}
-    exe call('printf', [
-        \   'syn cluster %sMyCustomGroups contains='
-        \ . '%sCommentBlockquote,'
-        \ . '%sCommentBlockquoteBold,'
-        \ . '%sCommentBlockquoteCodeSpan,'
-        \ . '%sCommentBold,'
-        \ . '%sCommentBoldItalic,'
-        \ . '%sCommentCodeBlock,'
-        \ . '%sCommentCodeSpan,'
-        \ . '%sCommentLeader,'
-        \ . '%sCommentIgnore,'
-        \ . '%sCommentItalic,'
-        \ . '%sCommentList,'
-        \ . '%sCommentOption,'
-        \ . '%sCommentOutput,'
-        \ . '%sCommentPointer,'
-        \ . '%sCommentTitle,'
-        \ . '%sCommentTitleLeader,'
-        \ . '%sFoldMarkers'
-        \ ]
-        \ + repeat([a:ft], 18)
-        \ )
-endfu
-
 fu! s:get_filetype() abort "{{{2
     let ft = expand('<amatch>')
     if ft is# 'snippets' | let ft = 'snip' | endif
@@ -92,6 +69,8 @@ fu! lg#styled_comment#highlight() abort "{{{2
     exe 'hi link '.ft.'CommentListBold            markdownListBold'
     exe 'hi link '.ft.'CommentListBoldItalic      markdownListBoldItalic'
     exe 'hi link '.ft.'CommentListCodeSpan        markdownListCodeSpan'
+    exe 'hi link '.ft.'CommentListCodeBlock       CommentCodeSpan'
+    exe 'hi link '.ft.'CommentListBlockquote      markdownListBlockquote'
     exe 'hi link '.ft.'CommentPointer             markdownPointer'
     exe 'hi link '.ft.'CommentTable               markdownTable'
 
@@ -111,6 +90,81 @@ fu! lg#styled_comment#highlight() abort "{{{2
 endfu
 
 fu! lg#styled_comment#syntax() abort "{{{2
+    " Never write `matchgroup=xGroup` with `xGroup` being a builtin HG.{{{
+    "
+    " `xGroup` should be a *custom* HG, that we can customize in our colorscheme.
+    " This function should *not* be charged with setting the colors of the comments.
+    " It should only set the syntax.
+    " This  way, we  can  change the  color  of a  type  of comment  (codeblock,
+    " blockquote,  table,... ),  uniformly across  all filetypes  from a  single
+    " location:
+    "
+    "     ~/.vim/autoload/colorscheme.vim
+    "}}}
+    " Whenever you create or remove a custom syntax group from this function, update `s:custom_groups`.{{{
+    "
+    " Otherwise, you may have a broken syntax highlighting in any filetype whose
+    " default syntax plugin uses `ALLBUT`.
+    "
+    " `s:custom_groups` is used by `s:syn_mycustomgroups()` to define `@MyCustomGroups`.
+    " We  sometimes use  this  cluster in  `after/syntax/x.vim`  to exclude  our
+    " custom groups from the ones installed by a default syntax plugin.
+    "}}}
+    " Be careful before using `^\s*` in a regex!{{{
+    "
+    " Some default syntax plugins define a  comment from the comment leader, not
+    " from the beginning of the line,  either by omitting `^\s*` or by excluding
+    " it with `\zs`.
+    "
+    "     $VIMRUNTIME/syntax/sh.vim:376
+    "     $VIMRUNTIME/syntax/lua.vim:34
+    "
+    " Besides, all your custom items are contained in a comment.
+    " If you define one of them with  `^\s*` it will begin from the beginning of
+    " the line.
+    " But if the line is indented,  the comment will begin *after* the beginning
+    " of the line,  which will prevent your custom item  from being contained in
+    " the comment.
+    " As a result, its syntax highlighting will be broken.
+    "
+    " Atm, this issue applies to:
+    "
+    " - CommentBlockquote
+    " - CommentCodeBlock
+    " - CommentList
+    " - CommentPointer
+    " - CommentTable
+    "}}}
+        " What if I need `^\s*`?{{{
+        "
+        " Exclude it from the item with `\%(...\)\@<=`.
+        " Make some tests with `:syntime` to measure the impact on performance.
+    "}}}
+        " Is it ok if I omit `^\s*`?{{{
+        "
+        " I think it's ok, because:
+        "
+        " 1. all these groups are contained in a comment;
+        "    so if an undesired match could occur, it would be in a comment
+        "
+        " 2. they match whole lines (up to the end) from the first comment leader;
+        "    so if an undesired match could occur, it would be in the item itself
+        "
+        " 3. they don't contain themselves
+        "
+        " Exception:
+        "
+        " For `CommentList`, you *have* to use `\%(^\s*\)\@<=`, probably because
+        " it's a multi-line item.
+        " Otherwise, you could  have an undesired list starting  from the middle
+        " of a comment.
+        "
+        " Example in a lua file:
+        "
+        "     -- some comment -- - wrongly highlighted as list item
+        "                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        "}}}
+
     " TODO: integrate most of the comments from this function into our notes
 
     " TODO: find a consistent order for the arguments of a region (and other items)
@@ -118,48 +172,12 @@ fu! lg#styled_comment#syntax() abort "{{{2
 
     " TODO: Improve the performance by avoiding quantifiers inside lookaround.
     " Make some tests using `:syntime`.
-    " If necessary,  replace regions  with matches, and  define a  custom syntax
+    " If  necessary, replace  regions with  matches, and  use our  custom syntax
     " group describing the comment leader to restore its color.
-
-    " TODO: make  sure that for  each `matchgroup=xGroup`, `xGroup` is  a custom
-    " group, that we can define in our colorscheme.
-    " Never write something like `matchgroup=PreProc`.
-    " `PreProc` is not a custom HG.
-    " We want a single location from which we can change the highlighting of our
-    " comments consistently.
+    "
+    " `CommentOutput` is the least performant of our groups.
 
     let ft = s:get_filetype()
-
-    " What does it do?{{{
-    "
-    " It defines  a cluster  containing all  the custom  syntax groups  that the
-    " current function is going to define.
-    "}}}
-    " Why?{{{
-    "
-    " Some default syntax plugins define groups with the argument `contains=ALLBUT`.
-    " It means that they can contain *anything* except a few specific groups.
-    " Because of this, they can contain our custom groups.
-    " And as a result, our code may be applied wrong graphical attributes:
-    "
-    "     $ cat <<'EOF' >/tmp/lua.lua
-    "     ( 1 * 2 * 3 )
-    "     EOF
-    "
-    "     $ vim !$
-    "
-    " We need  an easy  way to tell  Vim that these  default groups  must *also*
-    " exclude our custom groups.
-    "}}}
-    " How can this custom cluster be used?{{{
-    "
-    " When  a default  syntax plugin  uses the  arguments `contains=ALLBUT,...`,
-    " clear it (`:syn clear ...`) and redefine it in `after/syntax/x.vim`.
-    " Use the same original definition, with one change:
-    " add `@xMyCustomGroups` after `contains=ALLBUT,...`.
-    " }}}
-    call s:define_cluster(ft)
-
     let cml = ft is# 'gitconfig'
         \ ?     '#'
         \ :     matchstr(get(split(&l:cms, '%s'), 0, ''), '\S*')
@@ -185,25 +203,14 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " This is needed for `xkb` where the comment leader is `//`.
     "}}}
     let cml = escape(cml, '/\')
-    let cml_1 = '\V'.cml.'\m'
     let cml_0_1 = '\V\%('.cml.'\)\=\m'
-
+    let cml = '\V'.cml.'\m'
     let commentGroup = ft . 'Comment' . (ft is# 'vim' ? ',vimLineComment' : '')
 
-    exe 'syn match '.ft.'CommentLeader'
-        \ . ' /^\s*'.cml_1.'/'
-        \ . ' contained'
-
-    "     some code block
-    " Why a region?{{{
-    "
-    " I  want `xCommentCodeBlock`  to highlight  only  after 5  spaces from  the
-    " comment leader (instead of complete lines).
-    " It's less noisy.
-    "}}}
-    " Can I move this statement somewhere below?{{{
-    "
-    " No.
+    call s:syn_commentleader(ft, cml)
+    call s:syn_commenttitle(ft, cml, nr)
+    call s:syn_list(ft, cml, commentGroup)
+    " Don't move this call somewhere below!{{{
     "
     " `xCommentPointer` must be defined *after* `xCommentCodeBlock`.
     "
@@ -212,18 +219,190 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " I suspect there are other items which may sometimes break if they're defined
     " before `xCommentCodeBlock`.
     "
-    " So, unless you know what you're doing, leave this statement here.
+    " So, unless you know what you're doing, leave this call here.
     "}}}
-    exe 'syn region '.ft.'CommentCodeBlock'
+    call s:syn_code_block(ft, cml, commentGroup)
+    call s:syn_code_span(ft, commentGroup)
+    call s:syn_italic(ft, commentGroup)
+    call s:syn_bold(ft, commentGroup)
+    call s:syn_bolditalic(ft, commentGroup)
+    call s:syn_quote(ft, cml, commentGroup)
+    call s:syn_output(ft, cml)
+    call s:syn_option(ft)
+    call s:syn_pointer(ft, cml, commentGroup)
+    call s:syn_table(ft, cml, commentGroup)
+    call s:syn_foldmarkers(ft, cml_0_1, commentGroup)
+    " What does it do?{{{
+    "
+    " It defines  a cluster  containing all  the custom  syntax groups  that the
+    " current function has defined.
+    "}}}
+        " Why?{{{
+        "
+        " Some default syntax plugins define groups with the argument `contains=ALLBUT`.
+        " It means that they can contain *anything* except a few specific groups.
+        " Because of this, they can contain our custom groups.
+        " And as a result, our code may be applied wrong graphical attributes:
+        "
+        "     $ cat <<'EOF' >/tmp/lua.lua
+        "     ( 1 * 2 * 3 )
+        "     EOF
+        "
+        "     $ vim !$
+        "
+        " We need an easy way to tell  Vim that these default groups must *also*
+        " exclude our custom groups.
+        "}}}
+        " How can this custom cluster be used?{{{
+        "
+        " When a default syntax plugin uses the arguments `contains=ALLBUT,...`,
+        " clear it (`:syn clear ...`) and redefine it in `after/syntax/x.vim`.
+        " Use the same original definition, with one change:
+        " add `@xMyCustomGroups` after `contains=ALLBUT,...`.
+        " }}}
+    call s:syn_mycustomgroups(ft)
+
+    " TODO: highlight commented urls (like in markdown)?{{{
+    "
+    "     markdownLinkText xxx matchgroup=markdownLinkTextDelimiter
+    "                          start=/!\=\[\%(\_[^]]*]\%( \=[[(]\)\)\@=/
+    "                          end=/\]\%( \=[[(]\)\@=/
+    "                          concealends
+    "                          contains=@markdownInline,markdownLineStart
+    "                          nextgroup=markdownLink,markdownId
+    "                          skipwhite
+    "     links to Conditional
+    "
+    "     markdownUrl    xxx match /\S\+/
+    "                        contained nextgroup=markdownUrlTitle
+    "                        skipwhite
+    "                        matchgroup=markdownUrlDelimiter
+    "                        start=/</
+    "                        end=/>/
+    "                        contained
+    "                        oneline
+    "                        keepend
+    "                        nextgroup=markdownUrlTitle
+    "                        skipwhite
+    "     links to Float
+    "}}}
+    " TODO:{{{
+    " Read:
+    "     https://daringfireball.net/projects/markdown/syntax
+    "     https://daringfireball.net/projects/markdown/basics
+    "
+    " `markdown` provides some useful syntax which our comments
+    " don't emulate yet.
+    "
+    " Like the fact that  a list item can include a blockquote  or a code block.
+    " Make some tests on github,  stackexchange, reddit, and with `:Preview`, to
+    " see what the current syntax is (markdown has evolved I guess...).
+    "
+    " And try to emulate every interesting syntax you find.
+    "}}}
+endfu
+
+fu! s:syn_commentleader(ft, cml) abort "{{{2
+    exe 'syn match '.a:ft.'CommentLeader'
+        \ . ' /'.a:cml.'/'
+        \ . ' contained'
+endfu
+
+fu! s:syn_commenttitle(ft, cml, nr) abort "{{{2
+    if a:ft isnot# 'vim'
+        " TODO: Explain how the code works.
+        exe 'syn match '.a:ft.'CommentTitle'
+            \ . ' /'.a:cml.'\s*\u\w*\%(\s\+\u\w*\)*:/hs=s+'.a:nr
+            \ . ' contained'
+            \ . ' contains='.a:ft.'CommentTitleLeader,'.a:ft.'Todo'
+
+        exe 'syn match '.a:ft.'CommentTitleLeader'
+            \ . ' /'.a:cml.'\s\+/ms=s+'.a:nr
+            \ . ' contained'
+    endif
+endfu
+
+fu! s:syn_list(ft, cml, commentGroup) abort "{{{2
+    exe 'syn cluster '.a:ft.'CommentListStyles'
+        \ . ' contains='
+        \ .a:ft.'CommentListItalic,'
+        \ .a:ft.'CommentListBold,'
+        \ .a:ft.'CommentListBoldItalic,'
+        \ .a:ft.'CommentListCodeSpan'
+
+    " - some item 1
+    "   some text
+    "
+    " - some item 2
+    "
+    " The end pattern is long... What does it mean?{{{
+    "
+    " It contains 3 main branches:
+    "
+    "     cml.'\%(\s*\n\s*'.cml.'\s\=\S\)\@='
+    "
+    " An empty  line (except for  the comment  leader), followed by  a non-empty
+    " line.
+    "
+    "     '\n\%(\s*'.cml.'\s*\%(}'.'}}\|{'.'{{\)\)\@='
+    "
+    " The end/beginning of a fold right after the end of the list (no empty line
+    " in-between).
+    "
+    "     '^\%(.*'.cml.'\)\@!'
+    "
+    " A non-commented line.
+    "}}}
+    " The regexes include several lookafter with quantifiers.  Do they cause bad performance?{{{
+    "
+    " Weirdly enough, no.
+    " With and without limiting the backtracking of `\%(^\s*\)\@<=`.
+    "}}}
+    exe 'syn region '.a:ft.'CommentList'
+        \ . ' start=/\%(^\s*\)\@18<='.a:cml.' \{,4\}\%([-*+•]\|\d\+\.\)\s\+\S/'
+        \ . ' end=/'.a:cml.'\%(\s*\n\s*'.a:cml.' \{,4}\S\)\@='
+        \       . '\|\n\%(\s*'.a:cml.'\s*\%(}'.'}}\|{'.'{{\)\)\@='
+        \       . '\|^\%(.*'.a:cml.'\)\@!/'
+        \ . ' keepend'
+        \ . ' contains='.a:ft.'CommentLeader,@'.a:ft.'CommentListStyles'
+        \ . ' contained'
+        \ . ' containedin='.a:commentGroup
+        \ . ' contains='.a:ft.'FoldMarkers,'.a:ft.'CommentListCodeBlock'
+endfu
+
+fu! s:syn_code_block(ft, cml, commentGroup) abort "{{{2
+    "     some code block
+    " Why a region?{{{
+    "
+    " I  want `xCommentCodeBlock`  to highlight  only  after 5  spaces from  the
+    " comment leader (instead of complete lines).
+    " It's less noisy.
+    "}}}
+    exe 'syn region '.a:ft.'CommentCodeBlock'
         \ . ' matchgroup=Comment'
-        \ . ' start=/^\s*'.cml_1.'     /'
-        \ . ' matchgroup=NONE'
+        \ . ' start=/'.a:cml.'     /'
         \ . ' end=/$/'
         \ . ' keepend'
         \ . ' contained'
-        \ . ' containedin='.commentGroup
+        \ . ' containedin='.a:commentGroup
         \ . ' oneline'
 
+    " - some item
+    "
+    "         some code block
+    "
+    " - some item
+    exe 'syn region '.a:ft.'CommentListCodeBlock'
+        \ . ' matchgroup=Comment'
+        \ . ' start=/'.a:cml.'         /'
+        \ . ' end=/$/'
+        \ . ' keepend'
+        \ . ' contained'
+        \ . ' containedin='.a:ft.'CommentList'
+        \ . ' oneline'
+endfu
+
+fu! s:syn_code_span(ft, commentGroup) abort "{{{2
     " What does `matchroup` do?{{{
     "
     " From `:h :syn-matchgroup`:
@@ -263,18 +442,18 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "     $ vim !$
     "}}}
     " some `code span` in a comment
-    exe 'syn region '.ft.'CommentCodeSpan'
+    exe 'syn region '.a:ft.'CommentCodeSpan'
         \ . ' matchgroup=Comment'
         \ . ' start=/`\@1<!``\@!/'
         \ . '   end=/`\@1<!``\@!/'
         \ . ' keepend'
         \ . ' concealends'
         \ . ' contained'
-        \ . ' containedin='.commentGroup
+        \ . ' containedin='.a:commentGroup
         \ . ' oneline'
 
     " - some `code span` item
-    exe 'syn region '.ft.'CommentListCodeSpan'
+    exe 'syn region '.a:ft.'CommentListCodeSpan'
         \ . ' matchgroup=markdownList'
         \ . ' start=/`\@1<!``\@!/'
         \ . '   end=/`\@1<!``\@!/'
@@ -283,19 +462,32 @@ fu! lg#styled_comment#syntax() abort "{{{2
         \ . ' contained'
         \ . ' oneline'
 
+    " > some `code span` in a quote
+    exe 'syn region '.a:ft.'CommentBlockquoteCodeSpan'
+        \ . ' matchgroup=markdownBlockquote'
+        \ . ' start=/`\@1<!``\@!/'
+        \ . '   end=/`\@1<!``\@!/'
+        \ . ' keepend'
+        \ . ' concealends'
+        \ . ' contained'
+        \ . ' containedin='.a:ft.'CommentBlockquote'
+        \ . ' oneline'
+endfu
+
+fu! s:syn_italic(ft, commentGroup) abort "{{{2
     " some *italic* comment
-    exe 'syn region '.ft.'CommentItalic'
+    exe 'syn region '.a:ft.'CommentItalic'
         \ . ' matchgroup=Comment'
         \ . ' start=/\*\@1<!\*\*\@!/'
         \ . '   end=/\*\@1<!\*\*\@!/'
         \ . ' keepend'
         \ . ' concealends'
         \ . ' contained'
-        \ . ' containedin='.commentGroup
+        \ . ' containedin='.a:commentGroup
         \ . ' oneline'
 
     " - some *italic* item
-    exe 'syn region '.ft.'CommentListItalic'
+    exe 'syn region '.a:ft.'CommentListItalic'
         \ . ' matchgroup=markdownList'
         \ . ' start=/\*\@1<!\*\*\@!/'
         \ . '   end=/\*\@1<!\*\*\@!/'
@@ -303,20 +495,22 @@ fu! lg#styled_comment#syntax() abort "{{{2
         \ . ' concealends'
         \ . ' contained'
         \ . ' oneline'
+endfu
 
+fu! s:syn_bold(ft, commentGroup) abort "{{{2
     " some **bold** comment
-    exe 'syn region '.ft.'CommentBold'
+    exe 'syn region '.a:ft.'CommentBold'
         \ . ' matchgroup=Comment'
         \ . ' start=/\*\*/'
         \ . '  end=/\*\*/'
         \ . ' keepend'
         \ . ' concealends'
         \ . ' contained'
-        \ . ' containedin='.commentGroup
+        \ . ' containedin='.a:commentGroup
         \ . ' oneline'
 
     " - some **bold** item
-    exe 'syn region '.ft.'CommentListBold'
+    exe 'syn region '.a:ft.'CommentListBold'
         \ . ' matchgroup=markdownList'
         \ . ' start=/\*\*/'
         \ . '  end=/\*\*/'
@@ -325,19 +519,32 @@ fu! lg#styled_comment#syntax() abort "{{{2
         \ . ' contained'
         \ . ' oneline'
 
+    " > some **bold** quote
+    exe 'syn region '.a:ft.'CommentBlockquoteBold'
+        \ . ' matchgroup=markdownBlockquote'
+        \ . ' start=/\*\*/'
+        \ . '   end=/\*\*/'
+        \ . ' keepend'
+        \ . ' concealends'
+        \ . ' contained'
+        \ . ' containedin='.a:ft.'CommentBlockquote'
+        \ . ' oneline'
+endfu
+
+fu! s:syn_bolditalic(ft, commentGroup) abort "{{{2
     " some ***bold and italic*** comment
-    exe 'syn region '.ft.'CommentBoldItalic'
+    exe 'syn region '.a:ft.'CommentBoldItalic'
         \ . ' matchgroup=Comment'
         \ . ' start=/\*\*\*/'
         \ . '  end=/\*\*\*/'
         \ . ' keepend'
         \ . ' concealends'
         \ . ' contained'
-        \ . ' containedin='.commentGroup
+        \ . ' containedin='.a:commentGroup
         \ . ' oneline'
 
     " - some ***bold and italic*** item
-    exe 'syn region '.ft.'CommentListBoldItalic'
+    exe 'syn region '.a:ft.'CommentListBoldItalic'
         \ . ' matchgroup=markdownList'
         \ . ' start=/\*\*\*/'
         \ . '  end=/\*\*\*/'
@@ -345,7 +552,9 @@ fu! lg#styled_comment#syntax() abort "{{{2
         \ . ' concealends'
         \ . ' contained'
         \ . ' oneline'
+endfu
 
+fu! s:syn_quote(ft, cml, commentGroup) abort "{{{2
     " > some quote
     " <not> a quote
     " Why do you allow `xCommentBold` to be contained in `xCommentBlockquote`?{{{
@@ -355,38 +564,37 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " To stay  consistent, we should be able  to do the same in  the comments of
     " other filetypes.
     "}}}
-    exe 'syn match '.ft.'CommentBlockquote /^\s*'.cml_1.'\s*>.*/'
+    exe 'syn match '.a:ft.'CommentBlockquote'
+        \ . ' /'.a:cml.'\s\{,4}>.*/'
         \ . ' contained'
-        \ . ' containedin='.commentGroup
-        \ . ' contains='.ft.'CommentLeader,'.ft.'CommentBlockquoteConceal,'.ft.'CommentBold'
+        \ . ' containedin='.a:commentGroup
+        \ . ' contains='.a:ft.'CommentLeader,'.a:ft.'CommentBlockquoteConceal,'.a:ft.'CommentBold'
         \ . ' oneline'
-    exe 'syn match '.ft.'CommentBlockquoteConceal'
-        \ . ' /\%(^\s*'.cml_1.'\s*\)\@<=>\s\=/'
+
+    exe 'syn match '.a:ft.'CommentBlockquoteConceal'
+        \ . ' /\%('.a:cml.'\s\{,4}\)\@<=>\s\=/'
         \ . ' contained'
         \ . ' conceal'
 
-    " > some **bold** quote
-    exe 'syn region '.ft.'CommentBlockquoteBold'
-        \ . ' matchgroup=PreProc'
-        \ . ' start=/\*\*/'
-        \ . '   end=/\*\*/'
-        \ . ' keepend'
-        \ . ' concealends'
+    " -   some list item
+    "
+    "     > some quote
+    "
+    " -   some list item
+    exe 'syn match '.a:ft.'CommentListBlockquote'
+        \ . ' /'.a:cml.'\s\{5}>.*/'
         \ . ' contained'
-        \ . ' containedin='.ft.'CommentBlockquote'
+        \ . ' containedin='.a:ft.'CommentList'
+        \ . ' contains='.a:ft.'CommentLeader,'.a:ft.'CommentListBlockquoteConceal,'.a:ft.'CommentBlockquoteBold'
         \ . ' oneline'
 
-    " > some `code span` in a quote
-    exe 'syn region '.ft.'CommentBlockquoteCodeSpan'
-        \ . ' matchgroup=PreProc'
-        \ . ' start=/`\@1<!``\@!/'
-        \ . '   end=/`\@1<!``\@!/'
-        \ . ' keepend'
-        \ . ' concealends'
+    exe 'syn match '.a:ft.'CommentListBlockquoteConceal'
+        \ . ' /\%('.a:cml.'\s\{5}\)\@<=>\s\=/'
         \ . ' contained'
-        \ . ' containedin='.ft.'CommentBlockquote'
-        \ . ' oneline'
+        \ . ' conceal'
+endfu
 
+fu! s:syn_output(ft, cml) abort "{{{2
     "     $ shell command
     "     output~
     " Why `\%(...\)\@<=` for these 2 statements?{{{
@@ -394,7 +602,9 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " It's required in the first statement because:
     "
     "    1. `xCommentOutput` is contained in `xCommentCodeBlock`
+    "
     "    2. `xCommentCodeBlock` is a region using `matchgroup=`
+    "
     "    3. `matchgroup=` prevents  a contained  item to  match where  `start` and
     "       `end` matched
     "
@@ -403,8 +613,8 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "}}}
     " Why `18` in `\@18@<=`?{{{
     "
-    " `xCommentOutput` has a negative impact on performance, probably because of
-    " the positive lookbehind which contains a quantifier.
+    " `xCommentOutput`  has a  negative impact  on performance,  because of  the
+    " positive lookbehind which contains a quantifier and the comment leader.
     "
     " MWE:
     "
@@ -414,7 +624,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "    4. move at the bottom of the file, and press `C-u` until the beginning
     "    5. run `:syn off` and `:syn report`
     "
-    " Limiting the backtracking to `18` improves the performance by a factor of ≈ `4`.
+    " Limiting the backtracking to `18` improves the performance by a factor of ≈ `5`.
     "}}}
     " Are there cases where `18` will cause the syntax highlighting to break?{{{
     "
@@ -434,32 +644,39 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " the supported  number of indentation levels  from 3 to 4,  which should be
     " enough for most comments.
     "}}}
-    exe 'syn match '.ft.'CommentOutput'
-        \ . ' /\%(^ *'.cml_1.'     \)\@18<=.*\~$/'
+    exe 'syn match '.a:ft.'CommentOutput'
+        \ . ' /\%(^ *'.a:cml.'     \)\@18<=.*\~$/'
         \ . ' contained'
-        \ . ' containedin='.ft.'CommentCodeBlock'
-        \ . ' nextgroup='.ft.'CommentIgnore'
-    exe 'syn match '.ft.'CommentIgnore'
-        \ . ' /\%(^ *'.cml_1.'.*\)\@<=.$/'
-        \ . ' contained'
-        \ . ' containedin='.ft.'CommentOutput'
-        \ . ' conceal'
+        \ . ' containedin='.a:ft.'CommentCodeBlock'
+        \ . ' nextgroup='.a:ft.'CommentIgnore'
 
+    exe 'syn match '.a:ft.'CommentIgnore'
+        \ . ' /\%(^ *'.a:cml.'.*\)\@<=.$/'
+        \ . ' contained'
+        \ . ' containedin='.a:ft.'CommentOutput'
+        \ . ' conceal'
+endfu
+
+fu! s:syn_option(ft) abort "{{{2
     " some `'option'`
-    exe 'syn match '.ft.'CommentOption'
+    exe 'syn match '.a:ft.'CommentOption'
         \ . ' /`\@1<=''.\{-}''`\@=/'
         \ . ' contained'
-        \ . ' containedin='.ft.'CommentCodeSpan'
+        \ . ' containedin='.a:ft.'CommentCodeSpan'
+endfu
 
+fu! s:syn_pointer(ft, cml, commentGroup) abort "{{{2
     " not a pointer v
     " v
-    "       v
-    exe 'syn match '.ft.'CommentPointer'
-        \ . ' /^\s*'.cml_1.'\s*\%([v^✘✔]\+\s*\)\+$/'
-        \ . ' contains='.ft.'CommentLeader'
+    "       ^
+    exe 'syn match '.a:ft.'CommentPointer'
+        \ . ' /'.a:cml.'\s*\%([v^✘✔]\+\s*\)\+$/'
+        \ . ' contains='.a:ft.'CommentLeader'
         \ . ' contained'
-        \ . ' containedin='.commentGroup
+        \ . ' containedin='.a:commentGroup
+endfu
 
+fu! s:syn_table(ft, cml, commentGroup) abort "{{{2
     " some table:
     "    ┌───────┬──────┐
     "    │  one  │ two  │
@@ -483,73 +700,17 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " Although, I  guess you could  include a  code span without  concealing the
     " backticks, but you would need to define another code span syntax item.
     "}}}
-    exe 'syn region '.ft.'CommentTable'
+    exe 'syn region '.a:ft.'CommentTable'
         \ . ' matchgroup=Comment'
-        \ . ' start=/^\s*'.cml_1.'    [│─┌└├]\@=/'
-        \ . ' matchgroup=Structure'
+        \ . ' start=/'.a:cml.'    [│─┌└├]\@=/'
         \ . ' end=/$/'
         \ . ' keepend'
         \ . ' oneline'
         \ . ' contained'
-        \ . ' containedin='.commentGroup
+        \ . ' containedin='.a:commentGroup
+endfu
 
-    exe 'syn cluster '.ft.'CommentListStyles contains='
-        \ .ft.'CommentListItalic,'
-        \ .ft.'CommentListBold,'
-        \ .ft.'CommentListBoldItalic,'
-        \ .ft.'CommentListCodeSpan'
-
-    " - some item 1
-    "   some text
-    "
-    " - some item 2
-    "
-    " TODO: add support for blockquote and code block inside a list
-    " The end pattern is long... What does it mean?{{{
-    "
-    " It contains 3 main branches:
-    "
-    "     '^\s*'.cml_1.'\%(\s*\n\s*'.cml_1.'\s\=\S\)\@='
-    "
-    " An empty  line (except for  the comment  leader), followed by  a non-empty
-    " line.
-    "
-    "     '\n\%(\s*'.cml_1.'\s*\%(}'.'}}\|{'.'{{\)\)\@='
-    "
-    " The end/beginning of a fold right after the end of the list (no empty line
-    " in-between).
-    "
-    "     '^\%(.*'.cml_1.'\)\@!'
-    "
-    " A non-commented line.
-    "}}}
-    exe 'syn region '.ft.'CommentList'
-        \ . ' start=/^\s*'.cml_1.' \{,4\}\%([-*+•]\|\d\+\.\)\s\+\S/'
-        \ . ' end=/^\s*'.cml_1.'\%(\s*\n\s*'.cml_1.'\s\=\S\)\@='
-        \       . '\|\n\%(\s*'.cml_1.'\s*\%(}'.'}}\|{'.'{{\)\)\@='
-        \       . '\|^\%(.*'.cml_1.'\)\@!/'
-        \ . ' keepend'
-        \ . ' contains='.ft.'CommentLeader,@'.ft.'CommentListStyles'
-        \ . ' contained'
-        \ . ' containedin='.commentGroup
-        \ . ' contains='.ft.'FoldMarkers,'.ft.'CommentCodeBlock'
-
-    "     ^ \{,3\}\%([-*+•]\|\d\+\.\)\s\+\S
-    "     \_.\{-}
-    "     \n\s*\n \{,2}\%([^-*+• \t]\|\%$\)\@=
-    "     contained contains=markdownListItalic,markdownListBold,markdownListBoldItalic,markdownListCodeSpan
-
-    if ft isnot# 'vim'
-        " TODO: Explain how the code works.
-        exe 'syn match '.ft.'CommentTitle'
-            \ . ' /'.cml_1.'\s*\u\w*\%(\s\+\u\w*\)*:/hs=s+'.nr
-            \ . ' contained'
-            \ . ' contains='.ft.'CommentTitleLeader,'.ft.'Todo'
-        exe 'syn match '.ft.'CommentTitleLeader'
-            \ . ' /'.cml_1.'\s\+/ms=s+'.nr
-            \ . ' contained'
-    endif
-
+fu! s:syn_foldmarkers(ft, cml_0_1, commentGroup) abort "{{{2
     " replace noisy markers, used in folds, with ❭ and ❬
     " Why not `containedin=ALL`?{{{
     "
@@ -583,57 +744,28 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "    ❯❮
     "    ❱❰
     "}}}
-    exe 'syn match '.ft.'FoldMarkers'
-        \ . ' /'.cml_0_1.'\s*{'.'{{\d*\s*\ze\n/'
+    exe 'syn match '.a:ft.'FoldMarkers'
+        \ . ' /'.a:cml_0_1.'\s*{'.'{{\d*\s*\ze\n/'
         \ . ' conceal'
         \ . ' cchar=❭'
-        \ . ' contains='.ft.'CommentLeader'
+        \ . ' contains='.a:ft.'CommentLeader'
         \ . ' contained'
-        \ . ' containedin='.commentGroup.','.ft.'CommentCodeBlock'
-    exe 'syn match '.ft.'FoldMarkers'
-        \ . ' /'.cml_0_1.'\s*}'.'}}\d*\s*\ze\n/'
+        \ . ' containedin='.a:commentGroup.','.a:ft.'CommentCodeBlock'
+
+    exe 'syn match '.a:ft.'FoldMarkers'
+        \ . ' /'.a:cml_0_1.'\s*}'.'}}\d*\s*\ze\n/'
         \ . ' conceal'
         \ . ' cchar=❬'
-        \ . ' contains='.ft.'CommentLeader'
+        \ . ' contains='.a:ft.'CommentLeader'
         \ . ' contained'
-        \ . ' containedin='.commentGroup.','.ft.'CommentCodeBlock'
+        \ . ' containedin='.a:commentGroup.','.a:ft.'CommentCodeBlock'
+endfu
 
-    " TODO: highlight commented urls (like in markdown)?
-    "
-    "     markdownLinkText xxx matchgroup=markdownLinkTextDelimiter
-    "                          start=/!\=\[\%(\_[^]]*]\%( \=[[(]\)\)\@=/
-    "                          end=/\]\%( \=[[(]\)\@=/
-    "                          concealends
-    "                          contains=@markdownInline,markdownLineStart
-    "                          nextgroup=markdownLink,markdownId
-    "                          skipwhite
-    "     links to Conditional
-    "
-    "     markdownUrl    xxx match /\S\+/
-    "                        contained nextgroup=markdownUrlTitle
-    "                        skipwhite
-    "                        matchgroup=markdownUrlDelimiter
-    "                        start=/</
-    "                        end=/>/
-    "                        contained
-    "                        oneline
-    "                        keepend
-    "                        nextgroup=markdownUrlTitle
-    "                        skipwhite
-    "     links to Float
-
-    " TODO:
-    " Read:
-    "     https://daringfireball.net/projects/markdown/syntax
-    "     https://daringfireball.net/projects/markdown/basics
-    "
-    " `markdown` provides some useful syntax which our comments
-    " don't emulate yet.
-    "
-    " Like the fact that  a list item can include a blockquote  or a code block.
-    " Make some tests on github,  stackexchange, reddit, and with `:Preview`, to
-    " see what the current syntax is (markdown has evolved I guess...).
-    "
-    " And try to emulate every interesting syntax you find.
+fu! s:syn_mycustomgroups(ft) abort "{{{2
+    let groups = copy(s:custom_groups)
+    call map(groups, {i,v ->
+        \ v[0] is# '@' ? '@' . a:ft . substitute(v, '@', '', '') : a:ft . v})
+    let groups = join(groups, ',')
+    exe 'syn cluster '.a:ft.'MyCustomGroups contains='.groups
 endfu
 
