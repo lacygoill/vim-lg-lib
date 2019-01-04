@@ -68,10 +68,12 @@ fu! lg#styled_comment#highlight() abort "{{{2
     exe 'hi link '.ft.'CommentListItalic          markdownListItalic'
     exe 'hi link '.ft.'CommentListBold            markdownListBold'
     exe 'hi link '.ft.'CommentListBoldItalic      markdownListBoldItalic'
-    exe 'hi link '.ft.'CommentListCodeSpan        markdownListCodeSpan'
+    exe 'hi link '.ft.'CommentListCodeSpan        CommentListCodeSpan'
     exe 'hi link '.ft.'CommentListCodeBlock       CommentCodeSpan'
     exe 'hi link '.ft.'CommentListBlockquote      markdownListBlockquote'
     exe 'hi link '.ft.'CommentPointer             markdownPointer'
+    exe 'hi link '.ft.'CommentKey                 markdownKey'
+    exe 'hi link '.ft.'CommentRule                markdownRule'
     exe 'hi link '.ft.'CommentTable               markdownTable'
 
     exe 'hi link '.ft.'CommentTitle               PreProc'
@@ -230,6 +232,8 @@ fu! lg#styled_comment#syntax() abort "{{{2
     call s:syn_output(ft, cml)
     call s:syn_option(ft)
     call s:syn_pointer(ft, cml, commentGroup)
+    call s:syn_key(ft, commentGroup)
+    call s:syn_rule(ft, cml, commentGroup)
     call s:syn_table(ft, cml, commentGroup)
     call s:syn_foldmarkers(ft, cml_0_1, commentGroup)
     " What does it do?{{{
@@ -380,7 +384,7 @@ fu! s:syn_code_block(ft, cml, commentGroup) abort "{{{2
     "}}}
     exe 'syn region '.a:ft.'CommentCodeBlock'
         \ . ' matchgroup=Comment'
-        \ . ' start=/'.a:cml.'     /'
+        \ . ' start=/'.a:cml.'     \s*/'
         \ . ' end=/$/'
         \ . ' keepend'
         \ . ' contained'
@@ -674,6 +678,24 @@ fu! s:syn_pointer(ft, cml, commentGroup) abort "{{{2
         \ . ' contains='.a:ft.'CommentLeader'
         \ . ' contained'
         \ . ' containedin='.a:commentGroup
+endfu
+
+fu! s:syn_key(ft, commentGroup) abort "{{{2
+    exe 'syn region '.a:ft.'CommentKey'
+        \ . ' matchgroup=Special'
+        \ . ' start=/<kbd>/'
+        \ . ' end=/<\/kbd>/'
+        \ . ' concealends'
+        \ . ' contained'
+        \ . ' containedin='.a:commentGroup
+endfu
+
+fu! s:syn_rule(ft, cml, commentGroup) abort "{{{2
+    exe 'syn match '.a:ft.'CommentRule'
+        \ . ' /'.a:cml.'\s*^- *- *-[ -]*$/'
+        \ . ' contained'
+        \ . ' containedin='.a:commentGroup
+        \ . ' contains='.a:ft.'CommentLeader'
 endfu
 
 fu! s:syn_table(ft, cml, commentGroup) abort "{{{2
