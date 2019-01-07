@@ -350,9 +350,15 @@ endfu
 fu! s:syn_commenttitle(ft, cml, nr) abort "{{{2
     if a:ft isnot# 'vim'
         " TODO: Explain how the code works.
+        " Don't remove `containedin=`!{{{
+        "
+        " We need it, for example, to allow `awkCommentTitle` to be contained in
+        " `awkComment`. Same thing for conf, tmux and zsh.
+        "}}}
         exe 'syn match '.a:ft.'CommentTitle'
             \ . ' /'.a:cml.'\s*\u\w*\%(\s\+\u\w*\)*:/hs=s+'.a:nr
             \ . ' contained'
+            \ . ' containedin='.a:ft.'Comment'
             \ . ' contains='.a:ft.'CommentTitleLeader,'.a:ft.'Todo'
 
         exe 'syn match '.a:ft.'CommentTitleLeader'
