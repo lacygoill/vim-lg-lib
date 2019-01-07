@@ -195,9 +195,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " and stick to it (here and in the markdown syntax plugin)
 
     let ft = s:get_filetype()
-    let cml = ft is# 'gitconfig'
-        \ ?     '#'
-        \ :     matchstr(get(split(&l:cms, '%s'), 0, ''), '\S*')
+    let cml = matchstr(get(split(&l:cms, '%s'), 0, ''), '\S*')
     " What do you need this `nr` for?{{{
     "
     " For offsets when defining the syntax groups:
@@ -353,7 +351,7 @@ fu! s:syn_commenttitle(ft, cml, nr) abort "{{{2
         " Don't remove `containedin=`!{{{
         "
         " We need it, for example, to allow `awkCommentTitle` to be contained in
-        " `awkComment`. Same thing for conf, tmux and zsh.
+        " `awkComment`. Same thing for other many other filetypes.
         "}}}
         exe 'syn match '.a:ft.'CommentTitle'
             \ . ' /'.a:cml.'\s*\u\w*\%(\s\+\u\w*\)*:/hs=s+'.a:nr
