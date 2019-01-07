@@ -62,36 +62,58 @@ fu! lg#styled_comment#highlight() abort "{{{2
 
     exe 'hi '     .ft.'FoldMarkers term=bold cterm=bold gui=bold'
 
-    exe 'hi link '.ft.'CommentLeader              Comment'
-    exe 'hi link '.ft.'CommentOption              markdownOption'
-    exe 'hi link '.ft.'CommentList                markdownList'
-    exe 'hi link '.ft.'CommentListItalic          markdownListItalic'
-    exe 'hi link '.ft.'CommentListBold            markdownListBold'
-    exe 'hi link '.ft.'CommentListBoldItalic      markdownListBoldItalic'
-    exe 'hi link '.ft.'CommentListCodeSpan        CommentListCodeSpan'
-    exe 'hi link '.ft.'CommentListCodeBlock       CommentCodeSpan'
-    exe 'hi link '.ft.'CommentListBlockquote      markdownListBlockquote'
-    exe 'hi link '.ft.'CommentPointer             markdownPointer'
-    exe 'hi link '.ft.'CommentKey                 markdownKey'
-    exe 'hi link '.ft.'CommentRule                markdownRule'
-    exe 'hi link '.ft.'CommentTable               markdownTable'
+    exe 'hi link '.ft.'CommentLeader                Comment'
+    exe 'hi link '.ft.'CommentOption                markdownOption'
+    exe 'hi link '.ft.'CommentList                  markdownList'
+    exe 'hi link '.ft.'CommentListItalic            markdownListItalic'
+    exe 'hi link '.ft.'CommentListBold              markdownListBold'
+    exe 'hi link '.ft.'CommentListBoldItalic        markdownListBoldItalic'
+    exe 'hi link '.ft.'CommentListCodeSpan          CommentListCodeSpan'
+    exe 'hi link '.ft.'CommentListCodeBlock         CommentCodeSpan'
+    exe 'hi link '.ft.'CommentListBlockquote        markdownListBlockquote'
+    exe 'hi link '.ft.'CommentPointer               markdownPointer'
+    exe 'hi link '.ft.'CommentKey                   markdownKey'
+    exe 'hi link '.ft.'CommentRule                  markdownRule'
+    exe 'hi link '.ft.'CommentTable                 markdownTable'
 
-    exe 'hi link '.ft.'CommentTitle               PreProc'
-    exe 'hi link '.ft.'CommentOutput              PreProc'
+    exe 'hi link '.ft.'CommentTitle                 PreProc'
+    exe 'hi link '.ft.'CommentOutput                PreProc'
 
-    exe 'hi link '.ft.'CommentItalic              CommentItalic'
-    exe 'hi link '.ft.'CommentBold                CommentBold'
-    exe 'hi link '.ft.'CommentBoldItalic          CommentBoldItalic'
-    exe 'hi link '.ft.'CommentCodeSpan            CommentCodeSpan'
-    exe 'hi link '.ft.'CommentCodeBlock           CommentCodeSpan'
+    exe 'hi link '.ft.'CommentItalic                CommentItalic'
+    exe 'hi link '.ft.'CommentBold                  CommentBold'
+    exe 'hi link '.ft.'CommentBoldItalic            CommentBoldItalic'
+    exe 'hi link '.ft.'CommentCodeSpan              CommentCodeSpan'
+    exe 'hi link '.ft.'CommentCodeBlock             CommentCodeSpan'
 
-    exe 'hi link '.ft.'CommentBlockquote          markdownBlockquote'
-    exe 'hi link '.ft.'CommentBlockquoteItalic    markdownBlockquoteItalic'
-    exe 'hi link '.ft.'CommentBlockquoteBold      markdownBlockquoteBold'
-    exe 'hi link '.ft.'CommentBlockquoteCodeSpan  markdownBlockquoteCodeSpan'
+    exe 'hi link '.ft.'CommentBlockquote            markdownBlockquote'
+    exe 'hi link '.ft.'CommentBlockquoteItalic      markdownBlockquoteItalic'
+    exe 'hi link '.ft.'CommentBlockquoteBold        markdownBlockquoteBold'
+    exe 'hi link '.ft.'CommentBlockquoteBoldItalic  markdownBlockquoteBoldItalic'
+    exe 'hi link '.ft.'CommentBlockquoteCodeSpan    markdownBlockquoteCodeSpan'
 endfu
 
 fu! lg#styled_comment#syntax() abort "{{{2
+    " Use `\s` instead of ` `!{{{
+    "
+    " This is necessary for a whitespace before a comment leader:
+    "
+    "     /^ ...
+    "       ^
+    "       ✘
+    "
+    "     /^\s...
+    "       ^^
+    "       ✔
+    "
+    " Because, there's  no guarantee  that the file  you're reading  is indented
+    " with spaces.
+    " To be consistent, we should always use `\s`, even for a whitespace *after*
+    " the comment leader.
+    "
+    " ` {,N}` is an exception. I think it's ok to use a literal space in this case.
+    " Tpope does it a few times in his markdown syntax plugin.
+    "}}}
+
     " Never write `matchgroup=xGroup` with `xGroup` being a builtin HG.{{{
     "
     " `xGroup` should be a *custom* HG, that we can customize in our colorscheme.
@@ -172,13 +194,6 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " TODO: find a consistent order for the arguments of a region (and other items)
     " and stick to it (here and in the markdown syntax plugin)
 
-    " TODO: Improve the performance by avoiding quantifiers inside lookaround.
-    " Make some tests using `:syntime`.
-    " If  necessary, replace  regions with  matches, and  use our  custom syntax
-    " group describing the comment leader to restore its color.
-    "
-    " `CommentOutput` is the least performant of our groups.
-
     let ft = s:get_filetype()
     let cml = ft is# 'gitconfig'
         \ ?     '#'
@@ -225,6 +240,26 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "}}}
     call s:syn_code_block(ft, cml, commentGroup)
     call s:syn_code_span(ft, commentGroup)
+    " Don't change the order of `s:syn_italic()`, `s:syn_bold()` and `s:syn_bolditalic()`!{{{
+    "
+    " It would break the syntax highlighting of some style (italic, bold, bold+italic).
+    "}}}
+    " Why?{{{
+    "
+    " Because   we  haven't   defined   the   syntax  groups   `xCommentItalic`,
+    " `xCommentBold`, `xCommentBoldItalic` accurately.
+    " For  example, this  region is  not accurate enough  to describe  an italic
+    " element:
+    "
+    "     syn region xCommentItalic start=/\*/ end=/\*/
+    "
+    " A text in bold wrongly matches this description.
+    " This would be more accurate:
+    "
+    "     syn region xCommentItalic start=/\*\@1<!\*\*\@!/ end=/\*\@1<!\*\*\@!/
+    "
+    " But it would probably have an impact on Vim's performance.
+    "}}}
     call s:syn_italic(ft, commentGroup)
     call s:syn_bold(ft, commentGroup)
     call s:syn_bolditalic(ft, commentGroup)
@@ -269,8 +304,8 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " TODO: highlight commented urls (like in markdown)?{{{
     "
     "     markdownLinkText xxx matchgroup=markdownLinkTextDelimiter
-    "                          start=/!\=\[\%(\_[^]]*]\%( \=[[(]\)\)\@=/
-    "                          end=/\]\%( \=[[(]\)\@=/
+    "                          start=/!\=\[\%(\_[^]]*]\%(\s\=[[(]\)\)\@=/
+    "                          end=/\]\%(\s\=[[(]\)\@=/
     "                          concealends
     "                          contains=@markdownInline,markdownLineStart
     "                          nextgroup=markdownLink,markdownId
@@ -338,24 +373,23 @@ fu! s:syn_list(ft, cml, commentGroup) abort "{{{2
     "   some text
     "
     " - some item 2
-    "
     " The end pattern is long... What does it mean?{{{
     "
-    " It contains 3 main branches:
+    " It contains 3 main branches.
+    "
+    " An empty  line (except for  the comment  leader), followed by  a non-empty
+    " line:
     "
     "     cml.'\%(\s*\n\s*'.cml.'\s\=\S\)\@='
     "
-    " An empty  line (except for  the comment  leader), followed by  a non-empty
-    " line.
-    "
-    "     '\n\%(\s*'.cml.'\s*\%(}'.'}}\|{'.'{{\)\)\@='
-    "
     " The end/beginning of a fold right after the end of the list (no empty line
-    " in-between).
+    " in-between):
     "
-    "     '^\%(.*'.cml.'\)\@!'
+    "     '\n\%(\s*'.cml.'.*\%(}'.'}}\|{'.'{{\)\)\@='
     "
-    " A non-commented line.
+    " A non-commented line:
+    "
+    "     '^\%(\s*'.cml.'\)\@!'
     "}}}
     " The regexes include several lookafter with quantifiers.  Do they cause bad performance?{{{
     "
@@ -363,10 +397,10 @@ fu! s:syn_list(ft, cml, commentGroup) abort "{{{2
     " With and without limiting the backtracking of `\%(^\s*\)\@<=`.
     "}}}
     exe 'syn region '.a:ft.'CommentList'
-        \ . ' start=/\%(^\s*\)\@18<='.a:cml.' \{,4\}\%([-*+•]\|\d\+\.\)\s\+\S/'
+        \ . ' start=/\%(^\s*\)\@<='.a:cml.' \{,4\}\%([-*+•]\|\d\+\.\)\s\+\S/'
         \ . ' end=/'.a:cml.'\%(\s*\n\s*'.a:cml.' \{,4}\S\)\@='
-        \       . '\|\n\%(\s*'.a:cml.'\s*\%(}'.'}}\|{'.'{{\)\)\@='
-        \       . '\|^\%(.*'.a:cml.'\)\@!/'
+        \       . '\|\n\%(\s*'.a:cml.'.*\%(}'.'}}\|{'.'{{\)\)\@='
+        \       . '\|^\%(\s*'.a:cml.'\)\@!/'
         \ . ' keepend'
         \ . ' contains='.a:ft.'CommentLeader,@'.a:ft.'CommentListStyles'
         \ . ' contained'
@@ -384,7 +418,7 @@ fu! s:syn_code_block(ft, cml, commentGroup) abort "{{{2
     "}}}
     exe 'syn region '.a:ft.'CommentCodeBlock'
         \ . ' matchgroup=Comment'
-        \ . ' start=/'.a:cml.'     \s*/'
+        \ . ' start=/'.a:cml.' \{5,}/'
         \ . ' end=/$/'
         \ . ' keepend'
         \ . ' contained'
@@ -482,8 +516,8 @@ fu! s:syn_italic(ft, commentGroup) abort "{{{2
     " some *italic* comment
     exe 'syn region '.a:ft.'CommentItalic'
         \ . ' matchgroup=Comment'
-        \ . ' start=/\*\@1<!\*\*\@!/'
-        \ . '   end=/\*\@1<!\*\*\@!/'
+        \ . ' start=/\*/'
+        \ . '   end=/\*/'
         \ . ' keepend'
         \ . ' concealends'
         \ . ' contained'
@@ -493,11 +527,22 @@ fu! s:syn_italic(ft, commentGroup) abort "{{{2
     " - some *italic* item
     exe 'syn region '.a:ft.'CommentListItalic'
         \ . ' matchgroup=markdownList'
-        \ . ' start=/\*\@1<!\*\*\@!/'
-        \ . '   end=/\*\@1<!\*\*\@!/'
+        \ . ' start=/\*/'
+        \ . '   end=/\*/'
         \ . ' keepend'
         \ . ' concealends'
         \ . ' contained'
+        \ . ' oneline'
+
+    " > some *italic* quote
+    exe 'syn region '.a:ft.'CommentBlockquoteItalic'
+        \ . ' matchgroup=markdownBlockquote'
+        \ . ' start=/\*/'
+        \ . '   end=/\*/'
+        \ . ' keepend'
+        \ . ' concealends'
+        \ . ' contained'
+        \ . ' containedin='.a:ft.'CommentBlockquote'
         \ . ' oneline'
 endfu
 
@@ -556,6 +601,17 @@ fu! s:syn_bolditalic(ft, commentGroup) abort "{{{2
         \ . ' concealends'
         \ . ' contained'
         \ . ' oneline'
+
+    " > some ***bold and italic*** quote
+    exe 'syn region '.a:ft.'CommentBlockquoteBoldItalic'
+        \ . ' matchgroup=markdownBlockquote'
+        \ . ' start=/\*\*\*/'
+        \ . '  end=/\*\*\*/'
+        \ . ' keepend'
+        \ . ' concealends'
+        \ . ' contained'
+        \ . ' containedin='.a:ft.'CommentBlockquote'
+        \ . ' oneline'
 endfu
 
 fu! s:syn_quote(ft, cml, commentGroup) abort "{{{2
@@ -569,14 +625,14 @@ fu! s:syn_quote(ft, cml, commentGroup) abort "{{{2
     " other filetypes.
     "}}}
     exe 'syn match '.a:ft.'CommentBlockquote'
-        \ . ' /'.a:cml.'\s\{,4}>.*/'
+        \ . ' /'.a:cml.' \{,4}>.*/'
         \ . ' contained'
         \ . ' containedin='.a:commentGroup
         \ . ' contains='.a:ft.'CommentLeader,'.a:ft.'CommentBlockquoteConceal,'.a:ft.'CommentBold'
         \ . ' oneline'
 
     exe 'syn match '.a:ft.'CommentBlockquoteConceal'
-        \ . ' /\%('.a:cml.'\s\{,4}\)\@<=>\s\=/'
+        \ . ' /\%('.a:cml.' \{,4}\)\@<=>\s\=/'
         \ . ' contained'
         \ . ' conceal'
 
@@ -586,14 +642,14 @@ fu! s:syn_quote(ft, cml, commentGroup) abort "{{{2
     "
     " -   some list item
     exe 'syn match '.a:ft.'CommentListBlockquote'
-        \ . ' /'.a:cml.'\s\{5}>.*/'
+        \ . ' /'.a:cml.' \{5}>.*/'
         \ . ' contained'
         \ . ' containedin='.a:ft.'CommentList'
         \ . ' contains='.a:ft.'CommentLeader,'.a:ft.'CommentListBlockquoteConceal,'.a:ft.'CommentBlockquoteBold'
         \ . ' oneline'
 
     exe 'syn match '.a:ft.'CommentListBlockquoteConceal'
-        \ . ' /\%('.a:cml.'\s\{5}\)\@<=>\s\=/'
+        \ . ' /\%('.a:cml.' \{5}\)\@<=>\s\=/'
         \ . ' contained'
         \ . ' conceal'
 endfu
@@ -615,47 +671,14 @@ fu! s:syn_output(ft, cml) abort "{{{2
     " It's required in  the second statement because we don't  want to highlight
     " with `Ignore` *all* the output of a command, only the last tilde.
     "}}}
-    " Why `18` in `\@18@<=`?{{{
-    "
-    " `xCommentOutput`  has a  negative impact  on performance,  because of  the
-    " positive lookbehind which contains a quantifier and the comment leader.
-    "
-    " MWE:
-    "
-    "    1. remove `18`
-    "    2. totally unfold your vimrc
-    "    3. run `:syn clear` and `:syn on`
-    "    4. move at the bottom of the file, and press `C-u` until the beginning
-    "    5. run `:syn off` and `:syn report`
-    "
-    " Limiting the backtracking to `18` improves the performance by a factor of ≈ `5`.
-    "}}}
-    " Are there cases where `18` will cause the syntax highlighting to break?{{{
-    "
-    " Yes.
-    " If  the text  in the  output is more  than `18`  characters away  from the
-    " beginning of the line.
-    "
-    " Currently, with `&sw = 4`, `18`  means that the syntax highlighting should
-    " work when  the line  is not  indented, and when  it's indented  by 4  or 8
-    " spaces.
-    " That's 3 possible levels.
-    "}}}
-    " Is there a solution?{{{
-    "
-    " Try to use `&sw = 2`.
-    " With this new value, you could  reduce `18` to `14` while still increasing
-    " the supported  number of indentation levels  from 3 to 4,  which should be
-    " enough for most comments.
-    "}}}
     exe 'syn match '.a:ft.'CommentOutput'
-        \ . ' /\%(^ *'.a:cml.'     \)\@18<=.*\~$/'
+        \ . ' /\%(^\s*'.a:cml.' \{5,}\)\@<=.*\~$/'
         \ . ' contained'
         \ . ' containedin='.a:ft.'CommentCodeBlock'
         \ . ' nextgroup='.a:ft.'CommentIgnore'
 
     exe 'syn match '.a:ft.'CommentIgnore'
-        \ . ' /\%(^ *'.a:cml.'.*\)\@<=.$/'
+        \ . ' /\%(^\s*'.a:cml.'.*\)\@<=.$/'
         \ . ' contained'
         \ . ' containedin='.a:ft.'CommentOutput'
         \ . ' conceal'
@@ -691,8 +714,17 @@ fu! s:syn_key(ft, commentGroup) abort "{{{2
 endfu
 
 fu! s:syn_rule(ft, cml, commentGroup) abort "{{{2
+    " Where does the regex come from?{{{
+    "
+    " Tpope uses a similar regex in his markdown syntax plugin:
+    "
+    "     - *- *-[ -]*$
+    "
+    " We  just add  ` *`  in front  of it,  because there  could be  some spaces
+    " between the comment leader and a horizontal rule.
+    "}}}
     exe 'syn match '.a:ft.'CommentRule'
-        \ . ' /'.a:cml.'\s*^- *- *-[ -]*$/'
+        \ . ' /'.a:cml.' *- *- *-[ -]*$/'
         \ . ' contained'
         \ . ' containedin='.a:commentGroup
         \ . ' contains='.a:ft.'CommentLeader'
