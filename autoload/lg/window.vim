@@ -93,11 +93,10 @@ fu! lg#window#qf_open(type) abort "{{{1
             " It allows us to do this in any plugin populating the qfl:
             "
             "         do <nomodeline> QuickFixCmdPost cwindow
-            "             → open  the qf window  on the condition  it contains
-            "               at  least 1 valid entry
+            "         open  the qf window  on the condition  it contains at  least 1 valid entry~
             "
             "         do <nomodeline> QuickFixCmdPost copen
-            "             → open the qf window unconditionally
+            "         open the qf window unconditionally~
             "}}}
             " Could we write sth simpler?{{{
             "
