@@ -12,11 +12,11 @@ let s:custom_groups = [
     \ 'CommentIgnore',
     \ 'CommentItalic',
     \ 'CommentLeader',
-    \ 'CommentList',
-    \ 'CommentListBold',
-    \ 'CommentListBoldItalic',
-    \ 'CommentListCodeSpan',
-    \ 'CommentListItalic',
+    \ 'CommentListItem',
+    \ 'CommentListItemBold',
+    \ 'CommentListItemBoldItalic',
+    \ 'CommentListItemCodeSpan',
+    \ 'CommentListItemItalic',
     \ 'CommentOption',
     \ 'CommentOutput',
     \ 'CommentPointer',
@@ -24,7 +24,7 @@ let s:custom_groups = [
     \ 'CommentTitle',
     \ 'CommentTitleLeader',
     \ 'FoldMarkers',
-    \ '@CommentListStyles',
+    \ '@CommentListItemStyles',
 \ ]
 " }}}1
 
@@ -64,13 +64,13 @@ fu! lg#styled_comment#highlight() abort "{{{2
 
     exe 'hi link '.ft.'CommentLeader                Comment'
     exe 'hi link '.ft.'CommentOption                markdownOption'
-    exe 'hi link '.ft.'CommentList                  markdownList'
-    exe 'hi link '.ft.'CommentListItalic            markdownListItalic'
-    exe 'hi link '.ft.'CommentListBold              markdownListBold'
-    exe 'hi link '.ft.'CommentListBoldItalic        markdownListBoldItalic'
-    exe 'hi link '.ft.'CommentListCodeSpan          CommentListCodeSpan'
-    exe 'hi link '.ft.'CommentListCodeBlock         CommentCodeSpan'
-    exe 'hi link '.ft.'CommentListBlockquote        markdownListBlockquote'
+    exe 'hi link '.ft.'CommentListItem              markdownListItem'
+    exe 'hi link '.ft.'CommentListItemItalic        markdownListItalic'
+    exe 'hi link '.ft.'CommentListItemBold          markdownListBold'
+    exe 'hi link '.ft.'CommentListItemBoldItalic    markdownListBoldItalic'
+    exe 'hi link '.ft.'CommentListItemCodeSpan      CommentListItemCodeSpan'
+    exe 'hi link '.ft.'CommentListItemCodeBlock     CommentCodeSpan'
+    exe 'hi link '.ft.'CommentListItemBlockquote    markdownListBlockquote'
     exe 'hi link '.ft.'CommentPointer               markdownPointer'
     exe 'hi link '.ft.'CommentKey                   markdownKey'
     exe 'hi link '.ft.'CommentRule                  markdownRule'
@@ -155,7 +155,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "
     " - CommentBlockquote
     " - CommentCodeBlock
-    " - CommentList
+    " - CommentListItem
     " - CommentPointer
     " - CommentTable
     "}}}
@@ -178,8 +178,8 @@ fu! lg#styled_comment#syntax() abort "{{{2
         "
         " Exception:
         "
-        " For `CommentList`, you *have* to use `\%(^\s*\)\@<=`, probably because
-        " it's a multi-line item.
+        " For  `CommentListItem`, you  *have* to  use `\%(^\s*\)\@<=`,  probably
+        " because it's a multi-line item.
         " Otherwise, you could  have an undesired list starting  from the middle
         " of a comment.
         "
@@ -366,12 +366,12 @@ fu! s:syn_commenttitle(ft, cml, nr) abort "{{{2
 endfu
 
 fu! s:syn_list(ft, cml, commentGroup) abort "{{{2
-    exe 'syn cluster '.a:ft.'CommentListStyles'
+    exe 'syn cluster '.a:ft.'CommentListItemStyles'
         \ . ' contains='
-        \ .a:ft.'CommentListItalic,'
-        \ .a:ft.'CommentListBold,'
-        \ .a:ft.'CommentListBoldItalic,'
-        \ .a:ft.'CommentListCodeSpan'
+        \ .a:ft.'CommentListItemItalic,'
+        \ .a:ft.'CommentListItemBold,'
+        \ .a:ft.'CommentListItemBoldItalic,'
+        \ .a:ft.'CommentListItemCodeSpan'
 
     " - some item 1
     "   some text
@@ -400,16 +400,16 @@ fu! s:syn_list(ft, cml, commentGroup) abort "{{{2
     " Weirdly enough, no.
     " With and without limiting the backtracking of `\%(^\s*\)\@<=`.
     "}}}
-    exe 'syn region '.a:ft.'CommentList'
+    exe 'syn region '.a:ft.'CommentListItem'
         \ . ' start=/\%(^\s*\)\@<='.a:cml.' \{,4\}\%([-*+•]\|\d\+\.\)\s\+\S/'
         \ . ' end=/'.a:cml.'\%(\s*\n\s*'.a:cml.' \{,4}\S\)\@='
         \       . '\|\n\%(\s*'.a:cml.'.*\%(}'.'}}\|{'.'{{\)\)\@='
         \       . '\|^\%(\s*'.a:cml.'\)\@!/'
         \ . ' keepend'
-        \ . ' contains='.a:ft.'CommentLeader,@'.a:ft.'CommentListStyles'
+        \ . ' contains='.a:ft.'CommentLeader,@'.a:ft.'CommentListItemStyles'
         \ . ' contained'
         \ . ' containedin='.a:commentGroup
-        \ . ' contains='.a:ft.'FoldMarkers,'.a:ft.'CommentListCodeBlock'
+        \ . ' contains='.a:ft.'FoldMarkers,'.a:ft.'CommentListItemCodeBlock'
 endfu
 
 fu! s:syn_code_block(ft, cml, commentGroup) abort "{{{2
@@ -434,13 +434,13 @@ fu! s:syn_code_block(ft, cml, commentGroup) abort "{{{2
     "         some code block
     "
     " - some item
-    exe 'syn region '.a:ft.'CommentListCodeBlock'
+    exe 'syn region '.a:ft.'CommentListItemCodeBlock'
         \ . ' matchgroup=Comment'
         \ . ' start=/'.a:cml.'         /'
         \ . ' end=/$/'
         \ . ' keepend'
         \ . ' contained'
-        \ . ' containedin='.a:ft.'CommentList'
+        \ . ' containedin='.a:ft.'CommentListItem'
         \ . ' oneline'
 endfu
 
@@ -495,8 +495,8 @@ fu! s:syn_code_span(ft, commentGroup) abort "{{{2
         \ . ' oneline'
 
     " - some `code span` item
-    exe 'syn region '.a:ft.'CommentListCodeSpan'
-        \ . ' matchgroup=markdownList'
+    exe 'syn region '.a:ft.'CommentListItemCodeSpan'
+        \ . ' matchgroup=markdownListItem'
         \ . ' start=/`\@1<!``\@!/'
         \ . '   end=/`\@1<!``\@!/'
         \ . ' keepend'
@@ -529,8 +529,8 @@ fu! s:syn_italic(ft, commentGroup) abort "{{{2
         \ . ' oneline'
 
     " - some *italic* item
-    exe 'syn region '.a:ft.'CommentListItalic'
-        \ . ' matchgroup=markdownList'
+    exe 'syn region '.a:ft.'CommentListItemItalic'
+        \ . ' matchgroup=markdownListItem'
         \ . ' start=/\*/'
         \ . '   end=/\*/'
         \ . ' keepend'
@@ -563,8 +563,8 @@ fu! s:syn_bold(ft, commentGroup) abort "{{{2
         \ . ' oneline'
 
     " - some **bold** item
-    exe 'syn region '.a:ft.'CommentListBold'
-        \ . ' matchgroup=markdownList'
+    exe 'syn region '.a:ft.'CommentListItemBold'
+        \ . ' matchgroup=markdownListItem'
         \ . ' start=/\*\*/'
         \ . '  end=/\*\*/'
         \ . ' keepend'
@@ -597,8 +597,8 @@ fu! s:syn_bolditalic(ft, commentGroup) abort "{{{2
         \ . ' oneline'
 
     " - some ***bold and italic*** item
-    exe 'syn region '.a:ft.'CommentListBoldItalic'
-        \ . ' matchgroup=markdownList'
+    exe 'syn region '.a:ft.'CommentListItemBoldItalic'
+        \ . ' matchgroup=markdownListItem'
         \ . ' start=/\*\*\*/'
         \ . '  end=/\*\*\*/'
         \ . ' keepend'
@@ -645,14 +645,14 @@ fu! s:syn_quote(ft, cml, commentGroup) abort "{{{2
     "     > some quote
     "
     " -   some list item
-    exe 'syn match '.a:ft.'CommentListBlockquote'
+    exe 'syn match '.a:ft.'CommentListItemBlockquote'
         \ . ' /'.a:cml.' \{5}>.*/'
         \ . ' contained'
-        \ . ' containedin='.a:ft.'CommentList'
-        \ . ' contains='.a:ft.'CommentLeader,'.a:ft.'CommentListBlockquoteConceal,'.a:ft.'CommentBlockquoteBold'
+        \ . ' containedin='.a:ft.'CommentListItem'
+        \ . ' contains='.a:ft.'CommentLeader,'.a:ft.'CommentListItemBlockquoteConceal,'.a:ft.'CommentBlockquoteBold'
         \ . ' oneline'
 
-    exe 'syn match '.a:ft.'CommentListBlockquoteConceal'
+    exe 'syn match '.a:ft.'CommentListItemBlockquoteConceal'
         \ . ' /\%('.a:cml.' \{5}\)\@<=>\s\=/'
         \ . ' contained'
         \ . ' conceal'
