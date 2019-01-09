@@ -73,7 +73,7 @@ fu! s:get_filetype() abort "{{{2
     return ft
 endfu
 
-fu! lg#styled_comment#highlight() abort "{{{2
+fu! s:highlight_groups_links() abort "{{{2
     let ft = s:get_filetype()
 
     exe 'hi '     .ft.'FoldMarkers term=bold cterm=bold gui=bold'
@@ -305,6 +305,8 @@ fu! lg#styled_comment#syntax() abort "{{{2
         " add `@xMyCustomGroups` after `contains=ALLBUT,...`.
         " }}}
     call s:syn_mycustomgroups(ft)
+
+    call s:highlight_groups_links()
 
     " TODO: highlight commented urls (like in markdown)?{{{
     "
