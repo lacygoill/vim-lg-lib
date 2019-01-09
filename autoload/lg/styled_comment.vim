@@ -1,25 +1,41 @@
+" Whenever you create or remove a custom syntax group from `lg#styled_comment#syntax()`, update `s:custom_groups`!{{{
+"
+" Otherwise, you may have a broken syntax highlighting in any filetype whose
+" default syntax plugin uses `ALLBUT`.
+"
+" `s:custom_groups` is used by `s:syn_mycustomgroups()` to define `@MyCustomGroups`.
+" We  sometimes use  this  cluster in  `after/syntax/x.vim`  to exclude  our
+" custom groups from the ones installed by a default syntax plugin.
+"}}}
 " Init {{{1
 
 let s:custom_groups = [
     \ 'CommentBlockquote',
     \ 'CommentBlockquoteBold',
+    \ 'CommentBlockquoteBoldItalic',
     \ 'CommentBlockquoteCodeSpan',
     \ 'CommentBlockquoteConceal',
+    \ 'CommentBlockquoteItalic',
     \ 'CommentBold',
     \ 'CommentBoldItalic',
     \ 'CommentCodeBlock',
     \ 'CommentCodeSpan',
     \ 'CommentIgnore',
     \ 'CommentItalic',
+    \ 'CommentKey',
     \ 'CommentLeader',
     \ 'CommentListItem',
+    \ 'CommentListItemBlockquote',
+    \ 'CommentListItemBlockquoteConceal',
     \ 'CommentListItemBold',
     \ 'CommentListItemBoldItalic',
+    \ 'CommentListItemCodeBlock',
     \ 'CommentListItemCodeSpan',
     \ 'CommentListItemItalic',
     \ 'CommentOption',
     \ 'CommentOutput',
     \ 'CommentPointer',
+    \ 'CommentRule',
     \ 'CommentTable',
     \ 'CommentTitle',
     \ 'CommentTitleLeader',
@@ -124,15 +140,6 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " location:
     "
     "     ~/.vim/autoload/colorscheme.vim
-    "}}}
-    " Whenever you create or remove a custom syntax group from this function, update `s:custom_groups`.{{{
-    "
-    " Otherwise, you may have a broken syntax highlighting in any filetype whose
-    " default syntax plugin uses `ALLBUT`.
-    "
-    " `s:custom_groups` is used by `s:syn_mycustomgroups()` to define `@MyCustomGroups`.
-    " We  sometimes use  this  cluster in  `after/syntax/x.vim`  to exclude  our
-    " custom groups from the ones installed by a default syntax plugin.
     "}}}
     " Be careful before using `^\s*` in a regex!{{{
     "
@@ -357,7 +364,8 @@ fu! s:syn_commenttitle(ft, cml, nr) abort "{{{2
             \ . ' /'.a:cml.'\s*\u\w*\%(\s\+\u\w*\)*:/hs=s+'.a:nr
             \ . ' contained'
             \ . ' containedin='.a:ft.'Comment'
-            \ . ' contains='.a:ft.'CommentTitleLeader,'.a:ft.'Todo'
+            \ . ' contains='.a:ft.'CommentTitleLeader,'
+            \ .              a:ft.'Todo'
 
         exe 'syn match '.a:ft.'CommentTitleLeader'
             \ . ' /'.a:cml.'\s\+/ms=s+'.a:nr
@@ -406,8 +414,8 @@ fu! s:syn_list_item(ft, cml, commentGroup) abort "{{{2
         \       . '\|\n\%(\s*'.a:cml.'.*\%(}'.'}}\|{'.'{{\)\)\@='
         \       . '\|^\%(\s*'.a:cml.'\)\@!/'
         \ . ' keepend'
-        \ . ' contains='.a:ft.'CommentLeader,'
-        \ .              a:ft.'FoldMarkers,'
+        \ . ' contains='.a:ft.'FoldMarkers,'
+        \ .              a:ft.'CommentLeader,'
         \ .          '@'.a:ft.'CommentListItemElements'
         \ . ' contained'
         \ . ' containedin='.a:commentGroup
@@ -634,8 +642,8 @@ fu! s:syn_blockquote(ft, cml, commentGroup) abort "{{{2
         \ . ' contained'
         \ . ' containedin='.a:commentGroup
         \ . ' contains='.a:ft.'CommentLeader,'
-        \ .              a:ft.'CommentBlockquoteConceal,'
-        \ .              a:ft.'CommentBold'
+        \ .              a:ft.'CommentBold,'
+        \ .              a:ft.'CommentBlockquoteConceal'
         \ . ' oneline'
 
     exe 'syn match '.a:ft.'CommentBlockquoteConceal'
@@ -653,8 +661,8 @@ fu! s:syn_blockquote(ft, cml, commentGroup) abort "{{{2
         \ . ' contained'
         \ . ' containedin='.a:ft.'CommentListItem'
         \ . ' contains='.a:ft.'CommentLeader,'
-        \ .              a:ft.'CommentListItemBlockquoteConceal,'
-        \ .              a:ft.'CommentBlockquoteBold'
+        \ .              a:ft.'CommentBlockquoteBold,'
+        \ .              a:ft.'CommentListItemBlockquoteConceal'
         \ . ' oneline'
 
     exe 'syn match '.a:ft.'CommentListItemBlockquoteConceal'
@@ -813,7 +821,8 @@ fu! s:syn_foldmarkers(ft, cml_0_1, commentGroup) abort "{{{2
         \ . ' cchar=❭'
         \ . ' contains='.a:ft.'CommentLeader'
         \ . ' contained'
-        \ . ' containedin='.a:commentGroup.','.a:ft.'CommentCodeBlock'
+        \ . ' containedin='.a:commentGroup.','
+        \                  .a:ft.'CommentCodeBlock'
 
     exe 'syn match '.a:ft.'FoldMarkers'
         \ . ' /'.a:cml_0_1.'\s*}'.'}}\d*\s*\ze\n/'
@@ -821,7 +830,8 @@ fu! s:syn_foldmarkers(ft, cml_0_1, commentGroup) abort "{{{2
         \ . ' cchar=❬'
         \ . ' contains='.a:ft.'CommentLeader'
         \ . ' contained'
-        \ . ' containedin='.a:commentGroup.','.a:ft.'CommentCodeBlock'
+        \ . ' containedin='.a:commentGroup.','
+        \                  .a:ft.'CommentCodeBlock'
 endfu
 
 fu! s:syn_mycustomgroups(ft) abort "{{{2
