@@ -24,7 +24,7 @@ let s:custom_groups = [
     \ 'CommentTitle',
     \ 'CommentTitleLeader',
     \ 'FoldMarkers',
-    \ '@CommentListItemStyles',
+    \ '@CommentListItemElements',
 \ ]
 " }}}1
 
@@ -220,11 +220,11 @@ fu! lg#styled_comment#syntax() abort "{{{2
     let cml = escape(cml, '/\')
     let cml_0_1 = '\V\%('.cml.'\)\=\m'
     let cml = '\V'.cml.'\m'
-    let commentGroup = ft . 'Comment' . (ft is# 'vim' ? ',vimLineComment' : '')
+    let commentGroup = ft.'Comment'.(ft is# 'vim' ? ',vimLineComment' : '')
 
     call s:syn_commentleader(ft, cml)
     call s:syn_commenttitle(ft, cml, nr)
-    call s:syn_list(ft, cml, commentGroup)
+    call s:syn_list_item(ft, cml, commentGroup)
     " Don't move this call somewhere below!{{{
     "
     " `xCommentPointer` must be defined *after* `xCommentCodeBlock`.
@@ -261,7 +261,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
     call s:syn_italic(ft, commentGroup)
     call s:syn_bold(ft, commentGroup)
     call s:syn_bolditalic(ft, commentGroup)
-    call s:syn_quote(ft, cml, commentGroup)
+    call s:syn_blockquote(ft, cml, commentGroup)
     call s:syn_output(ft, cml)
     call s:syn_option(ft)
     call s:syn_pointer(ft, cml, commentGroup)
@@ -365,13 +365,13 @@ fu! s:syn_commenttitle(ft, cml, nr) abort "{{{2
     endif
 endfu
 
-fu! s:syn_list(ft, cml, commentGroup) abort "{{{2
-    exe 'syn cluster '.a:ft.'CommentListItemStyles'
-        \ . ' contains='
-        \ .a:ft.'CommentListItemItalic,'
-        \ .a:ft.'CommentListItemBold,'
-        \ .a:ft.'CommentListItemBoldItalic,'
-        \ .a:ft.'CommentListItemCodeSpan'
+fu! s:syn_list_item(ft, cml, commentGroup) abort "{{{2
+    exe 'syn cluster '.a:ft.'CommentListItemElements'
+        \ . ' contains='.a:ft.'CommentListItemItalic,'
+        \ .              a:ft.'CommentListItemBold,'
+        \ .              a:ft.'CommentListItemBoldItalic,'
+        \ .              a:ft.'CommentListItemCodeSpan,'
+        \ .              a:ft.'CommentListItemCodeBlock'
 
     " - some item 1
     "   some text
@@ -406,10 +406,11 @@ fu! s:syn_list(ft, cml, commentGroup) abort "{{{2
         \       . '\|\n\%(\s*'.a:cml.'.*\%(}'.'}}\|{'.'{{\)\)\@='
         \       . '\|^\%(\s*'.a:cml.'\)\@!/'
         \ . ' keepend'
-        \ . ' contains='.a:ft.'CommentLeader,@'.a:ft.'CommentListItemStyles'
+        \ . ' contains='.a:ft.'CommentLeader,'
+        \ .              a:ft.'FoldMarkers,'
+        \ .          '@'.a:ft.'CommentListItemElements'
         \ . ' contained'
         \ . ' containedin='.a:commentGroup
-        \ . ' contains='.a:ft.'FoldMarkers,'.a:ft.'CommentListItemCodeBlock'
 endfu
 
 fu! s:syn_code_block(ft, cml, commentGroup) abort "{{{2
@@ -618,7 +619,7 @@ fu! s:syn_bolditalic(ft, commentGroup) abort "{{{2
         \ . ' oneline'
 endfu
 
-fu! s:syn_quote(ft, cml, commentGroup) abort "{{{2
+fu! s:syn_blockquote(ft, cml, commentGroup) abort "{{{2
     " > some quote
     " <not> a quote
     " Why do you allow `xCommentBold` to be contained in `xCommentBlockquote`?{{{
@@ -632,7 +633,9 @@ fu! s:syn_quote(ft, cml, commentGroup) abort "{{{2
         \ . ' /'.a:cml.' \{,4}>.*/'
         \ . ' contained'
         \ . ' containedin='.a:commentGroup
-        \ . ' contains='.a:ft.'CommentLeader,'.a:ft.'CommentBlockquoteConceal,'.a:ft.'CommentBold'
+        \ . ' contains='.a:ft.'CommentLeader,'
+        \ .              a:ft.'CommentBlockquoteConceal,'
+        \ .              a:ft.'CommentBold'
         \ . ' oneline'
 
     exe 'syn match '.a:ft.'CommentBlockquoteConceal'
@@ -649,7 +652,9 @@ fu! s:syn_quote(ft, cml, commentGroup) abort "{{{2
         \ . ' /'.a:cml.' \{5}>.*/'
         \ . ' contained'
         \ . ' containedin='.a:ft.'CommentListItem'
-        \ . ' contains='.a:ft.'CommentLeader,'.a:ft.'CommentListItemBlockquoteConceal,'.a:ft.'CommentBlockquoteBold'
+        \ . ' contains='.a:ft.'CommentLeader,'
+        \ .              a:ft.'CommentListItemBlockquoteConceal,'
+        \ .              a:ft.'CommentBlockquoteBold'
         \ . ' oneline'
 
     exe 'syn match '.a:ft.'CommentListItemBlockquoteConceal'
