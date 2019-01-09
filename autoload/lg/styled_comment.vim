@@ -76,36 +76,35 @@ endfu
 fu! s:highlight_groups_links() abort "{{{2
     let ft = s:get_filetype()
 
-    exe 'hi '     .ft.'FoldMarkers term=bold cterm=bold gui=bold'
+    exe 'hi '.ft.'FoldMarkers term=bold cterm=bold gui=bold'
 
-    exe 'hi link '.ft.'CommentLeader                Comment'
-    exe 'hi link '.ft.'CommentOption                markdownOption'
-    exe 'hi link '.ft.'CommentListItem              markdownListItem'
-    exe 'hi link '.ft.'CommentListItemItalic        markdownListItemItalic'
-    exe 'hi link '.ft.'CommentListItemBold          markdownListItemBold'
-    exe 'hi link '.ft.'CommentListItemBoldItalic    markdownListItemBoldItalic'
-    exe 'hi link '.ft.'CommentListItemCodeSpan      CommentListItemCodeSpan'
-    exe 'hi link '.ft.'CommentListItemCodeBlock     CommentCodeSpan'
-    exe 'hi link '.ft.'CommentListItemBlockquote    markdownListItemBlockquote'
-    exe 'hi link '.ft.'CommentPointer               markdownPointer'
-    exe 'hi link '.ft.'CommentKey                   markdownKey'
-    exe 'hi link '.ft.'CommentRule                  markdownRule'
-    exe 'hi link '.ft.'CommentTable                 markdownTable'
-
-    exe 'hi link '.ft.'CommentTitle                 PreProc'
-    exe 'hi link '.ft.'CommentOutput                PreProc'
-
-    exe 'hi link '.ft.'CommentItalic                CommentItalic'
     exe 'hi link '.ft.'CommentBold                  CommentBold'
     exe 'hi link '.ft.'CommentBoldItalic            CommentBoldItalic'
-    exe 'hi link '.ft.'CommentCodeSpan              CommentCodeSpan'
     exe 'hi link '.ft.'CommentCodeBlock             CommentCodeSpan'
+    exe 'hi link '.ft.'CommentCodeSpan              CommentCodeSpan'
+    exe 'hi link '.ft.'CommentItalic                CommentItalic'
 
     exe 'hi link '.ft.'CommentBlockquote            markdownBlockquote'
-    exe 'hi link '.ft.'CommentBlockquoteItalic      markdownBlockquoteItalic'
     exe 'hi link '.ft.'CommentBlockquoteBold        markdownBlockquoteBold'
     exe 'hi link '.ft.'CommentBlockquoteBoldItalic  markdownBlockquoteBoldItalic'
     exe 'hi link '.ft.'CommentBlockquoteCodeSpan    markdownBlockquoteCodeSpan'
+    exe 'hi link '.ft.'CommentBlockquoteItalic      markdownBlockquoteItalic'
+
+    exe 'hi link '.ft.'CommentKey                   markdownKey'
+    exe 'hi link '.ft.'CommentLeader                Comment'
+    exe 'hi link '.ft.'CommentListItem              markdownListItem'
+    exe 'hi link '.ft.'CommentListItemBlockquote    markdownListItemBlockquote'
+    exe 'hi link '.ft.'CommentListItemBold          markdownListItemBold'
+    exe 'hi link '.ft.'CommentListItemBoldItalic    markdownListItemBoldItalic'
+    exe 'hi link '.ft.'CommentListItemCodeBlock     CommentCodeSpan'
+    exe 'hi link '.ft.'CommentListItemCodeSpan      CommentListItemCodeSpan'
+    exe 'hi link '.ft.'CommentListItemItalic        markdownListItemItalic'
+    exe 'hi link '.ft.'CommentOption                markdownOption'
+    exe 'hi link '.ft.'CommentOutput                PreProc'
+    exe 'hi link '.ft.'CommentPointer               markdownPointer'
+    exe 'hi link '.ft.'CommentRule                  markdownRule'
+    exe 'hi link '.ft.'CommentTable                 markdownTable'
+    exe 'hi link '.ft.'CommentTitle                 PreProc'
 endfu
 
 fu! lg#styled_comment#syntax() abort "{{{2
