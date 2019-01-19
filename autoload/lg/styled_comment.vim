@@ -709,16 +709,11 @@ endfu
 
 fu! s:syn_option(ft) abort "{{{2
     " some `'option'`
-    exe 'syn match '.a:ft.'CommentOption'
-        \ . ' /`\@1<=''.\{-}''`\@=/'
-        \ . ' contained'
-        \ . ' containedin='.a:ft.'CommentCodeSpan'
-
     " - some `'option'`
     exe 'syn match '.a:ft.'CommentOption'
         \ . ' /`\@1<=''.\{-}''`\@=/'
         \ . ' contained'
-        \ . ' containedin='.a:ft.'CommentListItemCodeSpan'
+        \ . ' containedin='.a:ft.'CommentCodeSpan,'.a:ft.'CommentListItemCodeSpan'
 endfu
 
 fu! s:syn_pointer(ft, cml, commentGroup) abort "{{{2
