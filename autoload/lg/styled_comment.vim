@@ -385,7 +385,7 @@ fu! s:syn_list_item(ft, cml, commentGroup) abort "{{{2
         \ .              a:ft.'CommentListItemBold,'
         \ .              a:ft.'CommentListItemBoldItalic,'
         \ .              a:ft.'CommentListItemCodeSpan,'
-        \ .              a:ft.'CommentListItemCodeBlock'
+        \ .              a:ft.'CommentListItemCodeBlock,'
 
     " - some item 1
     "   some text
@@ -713,6 +713,12 @@ fu! s:syn_option(ft) abort "{{{2
         \ . ' /`\@1<=''.\{-}''`\@=/'
         \ . ' contained'
         \ . ' containedin='.a:ft.'CommentCodeSpan'
+
+    " - some `'option'`
+    exe 'syn match '.a:ft.'CommentOption'
+        \ . ' /`\@1<=''.\{-}''`\@=/'
+        \ . ' contained'
+        \ . ' containedin='.a:ft.'CommentListItemCodeSpan'
 endfu
 
 fu! s:syn_pointer(ft, cml, commentGroup) abort "{{{2
