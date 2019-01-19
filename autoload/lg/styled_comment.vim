@@ -348,8 +348,13 @@ fu! lg#styled_comment#syntax() abort "{{{2
 endfu
 
 fu! s:syn_commentleader(ft, cml) abort "{{{2
+    " Why `\%(^\s*\)\@<=`?{{{
+    "
+    " Without it, if your comment leader appears inside a list item, it would be
+    " highlighted as a comment leader, instead of being part of the item.
+    "}}}
     exe 'syn match '.a:ft.'CommentLeader'
-        \ . ' /'.a:cml.'/'
+        \ . ' /\%(^\s*\)\@<='.a:cml.'/'
         \ . ' contained'
 endfu
 
