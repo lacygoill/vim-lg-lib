@@ -306,7 +306,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
         " Use the same original definition, with one change:
         " add `@xMyCustomGroups` after `contains=ALLBUT,...`.
         " }}}
-    call s:syn_mycustomgroups(ft, commentGroup)
+    call s:syn_mycustomgroups(ft)
 
     call s:highlight_groups_links()
 
