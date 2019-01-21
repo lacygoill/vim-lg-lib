@@ -711,7 +711,7 @@ fu! s:syn_option(ft) abort "{{{2
     " some `'option'`
     " - some `'option'`
     exe 'syn match '.a:ft.'CommentOption'
-        \ . ' /`\@1<=''.\{-}''`\@=/'
+        \ . ' /`\@1<=''[a-z]\{2,}''`\@=/'
         \ . ' contained'
         \ . ' containedin='.a:ft.'CommentCodeSpan,'.a:ft.'CommentListItemCodeSpan'
 endfu
