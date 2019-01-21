@@ -269,6 +269,9 @@ fu! lg#styled_comment#syntax() abort "{{{2
     call s:syn_bolditalic(ft, commentGroup)
     call s:syn_blockquote(ft, cml, commentGroup)
     call s:syn_output(ft, cml)
+    " TODO: This invocation of `s:syn_option()` doesn't require several arguments.
+    " This  is neat;  study how  it's possible,  and try  to redefine  the other
+    " syntax groups, so that we have less arguments to pass.
     call s:syn_option(ft)
     call s:syn_pointer(ft, cml, commentGroup)
     call s:syn_key(ft, commentGroup)
@@ -303,7 +306,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
         " Use the same original definition, with one change:
         " add `@xMyCustomGroups` after `contains=ALLBUT,...`.
         " }}}
-    call s:syn_mycustomgroups(ft)
+    call s:syn_mycustomgroups(ft, commentGroup)
 
     call s:highlight_groups_links()
 
