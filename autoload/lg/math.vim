@@ -23,12 +23,12 @@ fu! lg#math#is_prime(n) abort "{{{1
     "
     " Indeed, any number can be written in one of the following form:
     "
-    "       • 6k        divisible by 6    not prime
-    "       • 6k + 1                      could be prime
-    "       • 6k + 2    "            2    not prime
-    "       • 6k + 3    "            3    not prime
-    "       • 6k + 4    "            2    not prime
-    "       • 6k + 5                      could be prime
+    "       - 6k        divisible by 6    not prime
+    "       - 6k + 1                      could be prime
+    "       - 6k + 2    "            2    not prime
+    "       - 6k + 3    "            3    not prime
+    "       - 6k + 4    "            2    not prime
+    "       - 6k + 5                      could be prime
     "
     " So, for a number to be prime, it has to follow the form `6k ± 1`.
     " Any other form would mean it's divisible by 2 or 3.

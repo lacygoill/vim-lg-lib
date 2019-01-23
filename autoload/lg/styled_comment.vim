@@ -206,8 +206,8 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "
     " For offsets when defining the syntax groups:
     "
-    "     • xxxCommentTitle
-    "     • xxxCommentTitleLeader
+    "     - xxxCommentTitle
+    "     - xxxCommentTitleLeader
     "}}}
     " Why capturing it now?{{{
     "
@@ -418,7 +418,7 @@ fu! s:syn_list_item(ft, cml, commentGroup) abort "{{{2
     " With and without limiting the backtracking of `\%(^\s*\)\@<=`.
     "}}}
     exe 'syn region '.a:ft.'CommentListItem'
-        \ . ' start=/\%(^\s*\)\@<='.a:cml.' \{,4\}\%([-*+•]\|\d\+\.\)\s\+\S/'
+        \ . ' start=/\%(^\s*\)\@<='.a:cml.' \{,4\}\%([-*+]\|\d\+\.\)\s\+\S/'
         \ . ' end=/'.a:cml.'\%(\s*\n\s*'.a:cml.' \{,4}\S\)\@='
         \       . '\|\n\%(\s*'.a:cml.'.*\%(}'.'}}\|{'.'{{\)\)\@='
         \       . '\|^\%(\s*'.a:cml.'\)\@!/'

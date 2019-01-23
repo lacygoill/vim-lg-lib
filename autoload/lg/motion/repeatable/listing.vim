@@ -127,8 +127,8 @@ fu! s:merge_listings(axes, ...) abort "{{{2
     " when the function is called afterwards (by itself, i.e. recursively),
     " it's passed 2 additional arguments:
     "
-    "     • the name of an axis
-    "     • the listing of the latter
+    "     - the name of an axis
+    "     - the listing of the latter
     let axis = a:1
     let listing_for_this_axis = a:2
 

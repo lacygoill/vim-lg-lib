@@ -90,8 +90,8 @@ fu! s:init() abort "{{{1
     " character standing for the default mode we want. As a default mode, I want
     " `nvo`.  For `maparg()`, `nvo` is represented with:
     "
-    "     • an empty string in its input
-    "     • a single space in its output
+    "     - an empty string in its input
+    "     - a single space in its output
     "
     " We need to be consistent with the output of `maparg()`. So, we choose
     " an empty space.
@@ -374,14 +374,14 @@ fu! s:move_again(dir, axis) abort "{{{2
     "}}}
     " To emulate `<silent>`, why not simply `:redraw!`?{{{
     "
-    "     • overkill
+    "     - overkill
     "
-    "     • If  the  motion  wants  to  echo   a  message,  it  will
+    "     - If  the  motion  wants  to  echo   a  message,  it  will
     "       probably  be erased. That's not what <silent> does.  <silent>
     "       only prevents the rhs from being  echo'ed. But it can still
     "       display  a message  if it wants to.
     "
-    "     • Sometimes, the command-line may seem to flash.
+    "     - Sometimes, the command-line may seem to flash.
     "       Currently,  it  happens when  we  cycle  through the  levels  of
     "       lightness of the colorscheme (]oL  co;  ;).
     "}}}
@@ -465,8 +465,8 @@ fu! s:populate(motion, mode, lhs, is_fwd, maparg) abort "{{{2
         " This inconsistency between '' and ' ' mimics the one found in `maparg()`.
         " For `maparg()`, `nvo` is represented with:
         "
-        "     • an empty string in its input
-        "     • a single space in its output
+        "     - an empty string in its input
+        "     - a single space in its output
         "}}}
         let a:motion[dir].lhs = a:lhs
         let a:motion[dir].rhs = a:lhs
@@ -695,8 +695,8 @@ fu! s:get_motion_info(lhs) abort "{{{2
     " Purpose:{{{
     " return the info about the motion in the db:
     "
-    "     • which contains `a:lhs` (no matter for which direction)
-    "     • whose mode is the identical to the one in which we currently are
+    "     - which contains `a:lhs` (no matter for which direction)
+    "     - whose mode is the identical to the one in which we currently are
     "}}}
 
     let mode = s:get_current_mode()
@@ -711,8 +711,8 @@ fu! s:get_motion_info(lhs) abort "{{{2
         "
         " The current function is called from:
         "
-        "     • s:move()
-        "     • s:move_again()
+        "     - s:move()
+        "     - s:move_again()
         "
         " In `s:move()`, `s:get_motion_info()` is passed a keysequence which has
         " been translated automatically  because `s:move()` was in the  rhs of a

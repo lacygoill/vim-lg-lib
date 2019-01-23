@@ -19,8 +19,8 @@ fu! lg#map#restore(map_save) abort "{{{1
     "
     " If we've saved a mapping for:
     "
-    "     • a mode different than '', `lg#map#save()` will have returned a dictionary
-    "     • the mode ''             , `lg#map#save()` will have returned a list
+    "     - a mode different than '', `lg#map#save()` will have returned a dictionary
+    "     - the mode ''             , `lg#map#save()` will have returned a list
     "                                                                    of up to 3 dictionaries
     "}}}
     if type(a:map_save) ==# type({})
@@ -179,9 +179,9 @@ fu! lg#map#save(mode, is_local, keys) abort "{{{1
             " Restoring this key means deleting whatever mapping may now exist.
             " But to be able to unmap the key, we need 3 information:
             "
-            "         • is the mapping global or buffer-local (<buffer> argument)?
-            "         • the lhs
-            "         • the mode (normal, visual, …)
+            "         - is the mapping global or buffer-local (<buffer> argument)?
+            "         - the lhs
+            "         - the mode (normal, visual, …)
             "}}}
 
             " restore the local one
