@@ -783,7 +783,7 @@ fu! s:syn_table(ft, cml, commentGroup) abort "{{{2
     "}}}
     exe 'syn region '.a:ft.'CommentTable'
         \ . ' matchgroup=Comment'
-        \ . ' start=/'.a:cml.'    [│─┌└├]\@=/'
+        \ . ' start=/'.a:cml.'    \%([┌└]─\|│.*[^ \t│].*│\|├─.*┤\)\@=/'
         \ . ' end=/$/'
         \ . ' keepend'
         \ . ' oneline'
