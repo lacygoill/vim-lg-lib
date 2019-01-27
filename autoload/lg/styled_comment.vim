@@ -504,8 +504,8 @@ fu! s:syn_code_span(ft, commentGroup) abort "{{{2
     " some `code span` in a comment
     exe 'syn region '.a:ft.'CommentCodeSpan'
         \ . ' matchgroup=Comment'
-        \ . ' start=/`\@1<!``\@!/'
-        \ . '   end=/`\@1<!``\@!/'
+        \ . ' start=/\z(`\+\)/'
+        \ . '   end=/\z1/'
         \ . ' keepend'
         \ . ' concealends'
         \ . ' contained'
@@ -515,8 +515,8 @@ fu! s:syn_code_span(ft, commentGroup) abort "{{{2
     " - some `code span` item
     exe 'syn region '.a:ft.'CommentListItemCodeSpan'
         \ . ' matchgroup=markdownListItem'
-        \ . ' start=/`\@1<!``\@!/'
-        \ . '   end=/`\@1<!``\@!/'
+        \ . ' start=/\z(`\+\)/'
+        \ . '   end=/\z1/'
         \ . ' keepend'
         \ . ' concealends'
         \ . ' contained'
@@ -525,8 +525,8 @@ fu! s:syn_code_span(ft, commentGroup) abort "{{{2
     " > some `code span` in a quote
     exe 'syn region '.a:ft.'CommentBlockquoteCodeSpan'
         \ . ' matchgroup=markdownBlockquote'
-        \ . ' start=/`\@1<!``\@!/'
-        \ . '   end=/`\@1<!``\@!/'
+        \ . ' start=/\z(`\+\)/'
+        \ . '   end=/\z1/'
         \ . ' keepend'
         \ . ' concealends'
         \ . ' contained'
