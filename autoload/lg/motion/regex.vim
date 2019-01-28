@@ -38,11 +38,8 @@ fu! lg#motion#regex#go(kwd, is_fwd, mode) abort "{{{1
         let cnt -= 1
     endwhile
 
-    " If you  try to  simplify this  block in a  single statement,  don't forget
-    " this: the function shouldn't do anything in operator-pending mode.
-    if a:mode is# 'n'
-        norm! zMzv
-    elseif index(['v', 'V', "\<c-v>"], a:mode) >= 0
+    " the function  shouldn't do anything in operator-pending mode
+    if a:mode is# 'n' || index(['v', 'V', "\<c-v>"], a:mode) >= 0
         norm! zv
     endif
 endfu
