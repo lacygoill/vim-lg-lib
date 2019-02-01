@@ -49,13 +49,6 @@ fu! s:init() abort "{{{1
     " database for global motions, which will be populated progressively
     let s:repeatable_motions = []
 
-    " last motions for all axes
-    let s:last_motions = {}
-
-    " flag  telling whether  a motion  is  being repeated  (and if  so in  which
-    " direction), for all axes
-    let s:is_repeating_motion = {}
-
     let s:KEYCODES = [
         \ '<BS>',
         \ '<Bar>',
@@ -114,7 +107,7 @@ endfu
 call s:init()
 
 " Core {{{1
-fu! s:make_repeatable(m, mode, is_local, axis, from) abort "{{{2
+fu! s:make_repeatable(m, mode, is_local, from) abort "{{{2
     " can only make ONE motion repeatable
 
     let bwd_lhs    = a:m.bwd
@@ -157,7 +150,6 @@ fu! s:make_repeatable(m, mode, is_local, axis, from) abort "{{{2
     let origin = matchstr(execute('verb '.a:mode.'no '.(a:is_local ? ' <buffer> ' : '').bwd_lhs),
     \                     '.*\n\s*\zsLast set from.*')
     let motion = {
-    \              'axis':                 a:axis,
     \              'made repeatable from': a:from,
     \              'original mapping':     origin,
     \ }
@@ -172,16 +164,14 @@ fu! s:make_repeatable(m, mode, is_local, axis, from) abort "{{{2
     call s:populate(motion, a:mode, bwd_lhs, 0, bwd_maparg)
     " now `motion` contains sth like:{{{
     "
-    " { 'axis' : ',_;',
-    "   'bwd'    : {'expr': 0, 'noremap': 1, 'lhs': '…', 'mode': ' ', … }}
+    " { 'bwd'    : {'expr': 0, 'noremap': 1, 'lhs': '…', 'mode': ' ', … }}
     "                                                             │
     "                                                             └ nvo
     "}}}
     call s:populate(motion, a:mode, fwd_lhs, 1, fwd_maparg)
     " now `motion` contains sth like:{{{
     "
-    " { 'axis' : ',_;',
-    "   'bwd'    : {'expr': 0, 'noremap': 1, 'lhs': '…', 'mode': ' ', … },
+    " { 'bwd'    : {'expr': 0, 'noremap': 1, 'lhs': '…', 'mode': ' ', … },
     "   'fwd'    : {'expr': 0, 'noremap': 1, 'lhs': '…', 'mode': ' ', … }}
     "}}}
 
@@ -265,7 +255,7 @@ fu! s:move(lhs) abort "{{{2
     "
     " And mapping commands automatically translate special keys.
     "}}}
-    let s:last_motions[motion.axis] = a:lhs
+    let s:last_motion = a:lhs
 
     " Why don't we translate the special keys when the mapping uses `<expr>`?{{{
     "
@@ -291,18 +281,16 @@ fu! s:move(lhs) abort "{{{2
        \ :     s:translate(motion[dir].rhs)
 endfu
 
-fu! s:move_again(dir, axis) abort "{{{2
+fu! s:move_again(dir) abort "{{{2
     " This function is called by various mappings whose suffix is `,` or `;`.
 
     " make sure the arguments are valid,
-    " and that we've used at least one motion on the axis in the past
-    if   s:invalid_axis_or_direction(a:axis, a:dir)
-    \ || empty(get(s:last_motions, a:axis, ''))
+    " and that we've used at least one motion in the past
+    if index(['bwd', 'fwd'], a:dir) == -1 || empty(s:last_motion)
         return ''
     endif
 
-    " get last motion on the axis provided
-    let motion = s:get_motion_info(s:last_motions[a:axis])
+    let motion = s:get_motion_info(s:last_motion)
     " How could we get an unrecognized motion?{{{
     "
     " You have a motion defined in a given mode.
@@ -320,13 +308,13 @@ fu! s:move_again(dir, axis) abort "{{{2
     "
     " It's a numeric flag, whose value can be:
     "
-    "       ┌────┬────────────────────────────────────────────────────────┐
-    "       │ 0  │ we are NOT going to repeat a motion on this axis       │
-    "       ├────┼────────────────────────────────────────────────────────┤
-    "       │ -1 │ we are about to repeat a motion BACKWARDS on this axis │
-    "       ├────┼────────────────────────────────────────────────────────┤
-    "       │ 1  │ we are about to repeat a motion FORWARDS on this axis  │
-    "       └────┴────────────────────────────────────────────────────────┘
+    "       ┌────┬───────────────────────────────────────────┐
+    "       │ 0  │ we are NOT going to repeat a motion       │
+    "       ├────┼───────────────────────────────────────────┤
+    "       │ -1 │ we are about to repeat a motion BACKWARDS │
+    "       ├────┼───────────────────────────────────────────┤
+    "       │ 1  │ we are about to repeat a motion FORWARDS  │
+    "       └────┴───────────────────────────────────────────┘
     "}}}
     " Why do we set it now?{{{
     "
@@ -342,7 +330,7 @@ fu! s:move_again(dir, axis) abort "{{{2
     " But, `s:fts()` needs to know whether we are pressing `f` to ask for a target,
     " or repeating a previous `fx`:
     "
-    "     if lg#motion#repeatable#make#is_repeating(',_;')
+    "     if lg#motion#repeatable#make#is_repeating()
     "        " repeat last `fx`
     "         …
     "     else
@@ -350,7 +338,7 @@ fu! s:move_again(dir, axis) abort "{{{2
     "         …
     "     endif
     "}}}
-    let s:is_repeating_motion[a:axis] = a:dir is# 'fwd' ? 1 : -1
+    let s:is_repeating_motion = a:dir is# 'fwd' ? 1 : -1
 
     " Why not returning the sequence of keys directly?{{{
     "
@@ -415,12 +403,8 @@ fu! s:move_again(dir, axis) abort "{{{2
     " doesn't  contain the  necessary  character  which must  be  passed to  the
     " command. IOW, when the last motion was `fx`, `f` is insufficient to know
     " where to move.
-    "
-    " Note that `fFtTssSS` are specific to the  axis `,_;`, but we could want to
-    " define special  motions on other  axes. That's why,  we need to  reset ALL
-    " variables.
     "}}}
-    call timer_start(0, {-> map(s:is_repeating_motion, { -> 0 })})
+    call timer_start(0, {-> execute('let s:is_repeating_motion = 0')})
 
     " If we're using  `]q` &friends, we need to redraw  all statuslines, so that
     " the position in the list is updated immediately.
@@ -493,32 +477,15 @@ fu! s:populate(motion, mode, lhs, is_fwd, maparg) abort "{{{2
     "}}}
     let a:motion[dir].lhs = s:translate(a:motion[dir].lhs)
 endfu
-
+" }}}1
 " Interface {{{1
 fu! lg#motion#repeatable#make#all(what) abort "{{{2
     " can make several motions repeatable
 
     " sanitize input
-    if sort(keys(a:what)) !=# ['axis', 'buffer', 'from', 'mode', 'motions']
+    if sort(keys(a:what)) !=# ['buffer', 'from', 'mode', 'motions']
         try
             throw 'E8000:  [repeatable motion]  missing key'
-        catch
-            return lg#catch_error()
-        endtry
-    endif
-
-    let axis = a:what.axis
-
-    " build a name describing the axis:
-    "
-    "     'axis': {'bwd': 'z,', 'fwd': 'z;'}
-    "     →
-    "     'z,_z;'
-    if has_key(axis, 'bwd') && has_key(axis, 'fwd')
-        let axis_name = axis.bwd.'_'.axis.fwd
-    else
-        try
-            throw 'E8001:  [repeatable motion]  missing key'
         catch
             return lg#catch_error()
         endtry
@@ -553,50 +520,25 @@ fu! lg#motion#repeatable#make#all(what) abort "{{{2
         if !is_local && (     execute(mode.'map <buffer> '.m.bwd) !~# '^\n\nNo mapping found$'
                          \ || execute(mode.'map <buffer> '.m.fwd) !~# '^\n\nNo mapping found$')
             let map_save = s:unshadow(m, mode)
-            call s:make_repeatable(m, mode, is_local, axis_name, from)
+            call s:make_repeatable(m, mode, is_local, from)
             call lg#map#restore(map_save)
         else
-            call s:make_repeatable(m, mode, is_local, axis_name, from)
+            call s:make_repeatable(m, mode, is_local, from)
         endif
     endfor
 
-    " if not already done, install mappings to repeat the motions (,  ;  z,  z;  …)
-    if  maparg(axis.bwd) !~# 'move_again('
-        " What command do you use to install the mappings repeating motions?{{{
-        "
-        " By  default, we  use `:noremap`.   However,  if the  user invoked  the
-        " function  by  adding  the  optional  key  'mode',  in  the  dictionary
-        " `axis`, we take it into consideration.
-        " So:
-        "
-        "     'axis':  {'bwd': 'z,', 'fwd': 'z;'}
-        "         → noremap
-        "
-        "     'axis':  {'bwd': 'z,', 'fwd': 'z;', 'n'}
-        "         → nnoremap
-        "           ^
-        "}}}
-        let mapcmd = get(axis, 'mode', '') is# ''
-                 \ ?     'noremap'
-                 \ :     axis.mode . 'noremap'
-        exe mapcmd.'  <expr>  '.axis.bwd."  <sid>move_again('bwd', ".string(axis_name).')'
-        exe mapcmd.'  <expr>  '.axis.fwd."  <sid>move_again('fwd', ".string(axis_name).')'
-
-        " We also install <plug> mappings  to be able to access `s:move_again()`
-        " from another script.
-        " These mappings could be useful, for  example, when the axis is `z,_z;`
-        " and we want to create a submode in which we don't have to press `z`.
-        exe mapcmd.'  <expr>  <plug>(backward-'.axis_name.')'
-        \                 ."  <sid>move_again('bwd', ".string(axis_name).')'
-        exe mapcmd.'  <expr>  <plug>(forward-' .axis_name.')'
-        \                 ."  <sid>move_again('fwd', ".string(axis_name).')'
+    " if not already done, install the `,` and `;` mappings to repeat the motions
+    if maparg(',') !~# 'move_again('
+        let mapcmd = mode.'noremap'
+        exe mapcmd." <expr> , <sid>move_again('bwd')"
+        exe mapcmd." <expr> ; <sid>move_again('fwd')"
     endif
 endfu
 
-fu! lg#motion#repeatable#make#set_last_used(lhs,axis) abort "{{{2
-    let s:last_motions[a:axis.bwd.'_'.a:axis.fwd] = s:translate(a:lhs)
+fu! lg#motion#repeatable#make#set_last_used(lhs) abort "{{{2
+    let s:last_motion = s:translate(a:lhs)
 endfu
-
+" }}}1
 " Misc. {{{1
 fu! s:collides_with_db(motion, repeatable_motions) abort "{{{2
     " Purpose:{{{
@@ -718,8 +660,8 @@ fu! s:get_motion_info(lhs) abort "{{{2
         " been translated automatically  because `s:move()` was in the  rhs of a
         " mapping.
         "
-        " In `s:move_again()`, `s:get_motion_info()` is passed a keysequence
-        " from the dictionary `s:last_motions`.
+        " In  `s:move_again()`, `s:get_motion_info()`  is  passed a  keysequence
+        " from `s:last_motion`.
         " All the keysequences inside this dictionary are set by:
         "
         "    s:lg#motion#repeatable#make#set_last_used()
@@ -781,12 +723,6 @@ fu! s:get_motion_info(lhs) abort "{{{2
         " To express  the operator-pending mode,  `maparg()` expects 'o'  in its
         " input, while `mode(1)` uses 'no' in its output.
         "}}}
-        " Why don't you check the axis too?{{{
-        "
-        " Because, in  practice, it doesn't make  much sense to repeat  the same
-        " motion  on  2  axes. So,  if  the function  finds  a  motion,  with  a
-        " particular axis, there's no need to look further.
-        "}}}
             return m
         endif
     endfor
@@ -798,14 +734,8 @@ fu! s:install_wrapper(mode, m, maparg) abort "{{{2
     exe mapcmd.'  '.a:m.fwd.'  <sid>move('.string(a:m.fwd).')'
 endfu
 
-fu! s:invalid_axis_or_direction(axis, direction) abort "{{{2
-    let is_valid_axis = has_key(s:last_motions, a:axis) >= 0
-    let is_valid_direction = index(['bwd', 'fwd'], a:direction) >= 0
-    return !is_valid_axis || !is_valid_direction
-endfu
-
-fu! lg#motion#repeatable#make#is_repeating(axis) abort "{{{2
-    return get(s:is_repeating_motion, a:axis, 0)
+fu! lg#motion#repeatable#make#is_repeating() abort "{{{2
+    return get(s:, 'is_repeating_motion', 0)
 endfu
 
 fu! lg#motion#repeatable#make#share_env() abort "{{{2
@@ -814,8 +744,8 @@ endfu
 
 fu! s:translate(seq) abort "{{{2
     " Purpose:{{{
-    " When  we populate  the  database of  repeatable motions,  as  well as  the
-    " dictionary `s:last_motions`, we  need to get a normalized form  of the lhs
+    " When  we  populate  the  database   of  repeatable  motions,  as  well  as
+    " `s:last_motion`,  we   need  to   get  a  normalized   form  of   the  lhs
     " keysequence(s).  So that future comparisons are reliable.
     "
     " For more info, see the comment at the end of `s:populate()`.

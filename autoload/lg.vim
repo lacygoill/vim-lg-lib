@@ -39,7 +39,7 @@ fu! lg#man_k(pgm) abort "{{{1
         " set its title
         call setloclist(0, [], 'a', { 'title': cur_word })
 
-        sil! call lg#motion#repeatable#make#set_last_used(']l', {'bwd': ',', 'fwd': ';'})
+        sil! call lg#motion#repeatable#make#set_last_used(']l')
     catch
         try
             sil exe 'Man '.cur_word
