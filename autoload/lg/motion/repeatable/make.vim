@@ -35,16 +35,6 @@ if exists('g:autoloaded_lg#motion#repeatable#make')
 endif
 let g:autoloaded_lg#motion#repeatable#make = 1
 
-" FIXME: `C-j` can't be made repeatable.{{{
-"
-" Read this plugin (only 65 sloc atm):
-"
-"     https://github.com/Houl/repmo-vim
-"
-" It doesn't suffer from this issue.
-" Understand how it works.
-"}}}
-
 fu! s:init() abort "{{{1
     " database for global motions, which will be populated progressively
     let s:repeatable_motions = []
@@ -426,6 +416,16 @@ fu! s:populate(motion, mode, lhs, is_fwd, maparg) abort "{{{2
     " make a custom mapping repeatable
     if !empty(a:maparg)
         let a:motion[dir] = a:maparg
+        " Why?{{{
+        "
+        " `a:maparg` was obtained via `maparg()`.
+        " The latter automatically translates `<C-j>` into `<NL>`.
+        " This will break mappings whose lhs contains `<C-j>` (e.g. `z C-j`).
+        "}}}
+        if a:motion[dir].lhs =~# '\C<NL>'
+            let a:motion[dir].lhs =
+            \       substitute(a:motion[dir].lhs, '\C<NL>', "\<c-j>", 'g')
+        endif
         if a:motion[dir].rhs =~# '\c<sid>'
             let a:motion[dir].rhs =
             \       substitute(a:motion[dir].rhs, '\c<sid>', '<snr>'.a:motion[dir].sid.'_', 'g')
@@ -456,7 +456,7 @@ fu! s:populate(motion, mode, lhs, is_fwd, maparg) abort "{{{2
         let a:motion[dir].rhs = a:lhs
     endif
 
-    " we save the lhs keysequence, unmodified, so that `:ListRepeatableMotions`
+    " we save the lhs keysequence, unmodified, so that `:RepeatableMotions`
     " has something readable to display
     let a:motion[dir].untranslated_lhs = a:motion[dir].lhs
 
@@ -664,7 +664,7 @@ fu! s:get_motion_info(lhs) abort "{{{2
         " from `s:last_motion`.
         " All the keysequences inside this dictionary are set by:
         "
-        "    s:lg#motion#repeatable#make#set_last_used()
+        "     lg#motion#repeatable#make#set_last_used()
         "
         " And the latter translates every keysequence it receives.
         "}}}

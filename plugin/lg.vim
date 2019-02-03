@@ -4,5 +4,5 @@ endif
 let g:loaded_lg = 1
 
 com! -bar -nargs=? -complete=custom,lg#motion#repeatable#listing#complete
-    \ ListRepeatableMotions
+    \ RepeatableMotions
     \ call lg#motion#repeatable#listing#main(<q-args>)

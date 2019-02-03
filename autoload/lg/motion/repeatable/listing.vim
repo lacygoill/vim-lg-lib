@@ -52,7 +52,7 @@ fu! lg#motion#repeatable#listing#main(...) abort "{{{2
     call s:populate_listing(opt)
 
     " display it
-    let excmd = 'ListRepeatableMotions '.a:1
+    let excmd = 'RepeatableMotions '.a:1
     call debug#log#output({'excmd': excmd, 'lines': s:get_lines()})
     call s:customize_preview_window()
 endfu
