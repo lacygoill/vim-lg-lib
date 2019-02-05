@@ -36,6 +36,8 @@ endif
 let g:autoloaded_lg#motion#repeatable#make = 1
 
 fu! s:init() abort "{{{1
+    let s:last_motion = ''
+
     " database for global motions, which will be populated progressively
     let s:repeatable_motions = []
 
