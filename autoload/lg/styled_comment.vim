@@ -554,7 +554,7 @@ fu! s:syn_italic(ft, commentGroup) abort "{{{2
     "}}}
     exe 'syn region '.a:ft.'CommentItalic'
         \ . ' matchgroup=Comment'
-        \ . ' start=/\*\(\S\)\@=/'
+        \ . ' start=/\*\%(\S\)\@=/'
         \ . '   end=/\*/'
         \ . ' keepend'
         \ . ' concealends'
