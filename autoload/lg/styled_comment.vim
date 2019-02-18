@@ -221,7 +221,12 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " as the end of the pattern.
     " This is needed for `xkb` where the comment leader is `//`.
     "}}}
-    let cml = escape(cml, '/\')
+    " FIXME: A commented code block is not properly highlighted in a C buffer.{{{
+    "
+    " Escaping `*` fixes the issue.
+    " Why? `\V` should be enough.
+    "}}}
+    let cml = escape(cml, '/*\')
     let cml_0_1 = '\V\%('.cml.'\)\=\m'
     let cml = '\V'.cml.'\m'
     let commentGroup = ft.'Comment'.(ft is# 'vim' ? ',vimLineComment' : '')
@@ -415,8 +420,14 @@ fu! s:syn_list_item(ft, cml, commentGroup) abort "{{{2
     " Weirdly enough, no.
     " With and without limiting the backtracking of `\%(^\s*\)\@<=`.
     "}}}
+    " Why excluding `*` as a list marker?{{{
+    "
+    " In a C buffer,  it would cause the second line of a  multi-line (up to the
+    " last one) to be wrongly highlighted as a list item.
+    "}}}
+    let list_marker = a:ft is# 'c' ? '[-+]' : '[-*+]'
     exe 'syn region '.a:ft.'CommentListItem'
-        \ . ' start=/\%(^\s*\)\@<='.a:cml.' \{,4\}\%([-*+]\|\d\+\.\)\s\+\S/'
+        \ . ' start=/\%(^\s*\)\@<='.a:cml.' \{,4\}\%('.list_marker.'\|\d\+\.\)\s\+\S/'
         \ . ' end=/'.a:cml.'\%(\s*\n\s*'.a:cml.' \{,4}\S\)\@='
         \       . '\|\n\%(\s*'.a:cml.'.*\%(}'.'}}\|{'.'{{\)\)\@='
         \       . '\|^\%(\s*'.a:cml.'\)\@!/'
@@ -533,9 +544,17 @@ endfu
 
 fu! s:syn_italic(ft, commentGroup) abort "{{{2
     " some *italic* comment
+    " Why `\*\S` instead of just `\*`?{{{
+    "
+    " In a C  buffer, it would cause the  text on the last line  of a multi-line
+    " comment to be wrongly emphasized in italic.
+    "
+    "     /* start of multi-line comment
+    "     *  wrong emphasized in italic */
+    "}}}
     exe 'syn region '.a:ft.'CommentItalic'
         \ . ' matchgroup=Comment'
-        \ . ' start=/\*/'
+        \ . ' start=/\*\S/'
         \ . '   end=/\*/'
         \ . ' keepend'
         \ . ' concealends'
