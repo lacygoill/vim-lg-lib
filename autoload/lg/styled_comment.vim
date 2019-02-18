@@ -544,7 +544,7 @@ endfu
 
 fu! s:syn_italic(ft, commentGroup) abort "{{{2
     " some *italic* comment
-    " Why `\*\S` instead of just `\*`?{{{
+    " Why `start=/\*\ze\S/` instead of just `start=/\*/`?{{{
     "
     " In a C  buffer, it would cause the  text on the last line  of a multi-line
     " comment to be wrongly emphasized in italic.
