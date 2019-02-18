@@ -73,38 +73,36 @@ fu! s:get_filetype() abort "{{{2
     return ft
 endfu
 
-fu! s:highlight_groups_links() abort "{{{2
-    let ft = s:get_filetype()
+fu! s:highlight_groups_links(ft) abort "{{{2
+    exe 'hi '.a:ft.'FoldMarkers term=bold cterm=bold gui=bold'
 
-    exe 'hi '.ft.'FoldMarkers term=bold cterm=bold gui=bold'
+    exe 'hi link '.a:ft.'CommentBold                  CommentBold'
+    exe 'hi link '.a:ft.'CommentBoldItalic            CommentBoldItalic'
+    exe 'hi link '.a:ft.'CommentCodeBlock             CommentCodeSpan'
+    exe 'hi link '.a:ft.'CommentCodeSpan              CommentCodeSpan'
+    exe 'hi link '.a:ft.'CommentItalic                CommentItalic'
 
-    exe 'hi link '.ft.'CommentBold                  CommentBold'
-    exe 'hi link '.ft.'CommentBoldItalic            CommentBoldItalic'
-    exe 'hi link '.ft.'CommentCodeBlock             CommentCodeSpan'
-    exe 'hi link '.ft.'CommentCodeSpan              CommentCodeSpan'
-    exe 'hi link '.ft.'CommentItalic                CommentItalic'
+    exe 'hi link '.a:ft.'CommentBlockquote            markdownBlockquote'
+    exe 'hi link '.a:ft.'CommentBlockquoteBold        markdownBlockquoteBold'
+    exe 'hi link '.a:ft.'CommentBlockquoteBoldItalic  markdownBlockquoteBoldItalic'
+    exe 'hi link '.a:ft.'CommentBlockquoteCodeSpan    markdownBlockquoteCodeSpan'
+    exe 'hi link '.a:ft.'CommentBlockquoteItalic      markdownBlockquoteItalic'
 
-    exe 'hi link '.ft.'CommentBlockquote            markdownBlockquote'
-    exe 'hi link '.ft.'CommentBlockquoteBold        markdownBlockquoteBold'
-    exe 'hi link '.ft.'CommentBlockquoteBoldItalic  markdownBlockquoteBoldItalic'
-    exe 'hi link '.ft.'CommentBlockquoteCodeSpan    markdownBlockquoteCodeSpan'
-    exe 'hi link '.ft.'CommentBlockquoteItalic      markdownBlockquoteItalic'
-
-    exe 'hi link '.ft.'CommentKey                   markdownKey'
-    exe 'hi link '.ft.'CommentLeader                Comment'
-    exe 'hi link '.ft.'CommentListItem              markdownListItem'
-    exe 'hi link '.ft.'CommentListItemBlockquote    markdownListItemBlockquote'
-    exe 'hi link '.ft.'CommentListItemBold          markdownListItemBold'
-    exe 'hi link '.ft.'CommentListItemBoldItalic    markdownListItemBoldItalic'
-    exe 'hi link '.ft.'CommentListItemCodeBlock     CommentCodeSpan'
-    exe 'hi link '.ft.'CommentListItemCodeSpan      CommentListItemCodeSpan'
-    exe 'hi link '.ft.'CommentListItemItalic        markdownListItemItalic'
-    exe 'hi link '.ft.'CommentOption                markdownOption'
-    exe 'hi link '.ft.'CommentOutput                PreProc'
-    exe 'hi link '.ft.'CommentPointer               markdownPointer'
-    exe 'hi link '.ft.'CommentRule                  markdownRule'
-    exe 'hi link '.ft.'CommentTable                 markdownTable'
-    exe 'hi link '.ft.'CommentTitle                 PreProc'
+    exe 'hi link '.a:ft.'CommentKey                   markdownKey'
+    exe 'hi link '.a:ft.'CommentLeader                Comment'
+    exe 'hi link '.a:ft.'CommentListItem              markdownListItem'
+    exe 'hi link '.a:ft.'CommentListItemBlockquote    markdownListItemBlockquote'
+    exe 'hi link '.a:ft.'CommentListItemBold          markdownListItemBold'
+    exe 'hi link '.a:ft.'CommentListItemBoldItalic    markdownListItemBoldItalic'
+    exe 'hi link '.a:ft.'CommentListItemCodeBlock     CommentCodeSpan'
+    exe 'hi link '.a:ft.'CommentListItemCodeSpan      CommentListItemCodeSpan'
+    exe 'hi link '.a:ft.'CommentListItemItalic        markdownListItemItalic'
+    exe 'hi link '.a:ft.'CommentOption                markdownOption'
+    exe 'hi link '.a:ft.'CommentOutput                PreProc'
+    exe 'hi link '.a:ft.'CommentPointer               markdownPointer'
+    exe 'hi link '.a:ft.'CommentRule                  markdownRule'
+    exe 'hi link '.a:ft.'CommentTable                 markdownTable'
+    exe 'hi link '.a:ft.'CommentTitle                 PreProc'
 endfu
 
 fu! lg#styled_comment#syntax() abort "{{{2
@@ -308,7 +306,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
         " }}}
     call s:syn_mycustomgroups(ft)
 
-    call s:highlight_groups_links()
+    call s:highlight_groups_links(ft)
 
     " TODO: highlight commented urls (like in markdown)?{{{
     "
@@ -431,7 +429,6 @@ fu! s:syn_list_item(ft, cml, commentGroup) abort "{{{2
 endfu
 
 fu! s:syn_code_block(ft, cml, commentGroup) abort "{{{2
-    "     some code block
     " Why a region?{{{
     "
     " I  want `xCommentCodeBlock`  to highlight  only  after 5  spaces from  the
