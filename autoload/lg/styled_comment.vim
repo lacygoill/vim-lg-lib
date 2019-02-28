@@ -303,8 +303,11 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " Update:
     " Escaping the  star seems  to have  a negative  influence on  another issue
     " related to broken lists.
+    "
+    " Update:
+    " Not escaping the star breaks the highlighting of tables.
     "}}}
-    let cml = escape(cml, '\/')
+    let cml = escape(cml, '\*/')
     let cml_0_1 = '\V\%('.cml.'\)\=\m'
     let cml = '\V'.cml.'\m'
     let cml_right_pat = s:get_cml_right_pat()
