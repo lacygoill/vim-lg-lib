@@ -1,15 +1,3 @@
-" TODO: Maybe  we should  integrate the  `after/syntax/x.vim` files  which tweak
-" syntax items using `ALLBUT`.
-
-" TODO: Whenever we've tweaked a syntax item using `ALLBUT`, we've done this:
-"
-"     syn clear some_group
-"
-" If `some_group` contains several items, we remove them all.
-" But then, we probably just re-installed one item.
-" Did we break sth by removing and not re-installing some items in the past?
-" Should we make sure to re-install *all* items whenever we run `syn clear`?
-
 " Whenever you create or remove a custom syntax group from `lg#styled_comment#syntax()`, update `s:custom_groups`!{{{
 "
 " Otherwise, you may have a broken syntax highlighting in any filetype whose
@@ -96,20 +84,33 @@ fu! s:fix_allbut(ft) abort "{{{2
         " get original definition
         let definition = split(execute('syn list ' . group), '\n')
 
-        " build new commands to redefine the groups
+        " build new commands to redefine the items in the group
         call filter(definition, {i,v -> v !~# '^---\|^\s\+links\s\+to\s\+'})
-        let definition[0] = substitute(definition[0], '\m\C.\{-}xxx\%(\s\+match\>\)\=', '', '')
-        " add `:syn [keword|match|region]`
+        " add `:syn [keyword|match|region]`
         call map(definition, {i,v ->
             \ match(v, '\m\C\<start=') >= 0
             \ ?     'syn region ' . group . ' ' . v
-            \ : match(v, '\m\C\<xxx\s\+match\>')
+            \ : match(v, '\m\C\<xxx\s\+match\>') >= 0
             \ ?     'syn match ' . group . ' ' . v
             \ :     'syn keyword ' . group . ' ' . v
             \ })
+        " add `@xMyCustomGroups` after `ALLBUT`
         call map(definition, {i,v -> substitute(v, '\m\CALLBUT,', 'ALLBUT,@'.a:ft.'MyCustomGroups,', '')})
+        " Why don't you remove `xxx` earlier?{{{
+        "
+        " When we remove `xxx`, we may also need to remove a possible `match` afterwards.
+        "
+        "     rubyClass      xxx match /\<class\>/  contained nextgroup=rubyClassDeclaration skipwhite skipnl
+        "                        ^^^^^
+        " But we can't remove this `match` before adding `syn [keyword|match|region]`,
+        " because we need it to identify whether the item is a match.
+        "}}}
+        let definition[0] = substitute(definition[0],
+            \ '\m\Csyn\%[tax]\s\+\%(keyword\|match\|region\)\s\+\S\+\s\+\zs.\{-}xxx\%(\s\+match\>\)\=', '', '')
+            "                                                   ├──┘
+            "                                                   └ group name
 
-        " clear and redefine
+        " clear and redefine all the items in the group
         exe 'syn clear ' . group
         call map(definition, {i,v -> execute(v)})
     endfor
