@@ -308,6 +308,16 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " Update:
     " Not escaping the star breaks the highlighting of tables.
     " And again, removing `contained` in `cCommentTable` fixes the issue.
+    "
+    " Update:
+    " Escaping the star wrongly highlights some lines as being part of a codeblock:
+    "
+    "     /* foo
+    "      * bar
+    "      * baz */
+    "
+    " Here,  `bar` would  be  highlighted as  in  a codeblock,  if  the line  is
+    " indented with 5 spaces or more.
     "}}}
     let cml = escape(cml, '\*/')
     let cml_0_1 = '\V\%('.cml.'\)\=\m'
