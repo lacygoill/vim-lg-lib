@@ -9,6 +9,8 @@
 "}}}
 " Init {{{1
 
+let s:allbut_groups = {}
+
 let s:custom_groups = [
     \ 'CommentBlockquote',
     \ 'CommentBlockquoteBold',
@@ -70,17 +72,17 @@ endfu
 fu! s:fix_allbut(ft) abort "{{{2
     " get the list of groups using `ALLBUT`, and save it in a script-local variable
     " to avoid having to recompute it every time we reload the same kind of buffer
-    if !exists('s:'.a:ft.'_allbut_groups')
+    if !has_key(s:allbut_groups, a:ft)
         " Don't try to read and parse the original syntax plugin.{{{
         "
         " `ALLBUT` could be  on a continuation line, and in  this case, it would
         " be hard to get the name of the syntax group.
         "}}}
-        let s:{a:ft}_allbut_groups = map(filter(split(execute('syn list'), '\n'),
+        let s:allbut_groups[a:ft] = map(filter(split(execute('syn list'), '\n'),
             \ {i,v -> v =~# '\m\CALLBUT' && v !~# '^\s'}),
             \ {i,v -> matchstr(v, '\S\+')})
     endif
-    for group in s:{a:ft}_allbut_groups
+    for group in s:allbut_groups[a:ft]
         " get original definition
         let definition = split(execute('syn list ' . group), '\n')
 
