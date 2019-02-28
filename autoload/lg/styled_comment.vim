@@ -849,8 +849,6 @@ fu! s:syn_rule(ft, cml, commentGroup) abort "{{{2
 endfu
 
 fu! s:syn_table(ft, cml, commentGroup, cml_right_pat) abort "{{{2
-    " FIXME: the table is not highlighted in a C file
-
     " some table:
     "    ┌───────┬──────┐
     "    │  one  │ two  │
