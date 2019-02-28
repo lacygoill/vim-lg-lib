@@ -426,6 +426,7 @@ fu! s:syn_list_item(ft, cml, commentGroup) abort "{{{2
         \ .              a:ft.'CommentListItemCodeSpan,'
         \ .              a:ft.'CommentListItemCodeBlock,'
 
+    " FIXME: doesn't work in C files atm (probably because of an escape issue in the cml)
     " - some item 1
     "   some text
     "
@@ -841,6 +842,10 @@ fu! s:syn_table(ft, cml, commentGroup, cml_right) abort "{{{2
 endfu
 
 fu! s:syn_foldmarkers(ft, cml_0_1, commentGroup) abort "{{{2
+    " TODO: conceal right side of comment leader when it exists (e.g. in C files)
+    " To get inspiration for the pattern, see what we did in:
+    "     ~/.vim/plugged/vim-fold/autoload/fold/fdt.vim
+
     " replace noisy markers, used in folds, with ❭ and ❬
     " Why not `containedin=ALL`?{{{
     "
