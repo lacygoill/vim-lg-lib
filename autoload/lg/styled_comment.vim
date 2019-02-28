@@ -80,26 +80,38 @@ endfu
 " }}}1
 " syntax plugin {{{1
 fu! s:fix_allbut(ft) abort "{{{2
+    " get the list of groups using `ALLBUT`, and save it in a script-local variable
+    " to avoid having to recompute it every time we reload the same kind of buffer
     if !exists('s:'.a:ft.'_allbut_groups')
-        let s:{a:ft}_allbut_groups = uniq(sort(map(filter(readfile($VIMRUNTIME.'/syntax/'.a:ft.'.vim'),
-            \ {i,v -> v =~# '\m\C\<\%(contains\|containedin\)=ALLBUT\>'}),
-            \ {i,v -> matchstr(v, '\m\Csyn\%[tax]\s\+\(match\|region\)\s\+\zs\S\+')})))
+        " Don't try to read and parse the original syntax plugin.{{{
+        "
+        " `ALLBUT` could be  on a continuation line, and in  this case, it would
+        " be hard to get the name of the syntax group.
+        "}}}
+        let s:{a:ft}_allbut_groups = map(filter(split(execute('syn list'), '\n'),
+            \ {i,v -> v =~# '\m\CALLBUT' && v !~# '^\s'}),
+            \ {i,v -> matchstr(v, '\S\+')})
     endif
     for group in s:{a:ft}_allbut_groups
-        let definition = execute('syn list ' . group)
-        if stridx(definition, 'ALLBUT') == -1
-            continue
-        endif
-        let definition = substitute(definition, '\m\C.\{-}xxx\%(\s\+match\>\)\=\|\n\s*links\s\+to\s\+.*', '', 'g')
-        let definition = substitute(definition, '\m\CALLBUT,', 'ALLBUT,@cMyCustomGroups,', '')
+        " get original definition
+        let definition = split(execute('syn list ' . group), '\n')
+
+        " build new commands to redefine the groups
+        call filter(definition, {i,v -> v !~# '^---\|^\s\+links\s\+to\s\+'})
+        let definition[0] = substitute(definition[0], '\m\C.\{-}xxx\%(\s\+match\>\)\=', '', '')
+        " add `:syn [keword|match|region]`
+        call map(definition, {i,v ->
+            \ match(v, '\m\C\<start=') >= 0
+            \ ?     'syn region ' . group . ' ' . v
+            \ : match(v, '\m\C\<xxx\s\+match\>')
+            \ ?     'syn match ' . group . ' ' . v
+            \ :     'syn keyword ' . group . ' ' . v
+            \ })
+        call map(definition, {i,v -> substitute(v, '\m\CALLBUT,', 'ALLBUT,@'.a:ft.'MyCustomGroups,', '')})
+
+        " clear and redefine
         exe 'syn clear ' . group
-        if match(definition, '\m\C\<start=') >= 0
-            exe 'syn region ' . group . ' ' . definition
-        elseif match(definition, '\m\C\<xxx\s\+match\>')
-            exe 'syn match ' . group . ' ' . definition
-        else
-            exe 'syn keyword ' . group . ' ' . definition
-        endif
+        call map(definition, {i,v -> execute(v)})
     endfor
 endfu
 
@@ -355,7 +367,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "     ( 1 * 2 * 3 )
     "     EOF
     "
-    "     $ vim !$
+    "     $ vim /tmp/lua.lua
     "
     " We need  an easy  way to tell  Vim that these  default groups  must *also*
     " exclude our custom groups.
