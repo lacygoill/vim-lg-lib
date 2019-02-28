@@ -79,6 +79,30 @@ fu! lg#styled_comment#undo_ftplugin() abort "{{{2
 endfu
 " }}}1
 " syntax plugin {{{1
+fu! s:fix_allbut(ft) abort "{{{2
+    if !exists('s:'.a:ft.'_allbut_groups')
+        let s:{a:ft}_allbut_groups = uniq(sort(map(filter(readfile($VIMRUNTIME.'/syntax/'.a:ft.'.vim'),
+            \ {i,v -> v =~# '\m\C\<\%(contains\|containedin\)=ALLBUT\>'}),
+            \ {i,v -> matchstr(v, '\m\Csyn\%[tax]\s\+\(match\|region\)\s\+\zs\S\+')})))
+    endif
+    for group in s:{a:ft}_allbut_groups
+        let definition = execute('syn list ' . group)
+        if stridx(definition, 'ALLBUT') == -1
+            continue
+        endif
+        let definition = substitute(definition, '\m\C.\{-}xxx\%(\s\+match\>\)\=\|\n\s*links\s\+to\s\+.*', '', 'g')
+        let definition = substitute(definition, '\m\CALLBUT,', 'ALLBUT,@cMyCustomGroups,', '')
+        exe 'syn clear ' . group
+        if match(definition, '\m\C\<start=') >= 0
+            exe 'syn region ' . group . ' ' . definition
+        elseif match(definition, '\m\C\<xxx\s\+match\>')
+            exe 'syn match ' . group . ' ' . definition
+        else
+            exe 'syn keyword ' . group . ' ' . definition
+        endif
+    endfor
+endfu
+
 fu! s:get_cml_right() abort "{{{2
     " Every time we use `end=/$/`, we need to tweak the definition to exclude the right side of the cml if there's one.{{{
     "
@@ -314,35 +338,30 @@ fu! lg#styled_comment#syntax() abort "{{{2
     call s:syn_rule(ft, cml, commentGroup)
     call s:syn_table(ft, cml, commentGroup, cml_right)
     call s:syn_foldmarkers(ft, cml_0_1, commentGroup)
-    " What does it do?{{{
+
+    " What does this do?{{{
     "
     " It defines  a cluster  containing all  the custom  syntax groups  that the
     " current function has defined.
     "}}}
-        " Why?{{{
-        "
-        " Some default syntax plugins define groups with the argument `contains=ALLBUT`.
-        " It means that they can contain *anything* except a few specific groups.
-        " Because of this, they can contain our custom groups.
-        " And as a result, our code may be applied wrong graphical attributes:
-        "
-        "     $ cat <<'EOF' >/tmp/lua.lua
-        "     ( 1 * 2 * 3 )
-        "     EOF
-        "
-        "     $ vim !$
-        "
-        " We need an easy way to tell  Vim that these default groups must *also*
-        " exclude our custom groups.
+    " Why?{{{
+    "
+    " Some default syntax plugins define groups with the argument `contains=ALLBUT`.
+    " It means that they can contain *anything* except a few specific groups.
+    " Because of this, they can contain our custom groups.
+    " And as a result, our code may be applied wrong graphical attributes:
+    "
+    "     $ cat <<'EOF' >/tmp/lua.lua
+    "     ( 1 * 2 * 3 )
+    "     EOF
+    "
+    "     $ vim !$
+    "
+    " We need  an easy  way to tell  Vim that these  default groups  must *also*
+    " exclude our custom groups.
         "}}}
-        " How can this custom cluster be used?{{{
-        "
-        " When a default syntax plugin uses the arguments `contains=ALLBUT,...`,
-        " clear it (`:syn clear ...`) and redefine it in `after/syntax/x.vim`.
-        " Use the same original definition, with one change:
-        " add `@xMyCustomGroups` after `contains=ALLBUT,...`.
-        " }}}
     call s:syn_mycustomgroups(ft)
+    call s:fix_allbut(ft)
 
     call s:highlight_groups_links(ft)
 
