@@ -298,7 +298,8 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " Why? `\V` should be enough.
     "
     " Update:
-    " Removing `contained` in `cCommentCodeBlock` fixes the issue too.
+    " Removing  `contained`  in `cCommentCodeBlock`  fixes  the  issue too  (but
+    " creates another one).
     "
     " Update:
     " Escaping the  star seems  to have  a negative  influence on  another issue
@@ -306,6 +307,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "
     " Update:
     " Not escaping the star breaks the highlighting of tables.
+    " And again, removing `contained` in `cCommentTable` fixes the issue.
     "}}}
     let cml = escape(cml, '\*/')
     let cml_0_1 = '\V\%('.cml.'\)\=\m'
