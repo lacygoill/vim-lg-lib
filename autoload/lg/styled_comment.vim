@@ -299,8 +299,12 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "
     " Update:
     " Removing `contained` in `cCommentCodeBlock` fixes the issue too.
+    "
+    " Update:
+    " Escaping the  star seems  to have  a negative  influence on  another issue
+    " related to broken lists.
     "}}}
-    let cml = escape(cml, '\*/')
+    let cml = escape(cml, '\/')
     let cml_0_1 = '\V\%('.cml.'\)\=\m'
     let cml = '\V'.cml.'\m'
     let cml_right_pat = s:get_cml_right_pat()
@@ -853,6 +857,8 @@ fu! s:syn_rule(ft, cml, commentGroup) abort "{{{2
 endfu
 
 fu! s:syn_table(ft, cml, commentGroup, cml_right_pat) abort "{{{2
+    " FIXME: the table is not highlighted in a C file
+
     " some table:
     "    ┌───────┬──────┐
     "    │  one  │ two  │
