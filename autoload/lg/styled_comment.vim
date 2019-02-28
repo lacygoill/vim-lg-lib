@@ -43,7 +43,7 @@ let s:custom_groups = [
     \ 'CommentTitleLeader',
     \ 'FoldMarkers',
     \ '@CommentListItemElements',
-\ ]
+    \ ]
 " }}}1
 
 " filetype plugin {{{1
@@ -118,8 +118,8 @@ fu! s:fix_allbut(ft) abort "{{{2
     endfor
 endfu
 
-fu! s:get_cml_right() abort "{{{2
-    " Every time we use `end=/$/`, we need to tweak the definition to exclude the right side of the cml if there's one.{{{
+fu! s:get_cml_right_pat() abort "{{{2
+    " Sometimes, we need to tweak the definition of `end=/pat/` to exclude the right side of the cml if there's one.{{{
     "
     "     " when the cml has no right side
     "     end=/$/
@@ -129,13 +129,13 @@ fu! s:get_cml_right() abort "{{{2
     "             ├┘
     "             └ as many as there're characters in the right side of the cml
     "}}}
-    let cml_right = strchars(split(&l:cms, '%s', 1)[1], 1)
-    if cml_right > 0
-        let cml_right = '\ze'.repeat('.', cml_right)
+    let cml_right_pat = split(&l:cms, '%s', 1)[1]
+    if cml_right_pat isnot# ''
+        let cml_right_pat = '\ze\V'.escape(cml_right_pat, '\/').'\m\|$'
     else
-        let cml_right = ''
+        let cml_right_pat = '$'
     endif
-    return cml_right
+    return cml_right_pat
 endfu
 
 fu! s:get_filetype() abort "{{{2
@@ -296,11 +296,14 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "
     " Escaping `*` fixes the issue.
     " Why? `\V` should be enough.
+    "
+    " Update:
+    " Removing `contained` in `cCommentCodeBlock` fixes the issue too.
     "}}}
-    let cml = escape(cml, '/*\')
+    let cml = escape(cml, '\*/')
     let cml_0_1 = '\V\%('.cml.'\)\=\m'
     let cml = '\V'.cml.'\m'
-    let cml_right = s:get_cml_right()
+    let cml_right_pat = s:get_cml_right_pat()
     let commentGroup = ft.'Comment'.(ft is# 'vim' ? ',vimLineComment' : '')
 
     call s:syn_commentleader(ft, cml)
@@ -317,7 +320,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "
     " So, unless you know what you're doing, leave this call here.
     "}}}
-    call s:syn_code_block(ft, cml, commentGroup, cml_right)
+    call s:syn_code_block(ft, cml, commentGroup, cml_right_pat)
     call s:syn_code_span(ft, commentGroup)
     " Don't change the order of `s:syn_italic()`, `s:syn_bold()` and `s:syn_bolditalic()`!{{{
     "
@@ -351,7 +354,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
     call s:syn_pointer(ft, cml, commentGroup)
     call s:syn_key(ft, commentGroup)
     call s:syn_rule(ft, cml, commentGroup)
-    call s:syn_table(ft, cml, commentGroup, cml_right)
+    call s:syn_table(ft, cml, commentGroup, cml_right_pat)
     call s:syn_foldmarkers(ft, cml_0_1, commentGroup)
 
     " What does this do?{{{
@@ -507,17 +510,25 @@ fu! s:syn_list_item(ft, cml, commentGroup) abort "{{{2
         \ . ' containedin='.a:commentGroup
 endfu
 
-fu! s:syn_code_block(ft, cml, commentGroup, cml_right) abort "{{{2
+fu! s:syn_code_block(ft, cml, commentGroup, cml_right_pat) abort "{{{2
     " Why a region?{{{
     "
     " I  want `xCommentCodeBlock`  to highlight  only  after 5  spaces from  the
     " comment leader (instead of complete lines).
     " It's less noisy.
     "}}}
+    let g:d_cmd = 'syn region '.a:ft.'CommentCodeBlock'
+        \ . ' matchgroup=Comment'
+        \ . ' start=/'.a:cml.' \{5,}/'
+        \ . ' end=/'.a:cml_right_pat.'/'
+        \ . ' keepend'
+        \ . ' contained'
+        \ . ' containedin='.a:commentGroup
+        \ . ' oneline'
     exe 'syn region '.a:ft.'CommentCodeBlock'
         \ . ' matchgroup=Comment'
         \ . ' start=/'.a:cml.' \{5,}/'
-        \ . ' end=/'.a:cml_right.'$/'
+        \ . ' end=/'.a:cml_right_pat.'/'
         \ . ' keepend'
         \ . ' contained'
         \ . ' containedin='.a:commentGroup
@@ -531,7 +542,7 @@ fu! s:syn_code_block(ft, cml, commentGroup, cml_right) abort "{{{2
     exe 'syn region '.a:ft.'CommentListItemCodeBlock'
         \ . ' matchgroup=Comment'
         \ . ' start=/'.a:cml.'         /'
-        \ . ' end=/'.a:cml_right.'$/'
+        \ . ' end=/'.a:cml_right_pat.'/'
         \ . ' keepend'
         \ . ' contained'
         \ . ' containedin='.a:ft.'CommentListItem'
@@ -841,7 +852,7 @@ fu! s:syn_rule(ft, cml, commentGroup) abort "{{{2
         \ . ' contains='.a:ft.'CommentLeader'
 endfu
 
-fu! s:syn_table(ft, cml, commentGroup, cml_right) abort "{{{2
+fu! s:syn_table(ft, cml, commentGroup, cml_right_pat) abort "{{{2
     " some table:
     "    ┌───────┬──────┐
     "    │  one  │ two  │
@@ -868,7 +879,7 @@ fu! s:syn_table(ft, cml, commentGroup, cml_right) abort "{{{2
     exe 'syn region '.a:ft.'CommentTable'
         \ . ' matchgroup=Comment'
         \ . ' start=/'.a:cml.'    \%([┌└]─\|│.*[^ \t│].*│\|├─.*┤\)\@=/'
-        \ . ' end=/'.a:cml_right.'$/'
+        \ . ' end=/'.a:cml_right_pat.'/'
         \ . ' keepend'
         \ . ' oneline'
         \ . ' contained'
@@ -876,10 +887,6 @@ fu! s:syn_table(ft, cml, commentGroup, cml_right) abort "{{{2
 endfu
 
 fu! s:syn_foldmarkers(ft, cml_0_1, commentGroup) abort "{{{2
-    " TODO: conceal right side of comment leader when it exists (e.g. in C files)
-    " To get inspiration for the pattern, see what we did in:
-    "     ~/.vim/plugged/vim-fold/autoload/fold/fdt.vim
-
     " replace noisy markers, used in folds, with ❭ and ❬
     " Why not `containedin=ALL`?{{{
     "
@@ -913,23 +920,23 @@ fu! s:syn_foldmarkers(ft, cml_0_1, commentGroup) abort "{{{2
     "    ❯❮
     "    ❱❰
     "}}}
+    let cml_left = escape(matchstr(split(&l:cms, '%s', 1)[0], '\S*'), '\/')
+    let cml_right = escape(matchstr(split(&l:cms, '%s', 1)[1], '\S*'), '\/')
+    if cml_right is# ''
+        let pat = a:cml_0_1.'\s*\%({'.'{{\|}'.'}}\)\d*\s*\ze\n'
+        let contained = ' contained'
+    else
+        let pat = '\s*\V'.cml_left.'\m\s*\%({'.'{{\|}'.'}}\)\d*\s*\V'.cml_right.'\m\s*$'
+        let contained = ''
+    endif
     exe 'syn match '.a:ft.'FoldMarkers'
-        \ . ' /'.a:cml_0_1.'\s*{'.'{{\d*\s*\ze\n/'
+        \ . ' /'.pat.'/'
         \ . ' conceal'
         \ . ' cchar=❭'
         \ . ' contains='.a:ft.'CommentLeader'
-        \ . ' contained'
-        \ . ' containedin='.a:commentGroup.','
-        \                  .a:ft.'CommentCodeBlock'
-
-    exe 'syn match '.a:ft.'FoldMarkers'
-        \ . ' /'.a:cml_0_1.'\s*}'.'}}\d*\s*\ze\n/'
-        \ . ' conceal'
-        \ . ' cchar=❬'
-        \ . ' contains='.a:ft.'CommentLeader'
-        \ . ' contained'
-        \ . ' containedin='.a:commentGroup.','
-        \                  .a:ft.'CommentCodeBlock'
+        \ . contained
+        \ . ' containedin='.a:commentGroup
+        \               ','.a:ft.'CommentCodeBlock'
 endfu
 
 fu! s:syn_mycustomgroups(ft) abort "{{{2
