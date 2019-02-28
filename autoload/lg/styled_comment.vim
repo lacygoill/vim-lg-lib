@@ -67,6 +67,26 @@ fu! lg#styled_comment#undo_ftplugin() abort "{{{2
 endfu
 " }}}1
 " syntax plugin {{{1
+fu! s:get_cml_right() abort "{{{2
+    " Every time we use `end=/$/`, we need to tweak the definition to exclude the right side of the cml if there's one.{{{
+    "
+    "     " when the cml has no right side
+    "     end=/$/
+    "
+    "     " when the cml HAS a right side
+    "     end=/\ze..$/
+    "             ├┘
+    "             └ as many as there're characters in the right side of the cml
+    "}}}
+    let cml_right = strchars(split(&l:cms, '%s', 1)[1], 1)
+    if cml_right > 0
+        let cml_right = '\ze'.repeat('.', cml_right)
+    else
+        let cml_right = ''
+    endif
+    return cml_right
+endfu
+
 fu! s:get_filetype() abort "{{{2
     let ft = expand('<amatch>')
     if ft is# 'snippets' | let ft = 'snip' | endif
@@ -229,6 +249,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
     let cml = escape(cml, '/*\')
     let cml_0_1 = '\V\%('.cml.'\)\=\m'
     let cml = '\V'.cml.'\m'
+    let cml_right = s:get_cml_right()
     let commentGroup = ft.'Comment'.(ft is# 'vim' ? ',vimLineComment' : '')
 
     call s:syn_commentleader(ft, cml)
@@ -245,7 +266,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "
     " So, unless you know what you're doing, leave this call here.
     "}}}
-    call s:syn_code_block(ft, cml, commentGroup)
+    call s:syn_code_block(ft, cml, commentGroup, cml_right)
     call s:syn_code_span(ft, commentGroup)
     " Don't change the order of `s:syn_italic()`, `s:syn_bold()` and `s:syn_bolditalic()`!{{{
     "
@@ -279,7 +300,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
     call s:syn_pointer(ft, cml, commentGroup)
     call s:syn_key(ft, commentGroup)
     call s:syn_rule(ft, cml, commentGroup)
-    call s:syn_table(ft, cml, commentGroup)
+    call s:syn_table(ft, cml, commentGroup, cml_right)
     call s:syn_foldmarkers(ft, cml_0_1, commentGroup)
     " What does it do?{{{
     "
@@ -439,7 +460,7 @@ fu! s:syn_list_item(ft, cml, commentGroup) abort "{{{2
         \ . ' containedin='.a:commentGroup
 endfu
 
-fu! s:syn_code_block(ft, cml, commentGroup) abort "{{{2
+fu! s:syn_code_block(ft, cml, commentGroup, cml_right) abort "{{{2
     " Why a region?{{{
     "
     " I  want `xCommentCodeBlock`  to highlight  only  after 5  spaces from  the
@@ -449,7 +470,7 @@ fu! s:syn_code_block(ft, cml, commentGroup) abort "{{{2
     exe 'syn region '.a:ft.'CommentCodeBlock'
         \ . ' matchgroup=Comment'
         \ . ' start=/'.a:cml.' \{5,}/'
-        \ . ' end=/$/'
+        \ . ' end=/'.a:cml_right.'$/'
         \ . ' keepend'
         \ . ' contained'
         \ . ' containedin='.a:commentGroup
@@ -463,7 +484,7 @@ fu! s:syn_code_block(ft, cml, commentGroup) abort "{{{2
     exe 'syn region '.a:ft.'CommentListItemCodeBlock'
         \ . ' matchgroup=Comment'
         \ . ' start=/'.a:cml.'         /'
-        \ . ' end=/$/'
+        \ . ' end=/'.a:cml_right.'$/'
         \ . ' keepend'
         \ . ' contained'
         \ . ' containedin='.a:ft.'CommentListItem'
@@ -773,7 +794,7 @@ fu! s:syn_rule(ft, cml, commentGroup) abort "{{{2
         \ . ' contains='.a:ft.'CommentLeader'
 endfu
 
-fu! s:syn_table(ft, cml, commentGroup) abort "{{{2
+fu! s:syn_table(ft, cml, commentGroup, cml_right) abort "{{{2
     " some table:
     "    ┌───────┬──────┐
     "    │  one  │ two  │
@@ -800,7 +821,7 @@ fu! s:syn_table(ft, cml, commentGroup) abort "{{{2
     exe 'syn region '.a:ft.'CommentTable'
         \ . ' matchgroup=Comment'
         \ . ' start=/'.a:cml.'    \%([┌└]─\|│.*[^ \t│].*│\|├─.*┤\)\@=/'
-        \ . ' end=/$/'
+        \ . ' end=/'.a:cml_right.'$/'
         \ . ' keepend'
         \ . ' oneline'
         \ . ' contained'
