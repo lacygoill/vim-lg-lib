@@ -623,19 +623,14 @@ fu! s:syn_code_span(ft, commentGroup) abort "{{{2
 endfu
 
 fu! s:syn_italic(ft, commentGroup) abort "{{{2
+    " Don't use `*` to emphasize text in C, it can break many things.
+    let indicator = a:ft is# 'c' ? '_' : '\*'
+
     " some *italic* comment
-    " Why `start=/\*\ze\S/` instead of just `start=/\*/`?{{{
-    "
-    " In a C  buffer, it would cause the  text on the last line  of a multi-line
-    " comment to be wrongly emphasized in italic.
-    "
-    "     /* start of multi-line comment
-    "     *  wrong emphasized in italic */
-    "}}}
     exe 'syn region '.a:ft.'CommentItalic'
         \ . ' matchgroup=Comment'
-        \ . ' start=/\*\ze\S/'
-        \ . '   end=/\*/'
+        \ . ' start=/'.indicator.'/'
+        \ . '   end=/'.indicator.'/'
         \ . ' keepend'
         \ . ' concealends'
         \ . ' contained'
@@ -645,8 +640,8 @@ fu! s:syn_italic(ft, commentGroup) abort "{{{2
     " - some *italic* item
     exe 'syn region '.a:ft.'CommentListItemItalic'
         \ . ' matchgroup=markdownListItem'
-        \ . ' start=/\*/'
-        \ . '   end=/\*/'
+        \ . ' start=/'.indicator.'/'
+        \ . '   end=/'.indicator.'/'
         \ . ' keepend'
         \ . ' concealends'
         \ . ' contained'
@@ -655,8 +650,8 @@ fu! s:syn_italic(ft, commentGroup) abort "{{{2
     " > some *italic* quote
     exe 'syn region '.a:ft.'CommentBlockquoteItalic'
         \ . ' matchgroup=markdownBlockquote'
-        \ . ' start=/\*/'
-        \ . '   end=/\*/'
+        \ . ' start=/'.indicator.'/'
+        \ . '   end=/'.indicator.'/'
         \ . ' keepend'
         \ . ' concealends'
         \ . ' contained'
