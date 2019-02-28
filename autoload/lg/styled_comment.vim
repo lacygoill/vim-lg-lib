@@ -526,14 +526,6 @@ fu! s:syn_code_block(ft, cml, commentGroup, cml_right_pat) abort "{{{2
     " comment leader (instead of complete lines).
     " It's less noisy.
     "}}}
-    let g:d_cmd = 'syn region '.a:ft.'CommentCodeBlock'
-        \ . ' matchgroup=Comment'
-        \ . ' start=/'.a:cml.' \{5,}/'
-        \ . ' end=/'.a:cml_right_pat.'/'
-        \ . ' keepend'
-        \ . ' contained'
-        \ . ' containedin='.a:commentGroup
-        \ . ' oneline'
     exe 'syn region '.a:ft.'CommentCodeBlock'
         \ . ' matchgroup=Comment'
         \ . ' start=/'.a:cml.' \{5,}/'
