@@ -3,7 +3,7 @@
 " Otherwise, you may have a broken syntax highlighting in any filetype whose
 " default syntax plugin uses `ALLBUT`.
 "
-" `s:custom_groups` is used by `s:syn_mycustomgroups()` to define `@MyCustomGroups`.
+" `s:custom_groups` is used by `s:syn_mycustomgroups()` to define `@xMyCustomGroups`.
 " We  sometimes use  this  cluster in  `after/syntax/x.vim`  to exclude  our
 " custom groups from the ones installed by a default syntax plugin.
 "}}}
