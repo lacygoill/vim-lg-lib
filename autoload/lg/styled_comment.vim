@@ -1,3 +1,15 @@
+" TODO: Maybe  we should  integrate the  `after/syntax/x.vim` files  which tweak
+" syntax items using `ALLBUT`.
+
+" TODO: Whenever we've tweaked a syntax item using `ALLBUT`, we've done this:
+"
+"     syn clear some_group
+"
+" If `some_group` contains several items, we remove them all.
+" But then, we probably just re-installed one item.
+" Did we break sth by removing and not re-installing some items in the past?
+" Should we make sure to re-install *all* items whenever we run `syn clear`?
+
 " Whenever you create or remove a custom syntax group from `lg#styled_comment#syntax()`, update `s:custom_groups`!{{{
 "
 " Otherwise, you may have a broken syntax highlighting in any filetype whose
