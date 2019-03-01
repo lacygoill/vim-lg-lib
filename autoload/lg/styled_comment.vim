@@ -34,6 +34,13 @@
 " > chance  that an  unterminated comment  will accidentally  consume part  of a
 " > program. Second,  multiline comments  stand  out better,  thanks  to the  //
 " > that's required at the beginning of each line.
+"
+" There are 2 notable exceptions: html and css.
+" They only provide a syntax for multi-line comments.
+" To get  an idea of how you would  have to refactor this file if  you wanted to
+" support them, see this old commit:
+"
+"     https://github.com/lacygoill/vim-lg-lib/commit/7d309f78900b63df6f8989fbc929660cda76d076
 " }}}
 
 " Init {{{1
@@ -907,8 +914,8 @@ fu! s:syn_table(ft, cml, commentGroup) abort "{{{2
 endfu
 
 fu! s:syn_foldmarkers(ft, cml_0_1, commentGroup) abort "{{{2
-    " If you don't care about html, you could probably simplify the code of this
-    " function, and get rid of `cml_right`.
+    " If you don't care about html and css, you could probably simplify the code
+    " of this function, and get rid of `cml_right`.
 
     " replace noisy markers, used in folds, with ❭ and ❬
     " Why not `containedin=ALL`?{{{
