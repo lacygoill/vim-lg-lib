@@ -295,6 +295,41 @@ fu! lg#styled_comment#syntax() abort "{{{2
     let cml = escape(cml, '\/')
     let cml_0_1 = '\V\%('.cml.'\)\=\m'
     let cml = '\V'.cml.'\m'
+    " What's the difference between `cComment` and `cCommentL`?{{{
+    "
+    " `cComment` = old comment style (`/* */`).
+    " `cCommentL` = new comment style (`//`).
+    "}}}
+    " Which pitfall should I avoid if I try to add support for `cComment`?{{{
+    "
+    " Disable the italic style in the old comment style.
+    "
+    " You won't be able to use `_` to highlight text in italic, because existing
+    " comments often  contain variable  names with  underscores; and  since they
+    " aren't  inside  backticks,  part  of  the variable  name  is  wrong  (some
+    " underscores are concealed, and the name is partially in italic).
+    "
+    " So, you'll have to use `*`.
+    " But this  will create other  issues, which are  due to the  comment leader
+    " also using `*`.
+    " Sometimes, some text will  be in italic while it shouldn't,  and a line of
+    " code after a comment will be wrongly highlighted as a comment.
+    "
+    " You can reduce the frequency of the issues by adding more and more lookarounds.
+    "
+    " Start of region:
+    "     *
+    "     *\S
+    "     /\@<!*\S
+    "
+    " End of region:
+    "     *
+    "     \S*
+    "     \S*/\@!
+    "
+    " But  no matter  what  you do,  there'll  always be  some  cases where  the
+    " highlighting is wrong.
+    "}}}
     let commentGroup = ft.'Comment'.(ft is# 'vim' ? ',vimLineComment' : ft is# 'c' ? 'L' : '')
 
     call s:syn_commentleader(ft, cml)
