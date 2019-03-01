@@ -472,12 +472,12 @@ fu! s:syn_commenttitle(ft, cml, nr) abort "{{{2
         " Don't remove `containedin=`!{{{
         "
         " We need it, for example, to allow `awkCommentTitle` to be contained in
-        " `awkComment`. Same thing for other many other filetypes.
+        " `awkComment`. Same thing for many other filetypes.
         "}}}
         exe 'syn match '.a:ft.'CommentTitle'
             \ . ' /'.a:cml.'\s*\u\w*\%(\s\+\u\w*\)*:/hs=s+'.a:nr
             \ . ' contained'
-            \ . ' containedin='.a:ft.'Comment'
+            \ . ' containedin='.a:ft.'Comment'.(a:ft is# 'c' ? 'L' : '')
             \ . ' contains='.a:ft.'CommentTitleLeader,'
             \ .              a:ft.'Todo'
 
