@@ -22,8 +22,9 @@
 " situations, when using the second version:
 "
 "     /* foo
-"      *     should be highlighted as a codeblock; good luck!
-"      * bar */
+"            should be highlighted as a codeblock; good luck!
+"        bar
+"      */
 "
 " Besides, it doesn't seem to add enough benefits.
 " Also, from page 17 of `C Programming A Modern Approach`:
