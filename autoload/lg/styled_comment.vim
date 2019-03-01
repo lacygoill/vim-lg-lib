@@ -118,26 +118,6 @@ fu! s:fix_allbut(ft) abort "{{{2
     endfor
 endfu
 
-fu! s:get_cml_right_pat() abort "{{{2
-    " Sometimes, we need to tweak the definition of `end=/pat/` to exclude the right side of the cml if there's one.{{{
-    "
-    "     " when the cml has no right side
-    "     end=/$/
-    "
-    "     " when the cml HAS a right side
-    "     end=/\ze..$/
-    "             ├┘
-    "             └ as many as there're characters in the right side of the cml
-    "}}}
-    let cml_right_pat = split(&l:cms, '%s', 1)[1]
-    if cml_right_pat isnot# ''
-        let cml_right_pat = '\ze\V'.escape(cml_right_pat, '\/').'\m\|$'
-    else
-        let cml_right_pat = '$'
-    endif
-    return cml_right_pat
-endfu
-
 fu! s:get_filetype() abort "{{{2
     let ft = expand('<amatch>')
     if ft is# 'snippets' | let ft = 'snip' | endif
@@ -292,38 +272,10 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " as the end of the pattern.
     " This is needed for `xkb` where the comment leader is `//`.
     "}}}
-    " FIXME: A commented code block is not properly highlighted in a C buffer.{{{
-    "
-    " Escaping `*` fixes the issue.
-    " Why? `\V` should be enough.
-    "
-    " Update:
-    " Removing  `contained`  in `cCommentCodeBlock`  fixes  the  issue too  (but
-    " creates another one).
-    "
-    " Update:
-    " Escaping the  star seems  to have  a negative  influence on  another issue
-    " related to broken lists.
-    "
-    " Update:
-    " Not escaping the star breaks the highlighting of tables.
-    " And again, removing `contained` in `cCommentTable` fixes the issue.
-    "
-    " Update:
-    " Escaping the star wrongly highlights some lines as being part of a codeblock:
-    "
-    "     /* foo
-    "      * bar
-    "      * baz */
-    "
-    " Here,  `bar` would  be  highlighted as  in  a codeblock,  if  the line  is
-    " indented with 5 spaces or more.
-    "}}}
-    let cml = escape(cml, '\*/')
+    let cml = escape(cml, '\/')
     let cml_0_1 = '\V\%('.cml.'\)\=\m'
     let cml = '\V'.cml.'\m'
-    let cml_right_pat = s:get_cml_right_pat()
-    let commentGroup = ft.'Comment'.(ft is# 'vim' ? ',vimLineComment' : '')
+    let commentGroup = ft.'Comment'.(ft is# 'vim' ? ',vimLineComment' : ft is# 'c' ? 'L' : '')
 
     call s:syn_commentleader(ft, cml)
     call s:syn_commenttitle(ft, cml, nr)
@@ -339,7 +291,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "
     " So, unless you know what you're doing, leave this call here.
     "}}}
-    call s:syn_code_block(ft, cml, commentGroup, cml_right_pat)
+    call s:syn_code_block(ft, cml, commentGroup)
     call s:syn_code_span(ft, commentGroup)
     " Don't change the order of `s:syn_italic()`, `s:syn_bold()` and `s:syn_bolditalic()`!{{{
     "
@@ -373,7 +325,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
     call s:syn_pointer(ft, cml, commentGroup)
     call s:syn_key(ft, commentGroup)
     call s:syn_rule(ft, cml, commentGroup)
-    call s:syn_table(ft, cml, commentGroup, cml_right_pat)
+    call s:syn_table(ft, cml, commentGroup)
     call s:syn_foldmarkers(ft, cml_0_1, commentGroup)
 
     " What does this do?{{{
@@ -426,10 +378,8 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "                        skipwhite
     "     links to Float
     "}}}
-    " TODO:{{{
-    " Read:
-    "     https://daringfireball.net/projects/markdown/syntax
-    "     https://daringfireball.net/projects/markdown/basics
+    " TODO: Read: https://daringfireball.net/projects/markdown/syntax{{{
+    " and   https://daringfireball.net/projects/markdown/basics
     "
     " `markdown` provides some useful syntax which our comments
     " don't emulate yet.
@@ -482,7 +432,6 @@ fu! s:syn_list_item(ft, cml, commentGroup) abort "{{{2
         \ .              a:ft.'CommentListItemCodeSpan,'
         \ .              a:ft.'CommentListItemCodeBlock,'
 
-    " FIXME: doesn't work in C files atm (probably because of an escape issue in the cml)
     " - some item 1
     "   some text
     "
@@ -529,7 +478,7 @@ fu! s:syn_list_item(ft, cml, commentGroup) abort "{{{2
         \ . ' containedin='.a:commentGroup
 endfu
 
-fu! s:syn_code_block(ft, cml, commentGroup, cml_right_pat) abort "{{{2
+fu! s:syn_code_block(ft, cml, commentGroup) abort "{{{2
     " Why a region?{{{
     "
     " I  want `xCommentCodeBlock`  to highlight  only  after 5  spaces from  the
@@ -539,7 +488,7 @@ fu! s:syn_code_block(ft, cml, commentGroup, cml_right_pat) abort "{{{2
     exe 'syn region '.a:ft.'CommentCodeBlock'
         \ . ' matchgroup=Comment'
         \ . ' start=/'.a:cml.' \{5,}/'
-        \ . ' end=/'.a:cml_right_pat.'/'
+        \ . ' end=/$/'
         \ . ' keepend'
         \ . ' contained'
         \ . ' containedin='.a:commentGroup
@@ -553,7 +502,7 @@ fu! s:syn_code_block(ft, cml, commentGroup, cml_right_pat) abort "{{{2
     exe 'syn region '.a:ft.'CommentListItemCodeBlock'
         \ . ' matchgroup=Comment'
         \ . ' start=/'.a:cml.'         /'
-        \ . ' end=/'.a:cml_right_pat.'/'
+        \ . ' end=/$/'
         \ . ' keepend'
         \ . ' contained'
         \ . ' containedin='.a:ft.'CommentListItem'
@@ -633,14 +582,17 @@ fu! s:syn_code_span(ft, commentGroup) abort "{{{2
 endfu
 
 fu! s:syn_italic(ft, commentGroup) abort "{{{2
-    " Don't use `*` to emphasize text in C, it can break many things.
-    let indicator = a:ft is# 'c' ? '_' : '\*'
-
+    " Why?{{{
+    "
+    " In a  C file  (where the  comment leader  can be  `/* */`),  sometimes the
+    " italic style can cause a wrong highligting.
+    "}}}
+    let end = ' end='.(a:ft is# 'c' ? '"\*/\@!"' : '"\*"')
     " some *italic* comment
     exe 'syn region '.a:ft.'CommentItalic'
         \ . ' matchgroup=Comment'
-        \ . ' start=/'.indicator.'/'
-        \ . '   end=/'.indicator.'/'
+        \ . ' start="\*"'
+        \ .   end
         \ . ' keepend'
         \ . ' concealends'
         \ . ' contained'
@@ -650,8 +602,8 @@ fu! s:syn_italic(ft, commentGroup) abort "{{{2
     " - some *italic* item
     exe 'syn region '.a:ft.'CommentListItemItalic'
         \ . ' matchgroup=markdownListItem'
-        \ . ' start=/'.indicator.'/'
-        \ . '   end=/'.indicator.'/'
+        \ . ' start="\*"'
+        \ .   end
         \ . ' keepend'
         \ . ' concealends'
         \ . ' contained'
@@ -660,8 +612,8 @@ fu! s:syn_italic(ft, commentGroup) abort "{{{2
     " > some *italic* quote
     exe 'syn region '.a:ft.'CommentBlockquoteItalic'
         \ . ' matchgroup=markdownBlockquote'
-        \ . ' start=/'.indicator.'/'
-        \ . '   end=/'.indicator.'/'
+        \ . ' start="\*"'
+        \ .   end
         \ . ' keepend'
         \ . ' concealends'
         \ . ' contained'
@@ -832,6 +784,7 @@ fu! s:syn_pointer(ft, cml, commentGroup) abort "{{{2
 endfu
 
 fu! s:syn_key(ft, commentGroup) abort "{{{2
+    " some <kbd>key</kbd>
     exe 'syn region '.a:ft.'CommentKey'
         \ . ' matchgroup=Special'
         \ . ' start=/<kbd>/'
@@ -842,6 +795,9 @@ fu! s:syn_key(ft, commentGroup) abort "{{{2
 endfu
 
 fu! s:syn_rule(ft, cml, commentGroup) abort "{{{2
+    " some
+    " ---
+    " rule
     " Where does the regex come from?{{{
     "
     " Tpope uses a similar regex in his markdown syntax plugin:
@@ -858,7 +814,7 @@ fu! s:syn_rule(ft, cml, commentGroup) abort "{{{2
         \ . ' contains='.a:ft.'CommentLeader'
 endfu
 
-fu! s:syn_table(ft, cml, commentGroup, cml_right_pat) abort "{{{2
+fu! s:syn_table(ft, cml, commentGroup) abort "{{{2
     " some table:
     "    ┌───────┬──────┐
     "    │  one  │ two  │
@@ -885,7 +841,7 @@ fu! s:syn_table(ft, cml, commentGroup, cml_right_pat) abort "{{{2
     exe 'syn region '.a:ft.'CommentTable'
         \ . ' matchgroup=Comment'
         \ . ' start=/'.a:cml.'    \%([┌└]─\|│.*[^ \t│].*│\|├─.*┤\)\@=/'
-        \ . ' end=/'.a:cml_right_pat.'/'
+        \ . ' end=/$/'
         \ . ' keepend'
         \ . ' oneline'
         \ . ' contained'
@@ -893,6 +849,9 @@ fu! s:syn_table(ft, cml, commentGroup, cml_right_pat) abort "{{{2
 endfu
 
 fu! s:syn_foldmarkers(ft, cml_0_1, commentGroup) abort "{{{2
+    " If you don't care about html, you could probably simplify the code of this
+    " function, and get rid of `cml_right`.
+
     " replace noisy markers, used in folds, with ❭ and ❬
     " Why not `containedin=ALL`?{{{
     "
