@@ -7,6 +7,26 @@
 " We  sometimes use  this  cluster in  `after/syntax/x.vim`  to exclude  our
 " custom groups from the ones installed by a default syntax plugin.
 "}}}
+" Regarding languages where the comment leaders has two parts:{{{
+"
+" Most of them have two kinds of comment leaders:
+"
+"    - one for single-line comments (e.g. `--` in lua)
+"    - one for multi-line comments (e.g. `--[[`  and `--]]` in lua)
+"
+" Always use the first version, even for multi-line comments.
+"
+" Trying to support the second one adds too much complexity in this plugin.
+" Not to mention in `vim-comment`.
+" And it doesn't seem to add enough benefits.
+" Also, from page 17 of `C Programming A Modern Approach`:
+"
+" > First, because a comment automatically ends at the end of a line, there's no
+" > chance  that an  unterminated comment  will accidentally  consume part  of a
+" > program. Second,  multiline comments  stand  out better,  thanks  to the  //
+" > that's required at the beginning of each line.
+" }}}
+
 " Init {{{1
 
 let s:allbut_groups = {}
@@ -582,17 +602,11 @@ fu! s:syn_code_span(ft, commentGroup) abort "{{{2
 endfu
 
 fu! s:syn_italic(ft, commentGroup) abort "{{{2
-    " Why?{{{
-    "
-    " In a  C file  (where the  comment leader  can be  `/* */`),  sometimes the
-    " italic style can cause a wrong highligting.
-    "}}}
-    let end = ' end='.(a:ft is# 'c' ? '"\*/\@!"' : '"\*"')
     " some *italic* comment
     exe 'syn region '.a:ft.'CommentItalic'
         \ . ' matchgroup=Comment'
-        \ . ' start="\*"'
-        \ .   end
+        \ . ' start=/\*/'
+        \ . ' end=/\*/'
         \ . ' keepend'
         \ . ' concealends'
         \ . ' contained'
@@ -602,8 +616,8 @@ fu! s:syn_italic(ft, commentGroup) abort "{{{2
     " - some *italic* item
     exe 'syn region '.a:ft.'CommentListItemItalic'
         \ . ' matchgroup=markdownListItem'
-        \ . ' start="\*"'
-        \ .   end
+        \ . ' start=/\*/'
+        \ . ' end=/\*/'
         \ . ' keepend'
         \ . ' concealends'
         \ . ' contained'
@@ -612,8 +626,8 @@ fu! s:syn_italic(ft, commentGroup) abort "{{{2
     " > some *italic* quote
     exe 'syn region '.a:ft.'CommentBlockquoteItalic'
         \ . ' matchgroup=markdownBlockquote'
-        \ . ' start="\*"'
-        \ .   end
+        \ . ' start=/\*/'
+        \ . ' end=/\*/'
         \ . ' keepend'
         \ . ' concealends'
         \ . ' contained'
