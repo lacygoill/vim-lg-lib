@@ -27,7 +27,7 @@
 "      */
 "
 " Besides, it doesn't seem to add enough benefits.
-" Also, from page 17 of `C Programming A Modern Approach`:
+" Also, from page 17 of “C Programming A Modern Approach”:
 "
 " > The  newer comment  style  has  a couple  of  important advantages.   First,
 " > because  a comment  automatically ends  at  the end  of a  line, there's  no
