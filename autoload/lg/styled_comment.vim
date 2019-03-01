@@ -14,11 +14,18 @@
 "    - one for single-line comments (e.g. `--` in lua)
 "    - one for multi-line comments (e.g. `--[[`  and `--]]` in lua)
 "
-" Always use the first version, even for multi-line comments.
+" **Always use the first version**, even for multi-line comments.
 "
 " Trying to support the second one adds too much complexity in this plugin.
 " Not to mention in `vim-comment`.
-" And it doesn't seem to add enough benefits.
+" Worse,  it's probably  impossible to  apply the  desired highlighting  in some
+" situations when using the second version:
+"
+"     /* foo
+"      *     should be highlighted as a codeblock; good luck!
+"      * bar */
+"
+" Anyway it doesn't seem to add enough benefits.
 " Also, from page 17 of `C Programming A Modern Approach`:
 "
 " > First, because a comment automatically ends at the end of a line, there's no
