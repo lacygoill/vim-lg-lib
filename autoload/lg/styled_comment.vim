@@ -7,7 +7,7 @@
 " We  sometimes use  this  cluster in  `after/syntax/x.vim`  to exclude  our
 " custom groups from the ones installed by a default syntax plugin.
 "}}}
-" Regarding languages where the comment leaders has two parts:{{{
+" Regarding languages where the comment leader can have two parts:{{{
 "
 " Most of them have two kinds of comment leaders:
 "
