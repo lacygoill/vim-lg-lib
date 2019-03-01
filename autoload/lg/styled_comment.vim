@@ -19,16 +19,17 @@
 " Trying to support the second one adds too much complexity in this plugin.
 " Not to mention in `vim-comment`.
 " Worse,  it's probably  impossible to  apply the  desired highlighting  in some
-" situations when using the second version:
+" situations, when using the second version:
 "
 "     /* foo
 "      *     should be highlighted as a codeblock; good luck!
 "      * bar */
 "
-" Anyway it doesn't seem to add enough benefits.
+" Besides, it doesn't seem to add enough benefits.
 " Also, from page 17 of `C Programming A Modern Approach`:
 "
-" > First, because a comment automatically ends at the end of a line, there's no
+" > The  newer comment  style  has  a couple  of  important advantages.   First,
+" > because  a comment  automatically ends  at  the end  of a  line, there's  no
 " > chance  that an  unterminated comment  will accidentally  consume part  of a
 " > program. Second,  multiline comments  stand  out better,  thanks  to the  //
 " > that's required at the beginning of each line.
