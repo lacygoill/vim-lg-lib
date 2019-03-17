@@ -532,10 +532,10 @@ fu! s:syn_list_item(ft, cml, commentGroup) abort "{{{2
     "}}}
     " Why excluding `*` as a list marker?{{{
     "
-    " In a C buffer,  it would cause the second line of a  multi-line (up to the
-    " last one) to be wrongly highlighted as a list item.
+    " In some buffers,  such as a a C  one, it would cause the second  line of a
+    " multi-line (up to the last one) to be wrongly highlighted as a list item.
     "}}}
-    let list_marker = a:ft is# 'c' ? '[-+]' : '[-*+]'
+    let list_marker = index(['c', 'css'], a:ft) >= 0 ? '[-+]' : '[-*+]'
     exe 'syn region '.a:ft.'CommentListItem'
         \ . ' start=/\%(^\s*\)\@<='.a:cml.' \{,4\}\%('.list_marker.'\|\d\+\.\)\s\+\S/'
         \ . ' end=/'.a:cml.'\%(\s*\n\s*'.a:cml.' \{,4}\S\)\@='
@@ -578,6 +578,48 @@ fu! s:syn_code_block(ft, cml, commentGroup) abort "{{{2
         \ . ' contained'
         \ . ' containedin='.a:ft.'CommentListItem'
         \ . ' oneline'
+
+    if index(['css', 'tmux'], a:ft) == -1
+        return
+    endif
+
+    " Purpose:{{{
+    "
+    " For  some filetypes,  if a  commented code  block precedes  an uncommented
+    " line, the latter is wrongly highlighted as a comment.
+    "
+    " MWE:
+    "
+    "     $ cat <<'EOF' >/tmp/tmux.conf
+    "     #     x
+    "     set -s default-terminal tmux-256color
+    "     EOF
+    "
+    "     :syn clear
+    "     :syn region tmuxComment start=/#/ end=/$/
+    "     :syn region tmuxCommentCodeBlock matchgroup=Comment start=/# \{5,}/ end=/$/ keepend contained containedin=tmuxComment oneline
+    "
+    " Explanation:
+    "
+    " The tmux syntax plugin defines a comment like this:
+    "
+    "     syn region tmuxComment start=/#/ skip=/\\\@<!\\$/ end=/$/ contains=tmuxTodo
+    "
+    " We customize the comments by defining `tmuxCommentCodeBlock`.
+    "
+    "     syn region tmuxCommentCodeBlock matchgroup=Comment start=/# \{5,}/ end=/$/
+    "     \ keepend contained containedin=tmuxComment oneline
+    "
+    " The  latter consumes  the  end of  the `tmuxComment`  region,  which makes  it
+    " continue on the next line.
+    "
+    " Solution:
+    " Redefine `tmuxComment` and give it the `keepend` attribute.
+    "}}}
+    let definition = matchstr(execute('syn list '.a:ft.'Comment'),
+        \ '\m\Cxxx\%(\s\+match\)\=\zs.*[^ \n]\ze\_s*links')
+    exe 'syn clear '.a:ft.'Comment'
+    exe 'syn region '.a:ft.'Comment '.definition.' keepend'
 endfu
 
 fu! s:syn_code_span(ft, commentGroup) abort "{{{2
@@ -653,6 +695,14 @@ fu! s:syn_code_span(ft, commentGroup) abort "{{{2
 endfu
 
 fu! s:syn_italic(ft, commentGroup) abort "{{{2
+    " It's impossible  to reliably  support the  italic style  in a  css buffer,
+    " because the comment leader includes a star.
+    " See our comments about the pitfall to avoid when trying to add support for
+    " `cComment`.
+    if a:ft is# 'css'
+        return
+    endif
+
     " some *italic* comment
     exe 'syn region '.a:ft.'CommentItalic'
         \ . ' matchgroup=Comment'
