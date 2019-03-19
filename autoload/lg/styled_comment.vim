@@ -423,6 +423,38 @@ fu! lg#styled_comment#syntax() abort "{{{2
     call s:syn_mycustomgroups(ft)
     call s:fix_allbut(ft)
 
+    " Purpose:{{{
+    "
+    " The default definition of a tmux comment causes several issues:
+    "
+    "   - a commented list item stops after the first line:
+    "
+    "         + the start of this list item is correctly highlighted
+    "           but the next line is not (it's highlighted as a commented code block)
+    "
+    "   - if a commented code block  precedes an uncommented line, the latter is
+    "     wrongly highlighted as a comment
+    "
+    "     We've fixed this issue in `s:syn_code_block()`, for tmux and css.
+    "     I don't think we still need the fix for tmux, but we still need it
+    "     for css. I keep it for both just in case.
+    "
+    " So, we redefine a tmux comment.
+    "
+    " The original definition is:
+    "
+    "     syn region tmuxComment start=/#/ skip=/\\\@<!\\$/ end=/$/ contains=tmuxTodo
+    "
+    " Note that it tries to support this undocumented syntax, which I don't care about:
+    "
+    "     # some tmux comment \
+    "     next line of comment
+    "}}}
+    if ft is# 'tmux'
+        syn clear tmuxComment
+        syn match tmuxComment /#.*/ contains=tmuxTodo
+    endif
+
     call s:highlight_groups_links(ft)
 
     " TODO: highlight commented urls (like in markdown)?{{{
