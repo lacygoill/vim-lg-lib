@@ -8,56 +8,6 @@
 " ones installed by a default syntax plugin.
 " In the future, it may be useful in a `after/syntax/x.vim`.
 "}}}
-" If a line is wrongly highlighted as a comment, try to redefine the default `xComment` syntax group. {{{
-"
-" For some  filetypes, if a commented  code block precedes an  uncommented line,
-" the latter is wrongly highlighted as a comment.
-"
-" This is the case for css files.
-"
-" MWE:
-"
-"     $ cat <<'EOF' >/tmp/css.css
-"     /*     code block */
-"     body {
-"       background-color: lightblue;
-"     }
-"     EOF
-"
-"     :syn clear
-"     :syn region cssComment start='/\*' end='\*/'
-"     :syn region cssCommentCodeBlock matchgroup=Comment start=+\V\/*\m \{5,}+ end=/$/  contained oneline keepend containedin=cssComment
-"     :hi link cssComment Comment
-"
-" Explanation:
-" The codeblock  consumes the end  of the  `cssComment` region, which  makes the
-" latter continue on the next line(s), until it finds an – untouched – end.
-"
-" Solutions:
-"
-" Redefine the region with the `keepend` argument:
-"
-"     syn region cssComment start='/\*' end='\*/' keepend
-"
-"     " or programmatically
-"     let cmds = s:get_cmds_to_reset_group(a:ft.'Comment')
-"     call map(cmds, {i,v -> v . ' keepend'})
-"     exe 'syn clear ' . a:ft.'Comment'
-"     call map(cmds, {i,v -> execute(v)})
-"
-" ---
-"
-" Or redefine the region as a match:
-"
-"     syn match cssComment '/\*\_.\{-}\*/'
-"
-" A match won't suffer  from this issue, because it doesn't  have the concept of
-" an end; nothing can be inadvertently consumed.
-" So, even  though it's true  that a  contained item *can*  cause a match  to be
-" extended, it can only do so if it goes *beyond* the containing match.
-" Here, that's  not going to  happen; our contained  styles never go  beyond the
-" last character of a comment.
-"}}}
 " Regarding languages where the comment leader can have two parts:{{{
 "
 " Most of them have two kinds of comment leaders:
@@ -158,139 +108,6 @@ fu! lg#styled_comment#undo_ftplugin() abort "{{{2
 endfu
 " }}}1
 " syntax plugin {{{1
-fu! s:fix_allbut(ft) abort "{{{2
-    " get the list of groups using `ALLBUT`, and save it in a script-local variable
-    " to avoid having to recompute it every time we reload the same kind of buffer
-    if !has_key(s:allbut_groups, a:ft)
-        " Don't try to read and parse the original syntax plugin.{{{
-        "
-        " `ALLBUT` could be  on a continuation line, and in  this case, it would
-        " be hard to get the name of the syntax group.
-        "}}}
-        let s:allbut_groups[a:ft] = map(filter(split(execute('syn list'), '\n'),
-            \ {i,v -> v =~# '\m\CALLBUT' && v !~# '^\s'}),
-            \ {i,v -> matchstr(v, '\S\+')})
-    endif
-
-    for group in s:allbut_groups[a:ft]
-        let cmds = s:get_cmds_to_reset_group(group)
-
-        " add `@xMyCustomGroups` after `ALLBUT`
-        call map(cmds, {i,v -> substitute(v, '\m\CALLBUT,', 'ALLBUT,@'.a:ft.'MyCustomGroups,', '')})
-
-        " clear and redefine all the items in the group
-        exe 'syn clear ' . group
-        call map(cmds, {i,v -> execute(v)})
-    endfor
-endfu
-
-fu! s:get_cmds_to_reset_group(group) abort "{{{2
-    " get original definition
-    let definition = split(execute('syn list ' . a:group), '\n')
-
-    " remove noise
-    call filter(definition, {i,v -> v !~# '^---\|^\s\+links\s\+to\s\+'})
-    let definition[0] = substitute(definition[0], '^\a\+\s\+xxx', '', '')
-
-    " add  `:syn [keyword|match|region]` to  build new commands  to redefine
-    " the items in the group
-    let cmds = map(definition, {i,v ->
-        \ match(v, '\m\C\<start=') >= 0
-        \ ?     'syn region ' . a:group . ' ' . v
-        \ : match(v, '\m\C\<match\>') >= 0
-        \ ?     'syn match ' . a:group . ' ' . substitute(v, 'match', '', '')
-        \ :     'syn keyword ' . a:group . ' ' . v
-        \ })
-
-    return cmds
-endfu
-
-fu! s:get_commentgroup(ft) abort "{{{2
-    if a:ft is# 'c'
-        " What's the difference between `cComment` and `cCommentL`?{{{
-        "
-        " `cComment` = old comment style (`/* */`).
-        " `cCommentL` = new comment style (`//`).
-        "}}}
-        " Which pitfall should I avoid if I try to add support for `cComment`?{{{
-        "
-        " Disable the italic style in the old comment style.
-        "
-        " You won't be able to use `_` to highlight text in italic, because existing
-        " comments often  contain variable  names with  underscores; and  since they
-        " aren't  inside  backticks,  part  of  the variable  name  is  wrong  (some
-        " underscores are concealed, and the name is partially in italic).
-        "
-        " So, you'll have to use `*`.
-        " But this  will create other  issues, which are  due to the  comment leader
-        " also using `*`.
-        " Sometimes, some text will  be in italic while it shouldn't,  and a line of
-        " code after a comment will be wrongly highlighted as a comment.
-        "
-        " You can reduce the frequency of the issues by adding more and more lookarounds.
-        "
-        " Start of region:
-        "     *
-        "     *\S
-        "     /\@<!*\S
-        "
-        " End of region:
-        "     *
-        "     \S*
-        "     \S*/\@!
-        "
-        " But  no matter  what  you do,  there'll  always be  some  cases where  the
-        " highlighting is wrong.
-        "}}}
-        return 'cCommentL'
-    elseif a:ft is# 'html'
-        " `htmlCommentPart` is required; not sure about `htmlComment`...
-        return 'htmlComment,htmlCommentPart'
-    elseif a:ft is# 'vim'
-        return 'vimComment,vimLineComment'
-    else
-        return a:ft.'Comment'
-    endif
-endfu
-
-fu! s:get_filetype() abort "{{{2
-    let ft = expand('<amatch>')
-    if ft is# 'snippets' | let ft = 'snip' | endif
-    return ft
-endfu
-
-fu! s:highlight_groups_links(ft) abort "{{{2
-    exe 'hi '.a:ft.'FoldMarkers term=bold cterm=bold gui=bold'
-
-    exe 'hi link '.a:ft.'CommentBold                  CommentBold'
-    exe 'hi link '.a:ft.'CommentBoldItalic            CommentBoldItalic'
-    exe 'hi link '.a:ft.'CommentCodeBlock             CommentCodeSpan'
-    exe 'hi link '.a:ft.'CommentCodeSpan              CommentCodeSpan'
-    exe 'hi link '.a:ft.'CommentItalic                CommentItalic'
-
-    exe 'hi link '.a:ft.'CommentBlockquote            markdownBlockquote'
-    exe 'hi link '.a:ft.'CommentBlockquoteBold        markdownBlockquoteBold'
-    exe 'hi link '.a:ft.'CommentBlockquoteBoldItalic  markdownBlockquoteBoldItalic'
-    exe 'hi link '.a:ft.'CommentBlockquoteCodeSpan    markdownBlockquoteCodeSpan'
-    exe 'hi link '.a:ft.'CommentBlockquoteItalic      markdownBlockquoteItalic'
-
-    exe 'hi link '.a:ft.'CommentKey                   markdownKey'
-    exe 'hi link '.a:ft.'CommentLeader                Comment'
-    exe 'hi link '.a:ft.'CommentListItem              markdownListItem'
-    exe 'hi link '.a:ft.'CommentListItemBlockquote    markdownListItemBlockquote'
-    exe 'hi link '.a:ft.'CommentListItemBold          markdownListItemBold'
-    exe 'hi link '.a:ft.'CommentListItemBoldItalic    markdownListItemBoldItalic'
-    exe 'hi link '.a:ft.'CommentListItemCodeBlock     CommentCodeSpan'
-    exe 'hi link '.a:ft.'CommentListItemCodeSpan      CommentListItemCodeSpan'
-    exe 'hi link '.a:ft.'CommentListItemItalic        markdownListItemItalic'
-    exe 'hi link '.a:ft.'CommentOption                markdownOption'
-    exe 'hi link '.a:ft.'CommentOutput                PreProc'
-    exe 'hi link '.a:ft.'CommentPointer               markdownPointer'
-    exe 'hi link '.a:ft.'CommentRule                  markdownRule'
-    exe 'hi link '.a:ft.'CommentTable                 markdownTable'
-    exe 'hi link '.a:ft.'CommentTitle                 PreProc'
-endfu
-
 fu! lg#styled_comment#syntax() abort "{{{2
     " Use `\s` instead of ` `!{{{
     "
@@ -492,6 +309,8 @@ fu! lg#styled_comment#syntax() abort "{{{2
     call s:syn_mycustomgroups(ft)
     call s:fix_allbut(ft)
 
+    call s:fix_comment_region(ft)
+
     call s:highlight_groups_links(ft)
 
     " TODO: highlight commented urls (like in markdown)?{{{
@@ -530,6 +349,190 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "
     " And try to emulate every interesting syntax you find.
     "}}}
+endfu
+
+fu! s:fix_allbut(ft) abort "{{{2
+    " get the list of groups using `ALLBUT`, and save it in a script-local variable
+    " to avoid having to recompute it every time we reload the same kind of buffer
+    if !has_key(s:allbut_groups, a:ft)
+        " Don't try to read and parse the original syntax plugin.{{{
+        "
+        " `ALLBUT` could be  on a continuation line, and in  this case, it would
+        " be hard to get the name of the syntax group.
+        "}}}
+        let s:allbut_groups[a:ft] = map(filter(split(execute('syn list'), '\n'),
+            \ {i,v -> v =~# '\m\CALLBUT' && v !~# '^\s'}),
+            \ {i,v -> matchstr(v, '\S\+')})
+    endif
+
+    for group in s:allbut_groups[a:ft]
+        let cmds = s:get_cmds_to_reset_group(group)
+
+        " add `@xMyCustomGroups` after `ALLBUT`
+        call map(cmds, {i,v -> substitute(v, '\m\CALLBUT,', 'ALLBUT,@'.a:ft.'MyCustomGroups,', '')})
+
+        " clear and redefine all the items in the group
+        exe 'syn clear ' . group
+        call map(cmds, {i,v -> execute(v)})
+    endfor
+endfu
+
+fu! s:fix_comment_region(ft) abort "{{{2
+    " Sometimes, a line is wrongly highlighted as a comment. {{{
+    "
+    " For  some filetypes,  if a  commented code  block precedes  an uncommented
+    " line, the latter is wrongly highlighted as a comment.
+    "
+    " This is the case for css files.
+    "
+    " MWE:
+    "
+    "     $ cat <<'EOF' >/tmp/css.css
+    "     /*     code block */
+    "     body {
+    "       background-color: lightblue;
+    "     }
+    "     EOF
+    "
+    "     :syn clear
+    "     :syn region cssComment start='/\*' end='\*/'
+    "     :syn region cssCommentCodeBlock matchgroup=Comment start=+\V\/*\m \{5,}+ end=/$/  contained oneline keepend containedin=cssComment
+    "     :hi link cssComment Comment
+    "
+    " Explanation:
+    " The codeblock  consumes the end  of the  `cssComment` region, which  makes the
+    " latter continue on the next line(s), until it finds an – untouched – end.
+    "
+    " Solutions:
+    "
+    " Redefine the region with the `keepend` argument:
+    "
+    "     syn region cssComment start='/\*' end='\*/' keepend
+    "
+    " ---
+    "
+    " Or redefine the region as a match:
+    "
+    "     syn match cssComment '/\*\_.\{-}\*/'
+    "
+    " A match won't suffer from this  issue, because it doesn't have the concept
+    " of an end; nothing can be inadvertently consumed.
+    " So, even though it's true that a  contained item *can* cause a match to be
+    " extended, it can only do so if it goes *beyond* the containing match.
+    " Here, that's not going to happen; our contained styles never go beyond the
+    " last character of a comment.
+    "}}}
+    let cmds = s:get_cmds_to_reset_group(a:ft.'Comment')
+    call map(cmds, {i,v -> v . ' keepend'})
+    exe 'syn clear ' . a:ft.'Comment'
+    call map(cmds, {i,v -> execute(v)})
+endfu
+
+fu! s:get_cmds_to_reset_group(group) abort "{{{2
+    " get original definition
+    let definition = split(execute('syn list ' . a:group), '\n')
+
+    " remove noise
+    call filter(definition, {i,v -> v !~# '^---\|^\s\+links\s\+to\s\+'})
+    let definition[0] = substitute(definition[0], '^\a\+\s\+xxx', '', '')
+
+    " add  `:syn [keyword|match|region]` to  build new commands  to redefine
+    " the items in the group
+    let cmds = map(definition, {i,v ->
+        \ match(v, '\m\C\<start=') >= 0
+        \ ?     'syn region ' . a:group . ' ' . v
+        \ : match(v, '\m\C\<match\>') >= 0
+        \ ?     'syn match ' . a:group . ' ' . substitute(v, 'match', '', '')
+        \ :     'syn keyword ' . a:group . ' ' . v
+        \ })
+
+    return cmds
+endfu
+
+fu! s:get_commentgroup(ft) abort "{{{2
+    if a:ft is# 'c'
+        " What's the difference between `cComment` and `cCommentL`?{{{
+        "
+        " `cComment` = old comment style (`/* */`).
+        " `cCommentL` = new comment style (`//`).
+        "}}}
+        " Which pitfall should I avoid if I try to add support for `cComment`?{{{
+        "
+        " Disable the italic style in the old comment style.
+        "
+        " You won't be able to use `_` to highlight text in italic, because existing
+        " comments often  contain variable  names with  underscores; and  since they
+        " aren't  inside  backticks,  part  of  the variable  name  is  wrong  (some
+        " underscores are concealed, and the name is partially in italic).
+        "
+        " So, you'll have to use `*`.
+        " But this  will create other  issues, which are  due to the  comment leader
+        " also using `*`.
+        " Sometimes, some text will  be in italic while it shouldn't,  and a line of
+        " code after a comment will be wrongly highlighted as a comment.
+        "
+        " You can reduce the frequency of the issues by adding more and more lookarounds.
+        "
+        " Start of region:
+        "     *
+        "     *\S
+        "     /\@<!*\S
+        "
+        " End of region:
+        "     *
+        "     \S*
+        "     \S*/\@!
+        "
+        " But  no matter  what  you do,  there'll  always be  some  cases where  the
+        " highlighting is wrong.
+        "}}}
+        return 'cCommentL'
+    elseif a:ft is# 'html'
+        " `htmlCommentPart` is required; not sure about `htmlComment`...
+        return 'htmlComment,htmlCommentPart'
+    elseif a:ft is# 'vim'
+        return 'vimComment,vimLineComment'
+    else
+        return a:ft.'Comment'
+    endif
+endfu
+
+fu! s:get_filetype() abort "{{{2
+    let ft = expand('<amatch>')
+    if ft is# 'snippets' | let ft = 'snip' | endif
+    return ft
+endfu
+
+fu! s:highlight_groups_links(ft) abort "{{{2
+    exe 'hi '.a:ft.'FoldMarkers term=bold cterm=bold gui=bold'
+
+    exe 'hi link '.a:ft.'CommentBold                  CommentBold'
+    exe 'hi link '.a:ft.'CommentBoldItalic            CommentBoldItalic'
+    exe 'hi link '.a:ft.'CommentCodeBlock             CommentCodeSpan'
+    exe 'hi link '.a:ft.'CommentCodeSpan              CommentCodeSpan'
+    exe 'hi link '.a:ft.'CommentItalic                CommentItalic'
+
+    exe 'hi link '.a:ft.'CommentBlockquote            markdownBlockquote'
+    exe 'hi link '.a:ft.'CommentBlockquoteBold        markdownBlockquoteBold'
+    exe 'hi link '.a:ft.'CommentBlockquoteBoldItalic  markdownBlockquoteBoldItalic'
+    exe 'hi link '.a:ft.'CommentBlockquoteCodeSpan    markdownBlockquoteCodeSpan'
+    exe 'hi link '.a:ft.'CommentBlockquoteItalic      markdownBlockquoteItalic'
+
+    exe 'hi link '.a:ft.'CommentKey                   markdownKey'
+    exe 'hi link '.a:ft.'CommentLeader                Comment'
+    exe 'hi link '.a:ft.'CommentListItem              markdownListItem'
+    exe 'hi link '.a:ft.'CommentListItemBlockquote    markdownListItemBlockquote'
+    exe 'hi link '.a:ft.'CommentListItemBold          markdownListItemBold'
+    exe 'hi link '.a:ft.'CommentListItemBoldItalic    markdownListItemBoldItalic'
+    exe 'hi link '.a:ft.'CommentListItemCodeBlock     CommentCodeSpan'
+    exe 'hi link '.a:ft.'CommentListItemCodeSpan      CommentListItemCodeSpan'
+    exe 'hi link '.a:ft.'CommentListItemItalic        markdownListItemItalic'
+    exe 'hi link '.a:ft.'CommentOption                markdownOption'
+    exe 'hi link '.a:ft.'CommentOutput                PreProc'
+    exe 'hi link '.a:ft.'CommentPointer               markdownPointer'
+    exe 'hi link '.a:ft.'CommentRule                  markdownRule'
+    exe 'hi link '.a:ft.'CommentTable                 markdownTable'
+    exe 'hi link '.a:ft.'CommentTitle                 PreProc'
 endfu
 
 fu! s:syn_commentleader(ft, cml) abort "{{{2
