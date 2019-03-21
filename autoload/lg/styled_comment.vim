@@ -8,6 +8,56 @@
 " ones installed by a default syntax plugin.
 " In the future, it may be useful in a `after/syntax/x.vim`.
 "}}}
+" If a line is wrongly highlighted as a comment, try to redefine the default `xComment` syntax group. {{{
+"
+" For some  filetypes, if a commented  code block precedes an  uncommented line,
+" the latter is wrongly highlighted as a comment.
+"
+" This is the case for css files.
+"
+" MWE:
+"
+"     $ cat <<'EOF' >/tmp/css.css
+"     /*     code block */
+"     body {
+"       background-color: lightblue;
+"     }
+"     EOF
+"
+"     :syn clear
+"     :syn region cssComment start='/\*' end='\*/'
+"     :syn region cssCommentCodeBlock matchgroup=Comment start=+\V\/*\m \{5,}+ end=/$/  contained oneline keepend containedin=cssComment
+"     :hi link cssComment Comment
+"
+" Explanation:
+" The codeblock  consumes the end  of the  `cssComment` region, which  makes the
+" latter continue on the next line(s), until it finds an – untouched – end.
+"
+" Solutions:
+"
+" Redefine the region with the `keepend` argument:
+"
+"     syn region cssComment start='/\*' end='\*/' keepend
+"
+"     " or programmatically
+"     let cmds = s:get_cmds_to_reset_group(a:ft.'Comment')
+"     call map(cmds, {i,v -> v . ' keepend'})
+"     exe 'syn clear ' . a:ft.'Comment'
+"     call map(cmds, {i,v -> execute(v)})
+"
+" ---
+"
+" Or redefine the region as a match:
+"
+"     syn match cssComment '/\*\_.\{-}\*/'
+"
+" A match won't suffer  from this issue, because it doesn't  have the concept of
+" an end; nothing can be inadvertently consumed.
+" So, even  though it's true  that a  contained item *can*  cause a match  to be
+" extended, it can only do so if it goes *beyond* the containing match.
+" Here, that's  not going to  happen; our contained  styles never go  beyond the
+" last character of a comment.
+"}}}
 " Regarding languages where the comment leader can have two parts:{{{
 "
 " Most of them have two kinds of comment leaders:
@@ -123,7 +173,7 @@ fu! s:fix_allbut(ft) abort "{{{2
     endif
 
     for group in s:allbut_groups[a:ft]
-        let cmds = s:get_cmds_to_reset_hg(group)
+        let cmds = s:get_cmds_to_reset_group(group)
 
         " add `@xMyCustomGroups` after `ALLBUT`
         call map(cmds, {i,v -> substitute(v, '\m\CALLBUT,', 'ALLBUT,@'.a:ft.'MyCustomGroups,', '')})
@@ -134,7 +184,7 @@ fu! s:fix_allbut(ft) abort "{{{2
     endfor
 endfu
 
-fu! s:get_cmds_to_reset_hg(group) abort "{{{2
+fu! s:get_cmds_to_reset_group(group) abort "{{{2
     " get original definition
     let definition = split(execute('syn list ' . a:group), '\n')
 
@@ -369,43 +419,6 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " For some filetypes, such as html  and css, it's too difficult to implement
     " some styles without any undesirable side effects.
     " }}}
-    " TODO: refactor next comment (integrate it in the previous one)
-    " Purpose:{{{
-    "
-    " For  some filetypes,  if a  commented code  block precedes  an uncommented
-    " line, the latter is wrongly highlighted as a comment.
-    "
-    " MWE:
-    "
-    "     $ cat <<'EOF' >/tmp/tmux.conf
-    "     #     x
-    "     set -s default-terminal tmux-256color
-    "     EOF
-    "
-    "     :syn clear
-    "     :syn region tmuxComment start=/#/ end=/$/
-    "     :syn region tmuxCommentCodeBlock matchgroup=Comment start=/# \{5,}/ end=/$/ keepend contained containedin=tmuxComment oneline
-    "
-    " Explanation:
-    "
-    " The *default* tmux syntax plugin defines a comment like this:
-    "
-    "     syn region tmuxComment start=/#/ skip=/\\\@<!\\$/ end=/$/ contains=tmuxTodo
-    "
-    " We customize the comments by defining `tmuxCommentCodeBlock`.
-    "
-    "     syn region tmuxCommentCodeBlock matchgroup=Comment start=/# \{5,}/ end=/$/
-    "     \ keepend contained containedin=tmuxComment oneline
-    "
-    " The  latter consumes  the  end of  the `tmuxComment`  region,  which makes  it
-    " continue on the next line.
-    "
-    " Solution: Redefine `tmuxComment` and give it the `keepend` attribute.
-    "
-    " Note:
-    " We don't redefine `tmuxComment` anymore because we use our own tmux syntax plugin.
-    " But the problem may still be relevant for other filetypes such as css.
-    "}}}
     if index(s:blacklist, ft) == -1
         call s:syn_list_item(ft, cml, commentGroup)
         " Don't move the call to `syn_code_block()` somewhere below!{{{
@@ -423,6 +436,8 @@ fu! lg#styled_comment#syntax() abort "{{{2
         call s:syn_blockquote(ft, cml, commentGroup)
         call s:syn_table(ft, cml, commentGroup)
         call s:syn_output(ft, cml)
+        call s:syn_rule(ft, cml, commentGroup)
+        call s:syn_pointer(ft, cml, commentGroup)
     endif
     call s:syn_code_span(ft, commentGroup)
     " Don't change the order of `s:syn_italic()`, `s:syn_bold()` and `s:syn_bolditalic()`!{{{
@@ -450,9 +465,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " This  is neat;  study how  it's possible,  and try  to redefine  the other
     " syntax groups, so that we have less arguments to pass.
     call s:syn_option(ft)
-    call s:syn_pointer(ft, cml, commentGroup)
     call s:syn_key(ft, commentGroup)
-    call s:syn_rule(ft, cml, commentGroup)
     call s:syn_foldmarkers(ft, cml_0_1, commentGroup)
 
     " What does this do?{{{
