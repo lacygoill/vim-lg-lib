@@ -285,6 +285,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
     call s:syn_key(ft, commentGroup)
     call s:syn_foldmarkers(ft, cml_0_1, commentGroup)
 
+    call s:fix_comment_region(ft)
     " What does this do?{{{
     "
     " It defines  a cluster  containing all  the custom  syntax groups  that the
@@ -308,8 +309,6 @@ fu! lg#styled_comment#syntax() abort "{{{2
         "}}}
     call s:syn_mycustomgroups(ft)
     call s:fix_allbut(ft)
-
-    call s:fix_comment_region(ft)
 
     call s:highlight_groups_links(ft)
 
