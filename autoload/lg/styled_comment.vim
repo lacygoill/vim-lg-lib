@@ -4,8 +4,9 @@
 " default syntax plugin uses `ALLBUT`.
 "
 " `s:custom_groups` is used by `s:syn_mycustomgroups()` to define `@xMyCustomGroups`.
-" We  sometimes use  this  cluster in  `after/syntax/x.vim`  to exclude  our
-" custom groups from the ones installed by a default syntax plugin.
+" We use this cluster in `s:fix_allbut()`  to exclude our custom groups from the
+" ones installed by a default syntax plugin.
+" In the future, it may be useful in a `after/syntax/x.vim`.
 "}}}
 " Regarding languages where the comment leader can have two parts:{{{
 "
@@ -44,6 +45,8 @@
 " }}}
 
 " Init {{{1
+
+let s:blacklist = ['css', 'html']
 
 let s:allbut_groups = {}
 
@@ -150,6 +153,54 @@ fu! s:get_cmds_to_reset_hg(group) abort "{{{2
         \ })
 
     return cmds
+endfu
+
+fu! s:get_commentgroup(ft) abort "{{{2
+    if a:ft is# 'c'
+        " What's the difference between `cComment` and `cCommentL`?{{{
+        "
+        " `cComment` = old comment style (`/* */`).
+        " `cCommentL` = new comment style (`//`).
+        "}}}
+        " Which pitfall should I avoid if I try to add support for `cComment`?{{{
+        "
+        " Disable the italic style in the old comment style.
+        "
+        " You won't be able to use `_` to highlight text in italic, because existing
+        " comments often  contain variable  names with  underscores; and  since they
+        " aren't  inside  backticks,  part  of  the variable  name  is  wrong  (some
+        " underscores are concealed, and the name is partially in italic).
+        "
+        " So, you'll have to use `*`.
+        " But this  will create other  issues, which are  due to the  comment leader
+        " also using `*`.
+        " Sometimes, some text will  be in italic while it shouldn't,  and a line of
+        " code after a comment will be wrongly highlighted as a comment.
+        "
+        " You can reduce the frequency of the issues by adding more and more lookarounds.
+        "
+        " Start of region:
+        "     *
+        "     *\S
+        "     /\@<!*\S
+        "
+        " End of region:
+        "     *
+        "     \S*
+        "     \S*/\@!
+        "
+        " But  no matter  what  you do,  there'll  always be  some  cases where  the
+        " highlighting is wrong.
+        "}}}
+        return 'cCommentL'
+    elseif a:ft is# 'html'
+        " `htmlCommentPart` is required; not sure about `htmlComment`...
+        return 'htmlComment,htmlCommentPart'
+    elseif a:ft is# 'vim'
+        return 'vimComment,vimLineComment'
+    else
+        return a:ft.'Comment'
+    endif
 endfu
 
 fu! s:get_filetype() abort "{{{2
@@ -309,66 +360,76 @@ fu! lg#styled_comment#syntax() abort "{{{2
     let cml = escape(cml, '\/')
     let cml_0_1 = '\V\%('.cml.'\)\=\m'
     let cml = '\V'.cml.'\m'
-    " What's the difference between `cComment` and `cCommentL`?{{{
-    "
-    " `cComment` = old comment style (`/* */`).
-    " `cCommentL` = new comment style (`//`).
-    "}}}
-    " Which pitfall should I avoid if I try to add support for `cComment`?{{{
-    "
-    " Disable the italic style in the old comment style.
-    "
-    " You won't be able to use `_` to highlight text in italic, because existing
-    " comments often  contain variable  names with  underscores; and  since they
-    " aren't  inside  backticks,  part  of  the variable  name  is  wrong  (some
-    " underscores are concealed, and the name is partially in italic).
-    "
-    " So, you'll have to use `*`.
-    " But this  will create other  issues, which are  due to the  comment leader
-    " also using `*`.
-    " Sometimes, some text will  be in italic while it shouldn't,  and a line of
-    " code after a comment will be wrongly highlighted as a comment.
-    "
-    " You can reduce the frequency of the issues by adding more and more lookarounds.
-    "
-    " Start of region:
-    "     *
-    "     *\S
-    "     /\@<!*\S
-    "
-    " End of region:
-    "     *
-    "     \S*
-    "     \S*/\@!
-    "
-    " But  no matter  what  you do,  there'll  always be  some  cases where  the
-    " highlighting is wrong.
-    "}}}
-    let commentGroup = ft.'Comment'.(ft is# 'vim' ? ',vimLineComment' : ft is# 'c' ? 'L' : '')
+    let commentGroup = s:get_commentgroup(ft)
 
     call s:syn_commentleader(ft, cml)
     call s:syn_commenttitle(ft, cml, nr)
-    call s:syn_list_item(ft, cml, commentGroup)
-    " Don't move this call somewhere below!{{{
+    " Why this guard? {{{
     "
-    " `xCommentPointer` must be defined *after* `xCommentCodeBlock`.
+    " For some filetypes, such as html  and css, it's too difficult to implement
+    " some styles without any undesirable side effects.
+    " }}}
+    " TODO: refactor next comment (integrate it in the previous one)
+    " Purpose:{{{
     "
-    " Otherwise its  highlighting would  fail when the  pointer is  located more
-    " than 4 characters away from the comment leader.
-    " I suspect there are other items which may sometimes break if they're defined
-    " before `xCommentCodeBlock`.
+    " For  some filetypes,  if a  commented code  block precedes  an uncommented
+    " line, the latter is wrongly highlighted as a comment.
     "
-    " So, unless you know what you're doing, leave this call here.
+    " MWE:
+    "
+    "     $ cat <<'EOF' >/tmp/tmux.conf
+    "     #     x
+    "     set -s default-terminal tmux-256color
+    "     EOF
+    "
+    "     :syn clear
+    "     :syn region tmuxComment start=/#/ end=/$/
+    "     :syn region tmuxCommentCodeBlock matchgroup=Comment start=/# \{5,}/ end=/$/ keepend contained containedin=tmuxComment oneline
+    "
+    " Explanation:
+    "
+    " The *default* tmux syntax plugin defines a comment like this:
+    "
+    "     syn region tmuxComment start=/#/ skip=/\\\@<!\\$/ end=/$/ contains=tmuxTodo
+    "
+    " We customize the comments by defining `tmuxCommentCodeBlock`.
+    "
+    "     syn region tmuxCommentCodeBlock matchgroup=Comment start=/# \{5,}/ end=/$/
+    "     \ keepend contained containedin=tmuxComment oneline
+    "
+    " The  latter consumes  the  end of  the `tmuxComment`  region,  which makes  it
+    " continue on the next line.
+    "
+    " Solution: Redefine `tmuxComment` and give it the `keepend` attribute.
+    "
+    " Note:
+    " We don't redefine `tmuxComment` anymore because we use our own tmux syntax plugin.
+    " But the problem may still be relevant for other filetypes such as css.
     "}}}
-    call s:syn_code_block(ft, cml, commentGroup)
+    if index(s:blacklist, ft) == -1
+        call s:syn_list_item(ft, cml, commentGroup)
+        " Don't move the call to `syn_code_block()` somewhere below!{{{
+        "
+        " `xCommentPointer` must be defined *after* `xCommentCodeBlock`.
+        "
+        " Otherwise its  highlighting would  fail when the  pointer is  located more
+        " than 4 characters away from the comment leader.
+        " I suspect there are other items which may sometimes break if they're defined
+        " before `xCommentCodeBlock`.
+        "
+        " So, unless you know what you're doing, leave this call here.
+        "}}}
+        call s:syn_code_block(ft, cml, commentGroup)
+        call s:syn_blockquote(ft, cml, commentGroup)
+        call s:syn_table(ft, cml, commentGroup)
+        call s:syn_output(ft, cml)
+    endif
     call s:syn_code_span(ft, commentGroup)
     " Don't change the order of `s:syn_italic()`, `s:syn_bold()` and `s:syn_bolditalic()`!{{{
     "
     " It would break the syntax highlighting of some style (italic, bold, bold+italic).
-    "}}}
-    " Why?{{{
     "
-    " Because   we  haven't   defined   the   syntax  groups   `xCommentItalic`,
+    " Indeed,   we  haven't   defined   the   syntax  groups   `xCommentItalic`,
     " `xCommentBold`, `xCommentBoldItalic` accurately.
     " For  example, this  region is  not accurate enough  to describe  an italic
     " element:
@@ -385,8 +446,6 @@ fu! lg#styled_comment#syntax() abort "{{{2
     call s:syn_italic(ft, commentGroup)
     call s:syn_bold(ft, commentGroup)
     call s:syn_bolditalic(ft, commentGroup)
-    call s:syn_blockquote(ft, cml, commentGroup)
-    call s:syn_output(ft, cml)
     " TODO: This invocation of `s:syn_option()` doesn't require several arguments.
     " This  is neat;  study how  it's possible,  and try  to redefine  the other
     " syntax groups, so that we have less arguments to pass.
@@ -394,7 +453,6 @@ fu! lg#styled_comment#syntax() abort "{{{2
     call s:syn_pointer(ft, cml, commentGroup)
     call s:syn_key(ft, commentGroup)
     call s:syn_rule(ft, cml, commentGroup)
-    call s:syn_table(ft, cml, commentGroup)
     call s:syn_foldmarkers(ft, cml_0_1, commentGroup)
 
     " What does this do?{{{
@@ -473,24 +531,35 @@ fu! s:syn_commentleader(ft, cml) abort "{{{2
 endfu
 
 fu! s:syn_commenttitle(ft, cml, nr) abort "{{{2
-    if a:ft isnot# 'vim'
-        " TODO: Explain how the code works.
-        " Don't remove `containedin=`!{{{
-        "
-        " We need it, for example, to allow `awkCommentTitle` to be contained in
-        " `awkComment`. Same thing for many other filetypes.
-        "}}}
-        exe 'syn match '.a:ft.'CommentTitle'
-            \ . ' /'.a:cml.'\s*\u\w*\%(\s\+\u\w*\)*:/hs=s+'.a:nr
-            \ . ' contained'
-            \ . ' containedin='.a:ft.'Comment'.(a:ft is# 'c' ? 'L' : '')
-            \ . ' contains='.a:ft.'CommentTitleLeader,'
-            \ .              a:ft.'Todo'
-
-        exe 'syn match '.a:ft.'CommentTitleLeader'
-            \ . ' /'.a:cml.'\s\+/ms=s+'.a:nr
-            \ . ' contained'
+    " Why this guard?{{{
+    "
+    " The default Vim syntax plugin already installs this style.
+    " And we can't install it for html, because it causes an issue:
+    "
+    "     <!-- Some Comment Title: -->
+    "     <!-- some comment        -->
+    "
+    " Everything after  `:` is  highlighted according to  `htmlCommentError` (no
+    " color), except the two parts of the comment leader.
+    "}}}
+    if index(['html', 'vim'], a:ft) >= 0
+        return
     endif
+
+    exe 'syn match '.a:ft.'CommentTitleLeader'
+        \ . ' /'.a:cml.'\s\+/ms=s+'.a:nr
+        \ . ' contained'
+    " Don't remove `containedin=`!{{{
+    "
+    " We need it, for example, to allow `awkCommentTitle` to be contained in
+    " `awkComment`. Same thing for many other filetypes.
+    "}}}
+    exe 'syn match '.a:ft.'CommentTitle'
+        \ . ' /'.a:cml.'\s*\u\w*\%(\s\+\u\w*\)*:/hs=s+'.a:nr
+        \ . ' contained'
+        \ . ' containedin='.a:ft.'Comment'.(a:ft is# 'c' ? 'L' : '')
+        \ . ' contains='.a:ft.'CommentTitleLeader,'
+        \ .              a:ft.'Todo'
 endfu
 
 fu! s:syn_list_item(ft, cml, commentGroup) abort "{{{2
@@ -528,12 +597,7 @@ fu! s:syn_list_item(ft, cml, commentGroup) abort "{{{2
     " Weirdly enough, no.
     " With and without limiting the backtracking of `\%(^\s*\)\@<=`.
     "}}}
-    " Why excluding `*` as a list marker?{{{
-    "
-    " In some buffers,  such as a a C  one, it would cause the second  line of a
-    " multi-line (up to the last one) to be wrongly highlighted as a list item.
-    "}}}
-    let list_marker = index(['c', 'css'], a:ft) >= 0 ? '[-+]' : '[-*+]'
+    let list_marker = '[-*+]'
     exe 'syn region '.a:ft.'CommentListItem'
         \ . ' start=/\%(^\s*\)\@<='.a:cml.' \{,4\}\%('.list_marker.'\|\d\+\.\)\s\+\S/'
         \ . ' end=/'.a:cml.'\%(\s*\n\s*'.a:cml.' \{,4}\S\)\@='
@@ -576,51 +640,6 @@ fu! s:syn_code_block(ft, cml, commentGroup) abort "{{{2
         \ . ' contained'
         \ . ' containedin='.a:ft.'CommentListItem'
         \ . ' oneline'
-
-    " Purpose:{{{
-    "
-    " For  some filetypes,  if a  commented code  block precedes  an uncommented
-    " line, the latter is wrongly highlighted as a comment.
-    "
-    " MWE:
-    "
-    "     $ cat <<'EOF' >/tmp/tmux.conf
-    "     #     x
-    "     set -s default-terminal tmux-256color
-    "     EOF
-    "
-    "     :syn clear
-    "     :syn region tmuxComment start=/#/ end=/$/
-    "     :syn region tmuxCommentCodeBlock matchgroup=Comment start=/# \{5,}/ end=/$/ keepend contained containedin=tmuxComment oneline
-    "
-    " Explanation:
-    "
-    " The *default* tmux syntax plugin defines a comment like this:
-    "
-    "     syn region tmuxComment start=/#/ skip=/\\\@<!\\$/ end=/$/ contains=tmuxTodo
-    "
-    " We customize the comments by defining `tmuxCommentCodeBlock`.
-    "
-    "     syn region tmuxCommentCodeBlock matchgroup=Comment start=/# \{5,}/ end=/$/
-    "     \ keepend contained containedin=tmuxComment oneline
-    "
-    " The  latter consumes  the  end of  the `tmuxComment`  region,  which makes  it
-    " continue on the next line.
-    "
-    " Solution: Redefine `tmuxComment` and give it the `keepend` attribute.
-    "
-    " Note:
-    " We don't redefine `tmuxComment` anymore because we use our own tmux syntax plugin.
-    " But the problem may still be relevant for other filetypes such as css.
-    "}}}
-    if index(['css'], a:ft) == -1
-        return
-    endif
-
-    let cmds = s:get_cmds_to_reset_hg(a:ft.'Comment')
-    call map(cmds, {i,v -> v . ' keepend'})
-    exe 'syn clear ' . a:ft.'Comment'
-    call map(cmds, {i,v -> execute(v)})
 endfu
 
 fu! s:syn_code_span(ft, commentGroup) abort "{{{2
@@ -905,6 +924,7 @@ fu! s:syn_key(ft, commentGroup) abort "{{{2
         \ . ' matchgroup=Special'
         \ . ' start=/<kbd>/'
         \ . ' end=/<\/kbd>/'
+        \ . ' oneline'
         \ . ' concealends'
         \ . ' contained'
         \ . ' containedin='.a:commentGroup
