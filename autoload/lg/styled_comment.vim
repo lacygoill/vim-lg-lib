@@ -118,40 +118,38 @@ fu! s:fix_allbut(ft) abort "{{{2
             \ {i,v -> v =~# '\m\CALLBUT' && v !~# '^\s'}),
             \ {i,v -> matchstr(v, '\S\+')})
     endif
-    for group in s:allbut_groups[a:ft]
-        " get original definition
-        let definition = split(execute('syn list ' . group), '\n')
 
-        " build new commands to redefine the items in the group
-        call filter(definition, {i,v -> v !~# '^---\|^\s\+links\s\+to\s\+'})
-        " add `:syn [keyword|match|region]`
-        call map(definition, {i,v ->
-            \ match(v, '\m\C\<start=') >= 0
-            \ ?     'syn region ' . group . ' ' . v
-            \ : match(v, '\m\C\<xxx\s\+match\>') >= 0
-            \ ?     'syn match ' . group . ' ' . v
-            \ :     'syn keyword ' . group . ' ' . v
-            \ })
+    for group in s:allbut_groups[a:ft]
+        let cmds = s:get_cmds_to_reset_hg(group)
+
         " add `@xMyCustomGroups` after `ALLBUT`
-        call map(definition, {i,v -> substitute(v, '\m\CALLBUT,', 'ALLBUT,@'.a:ft.'MyCustomGroups,', '')})
-        " Why don't you remove `xxx` earlier?{{{
-        "
-        " When we remove `xxx`, we may also need to remove a possible `match` afterwards.
-        "
-        "     rubyClass      xxx match /\<class\>/  contained nextgroup=rubyClassDeclaration skipwhite skipnl
-        "                        ^^^^^
-        " But we can't remove this `match` before adding `syn [keyword|match|region]`,
-        " because we need it to identify whether the item is a match.
-        "}}}
-        let definition[0] = substitute(definition[0],
-            \ '\m\Csyn\%[tax]\s\+\%(keyword\|match\|region\)\s\+\S\+\s\+\zs.\{-}xxx\%(\s\+match\>\)\=', '', '')
-            "                                                   ├──┘
-            "                                                   └ group name
+        call map(cmds, {i,v -> substitute(v, '\m\CALLBUT,', 'ALLBUT,@'.a:ft.'MyCustomGroups,', '')})
 
         " clear and redefine all the items in the group
         exe 'syn clear ' . group
-        call map(definition, {i,v -> execute(v)})
+        call map(cmds, {i,v -> execute(v)})
     endfor
+endfu
+
+fu! s:get_cmds_to_reset_hg(group) abort "{{{2
+    " get original definition
+    let definition = split(execute('syn list ' . a:group), '\n')
+
+    " remove noise
+    call filter(definition, {i,v -> v !~# '^---\|^\s\+links\s\+to\s\+'})
+    let definition[0] = substitute(definition[0], '^\a\+\s\+xxx', '', '')
+
+    " add  `:syn [keyword|match|region]` to  build new commands  to redefine
+    " the items in the group
+    let cmds = map(definition, {i,v ->
+        \ match(v, '\m\C\<start=') >= 0
+        \ ?     'syn region ' . a:group . ' ' . v
+        \ : match(v, '\m\C\<match\>') >= 0
+        \ ?     'syn match ' . a:group . ' ' . substitute(v, 'match', '', '')
+        \ :     'syn keyword ' . a:group . ' ' . v
+        \ })
+
+    return cmds
 endfu
 
 fu! s:get_filetype() abort "{{{2
@@ -423,38 +421,6 @@ fu! lg#styled_comment#syntax() abort "{{{2
     call s:syn_mycustomgroups(ft)
     call s:fix_allbut(ft)
 
-    " Purpose:{{{
-    "
-    " The default definition of a tmux comment causes several issues:
-    "
-    "   - a commented list item stops after the first line:
-    "
-    "         + the start of this list item is correctly highlighted
-    "           but the next line is not (it's highlighted as a commented code block)
-    "
-    "   - if a commented code block  precedes an uncommented line, the latter is
-    "     wrongly highlighted as a comment
-    "
-    "     We've fixed this issue in `s:syn_code_block()`, for tmux and css.
-    "     I don't think we still need the fix for tmux, but we still need it
-    "     for css. I keep it for both just in case.
-    "
-    " So, we redefine a tmux comment.
-    "
-    " The original definition is:
-    "
-    "     syn region tmuxComment start=/#/ skip=/\\\@<!\\$/ end=/$/ contains=tmuxTodo
-    "
-    " Note that it tries to support this undocumented syntax, which I don't care about:
-    "
-    "     # some tmux comment \
-    "     next line of comment
-    "}}}
-    if ft is# 'tmux'
-        syn clear tmuxComment
-        syn match tmuxComment /#.*/ contains=tmuxTodo
-    endif
-
     call s:highlight_groups_links(ft)
 
     " TODO: highlight commented urls (like in markdown)?{{{
@@ -611,10 +577,6 @@ fu! s:syn_code_block(ft, cml, commentGroup) abort "{{{2
         \ . ' containedin='.a:ft.'CommentListItem'
         \ . ' oneline'
 
-    if index(['css', 'tmux'], a:ft) == -1
-        return
-    endif
-
     " Purpose:{{{
     "
     " For  some filetypes,  if a  commented code  block precedes  an uncommented
@@ -633,7 +595,7 @@ fu! s:syn_code_block(ft, cml, commentGroup) abort "{{{2
     "
     " Explanation:
     "
-    " The tmux syntax plugin defines a comment like this:
+    " The *default* tmux syntax plugin defines a comment like this:
     "
     "     syn region tmuxComment start=/#/ skip=/\\\@<!\\$/ end=/$/ contains=tmuxTodo
     "
@@ -645,13 +607,20 @@ fu! s:syn_code_block(ft, cml, commentGroup) abort "{{{2
     " The  latter consumes  the  end of  the `tmuxComment`  region,  which makes  it
     " continue on the next line.
     "
-    " Solution:
-    " Redefine `tmuxComment` and give it the `keepend` attribute.
+    " Solution: Redefine `tmuxComment` and give it the `keepend` attribute.
+    "
+    " Note:
+    " We don't redefine `tmuxComment` anymore because we use our own tmux syntax plugin.
+    " But the problem may still be relevant for other filetypes such as css.
     "}}}
-    let definition = matchstr(execute('syn list '.a:ft.'Comment'),
-        \ '\m\Cxxx\%(\s\+match\)\=\zs.*[^ \n]\ze\_s*links')
-    exe 'syn clear '.a:ft.'Comment'
-    exe 'syn region '.a:ft.'Comment '.definition.' keepend'
+    if index(['css'], a:ft) == -1
+        return
+    endif
+
+    let cmds = s:get_cmds_to_reset_hg(a:ft.'Comment')
+    call map(cmds, {i,v -> v . ' keepend'})
+    exe 'syn clear ' . a:ft.'Comment'
+    call map(cmds, {i,v -> execute(v)})
 endfu
 
 fu! s:syn_code_span(ft, commentGroup) abort "{{{2
