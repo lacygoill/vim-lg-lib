@@ -498,7 +498,11 @@ endfu
 
 fu! s:get_filetype() abort "{{{2
     let ft = expand('<amatch>')
-    if ft is# 'snippets' | let ft = 'snip' | endif
+    if ft is# 'snippets'
+        let ft = 'snip'
+    elseif ft is# 'desktop'
+        let ft = 'dt'
+    endif
     return ft
 endfu
 
