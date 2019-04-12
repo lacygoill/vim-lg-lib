@@ -99,10 +99,9 @@ endfu
 
 fu! lg#styled_comment#undo_ftplugin() abort "{{{2
     let ft = expand('<amatch>')
-    let b:undo_ftplugin = get(b:, 'undo_ftplugin', '')
-        \ . (empty(get(b:, 'undo_ftplugin', '')) ? '' : '|')
+    let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe')
         \ . "
-        \   setl cocu< cole< fdm< fdt<
+        \ | setl cocu< cole< fdm< fdt<
         \ | exe 'au! my_".ft." * <buffer>'
         \ "
 endfu

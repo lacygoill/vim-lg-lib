@@ -773,8 +773,7 @@ endfu
 
 fu! s:update_undo_ftplugin() abort "{{{2
     if stridx(get(b:, 'undo_ftplugin', ''), 'unlet! b:repeatable_motions') ==# -1
-        let b:undo_ftplugin = get(b:, 'undo_ftplugin', '')
-            \ . (empty(get(b:, 'undo_ftplugin', '')) ? '' : '|')
-            \ . 'unlet! b:repeatable_motions'
+        let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe')
+            \ . ' | unlet! b:repeatable_motions'
     endif
 endfu
