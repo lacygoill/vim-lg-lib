@@ -1,3 +1,15 @@
+" If you have an issue, have a look at `s:get_commentgroup()`.{{{
+"
+" It should return a set of syntax groups which can highlight various type of comments.
+"
+" Open the default syntax plugin and search for:
+"
+"     x[^, \t]*comment
+"     ^
+"     replace with the filetype you have an issue with
+"
+" In the value returned by `s:get_commentgroup()`, include as many groups as you found.
+" }}}
 " Whenever you create or remove a custom syntax group from `lg#styled_comment#syntax()`, update `s:custom_groups`!{{{
 "
 " Otherwise, you may have a broken syntax highlighting in any filetype whose
@@ -584,6 +596,8 @@ fu! s:get_commentgroup(ft) abort "{{{2
         return 'htmlComment,htmlCommentPart'
     elseif a:ft is# 'vim'
         return 'vimComment,vimLineComment'
+    elseif a:ft is# 'sh'
+        return 'shComment,shQuickComment'
     else
         return a:ft.'Comment'
     endif

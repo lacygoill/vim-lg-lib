@@ -113,7 +113,7 @@ fu! lg#window#qf_open(type) abort "{{{1
 
     " if we are already in the qf window, get back to the previous one
     elseif we_are_in_qf && a:type is# 'qf'
-            return 'wincmd p'
+        return 'wincmd p'
 
     " if we are already in the ll window, get to the associated window
     elseif we_are_in_qf && a:type is# 'loc'
