@@ -538,6 +538,9 @@ fu! s:get_cmds_to_reset_group(group) abort "{{{2
 
     " remove noise
     call filter(definition, {i,v -> v !~# '^---\|^\s\+links\s\+to\s\+'})
+    if empty(definition)
+        return []
+    endif
     let definition[0] = substitute(definition[0], '^\a\+\s\+xxx', '', '')
 
     " add  `:syn [keyword|match|region]` to  build new commands  to redefine
@@ -1102,7 +1105,7 @@ fu! s:syn_table(ft, cml, commentGroup) abort "{{{2
     "}}}
     exe 'syn region '.a:ft.'CommentTable'
         \ . ' matchgroup=Comment'
-        \ . ' start=/'.a:cml.'    \%([┌└]─\|│.*[^ \t│].*│\|├─.*┤\)\@=/'
+        \ . ' start=/'.a:cml.'    \%([┌└]─\|│.*[^ \t│].*│\|├─.*┤\|│.*├\)\@=/'
         \ . ' end=/$/'
         \ . ' keepend'
         \ . ' oneline'
@@ -1163,6 +1166,6 @@ fu! s:syn_foldmarkers(ft, cml_0_1, commentGroup) abort "{{{2
         \ . ' contains='.a:ft.'CommentLeader'
         \ . contained
         \ . ' containedin='.a:commentGroup
-        \               ','.a:ft.'CommentCodeBlock'
+        \ .             ','.a:ft.'CommentCodeBlock'
 endfu
 

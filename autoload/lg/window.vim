@@ -164,9 +164,7 @@ fu! lg#window#quit() abort "{{{1
         return feedkeys('q', 'int')
     endif
 
-    if tabpagenr('$') ==# 1 && winnr('$') ==# 1
-        " If there's only one tab page and only one window, we want to close
-        " the session.
+    if (tabpagenr('$') ==# 1 && winnr('$') ==# 1) || get(g:, 'is_started_as_vimdiff')
         qall!
 
     " In neovim, we could also test the existence of `b:terminal_job_pid`.
