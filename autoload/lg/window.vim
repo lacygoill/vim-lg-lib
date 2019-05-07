@@ -276,14 +276,14 @@ fu! lg#window#restore_closed(cnt) abort "{{{1
             "
             " You can reproduce this kind of error, this way:
             "
-            "         - open a terminal buffer
-            "         - save the session (`:mksession file.vim`)
-            "         - from the terminal buffer, restore the session (`:so file.vim`)
+            "    - open a terminal buffer
+            "    - save the session (`:mksession file.vim`)
+            "    - from the terminal buffer, restore the session (`:so file.vim`)
             "
             " Or:
-            "         - open a terminal buffer
-            "         - from the latter, execute:
-            "                 :badd \!/bin/zsh
+            "    - open a terminal buffer
+            "    - from the latter, execute:
+            "         :badd \!/bin/zsh
             "
             " FIXME:
             " Why does  the error  only occur  when `:badd`  is executed  from a
