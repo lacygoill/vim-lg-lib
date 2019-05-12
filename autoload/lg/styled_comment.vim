@@ -294,37 +294,13 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " syntax groups, so that we have less arguments to pass.
     call s:syn_option(ft)
     call s:syn_key(ft, commentGroup)
+    call s:syn_url(ft, commentGroup)
     call s:syn_foldmarkers(ft, cml_0_1, commentGroup)
 
     call s:fix_comment_region(ft)
     call s:fix_allbut(ft)
 
     call s:highlight_groups_links(ft)
-
-    " TODO: highlight commented urls (like in markdown)?{{{
-    "
-    "     markdownLinkText xxx matchgroup=markdownLinkTextDelimiter
-    "                          start=/!\=\[\%(\_[^]]*]\%(\s\=[[(]\)\)\@=/
-    "                          end=/\]\%(\s\=[[(]\)\@=/
-    "                          concealends
-    "                          contains=@markdownInline,markdownLineStart
-    "                          nextgroup=markdownLink,markdownId
-    "                          skipwhite
-    "     links to Conditional
-    "
-    "     markdownUrl    xxx match /\S\+/
-    "                        contained nextgroup=markdownUrlTitle
-    "                        skipwhite
-    "                        matchgroup=markdownUrlDelimiter
-    "                        start=/</
-    "                        end=/>/
-    "                        contained
-    "                        oneline
-    "                        keepend
-    "                        nextgroup=markdownUrlTitle
-    "                        skipwhite
-    "     links to Float
-    "}}}
     " TODO: Read: https://daringfireball.net/projects/markdown/syntax{{{
     " and   https://daringfireball.net/projects/markdown/basics
     "
@@ -618,6 +594,8 @@ endfu
 
 fu! s:highlight_groups_links(ft) abort "{{{2
     exe 'hi '.a:ft.'FoldMarkers term=bold cterm=bold gui=bold'
+
+    exe 'hi link '.a:ft.'CommentURL CommentUnderlined'
 
     exe 'hi link '.a:ft.'CommentBold                  CommentBold'
     exe 'hi link '.a:ft.'CommentBoldItalic            CommentBoldItalic'
@@ -1109,6 +1087,43 @@ fu! s:syn_table(ft, cml, commentGroup) abort "{{{2
         \ . ' end=/$/'
         \ . ' keepend'
         \ . ' oneline'
+        \ . ' contained'
+        \ . ' containedin='.a:commentGroup
+endfu
+
+fu! s:syn_url(ft, commentGroup) abort "{{{2
+    " Where does the regex come from?{{{
+    "
+    " https://github.com/tmux-plugins/vim-tmux/blob/4e77341a2f8b9b7e41e81e9debbcecaea5987c85/syntax/tmux.vim#L161
+    "}}}
+    " TODO: Consider simplifying the regex. {{{
+    "
+    " And/or maybe leverage the regex used in the default markdown syntax plugin.
+    "
+    "     markdownLinkText xxx matchgroup=markdownLinkTextDelimiter
+    "                          start=/!\=\[\%(\_[^]]*]\%(\s\=[[(]\)\)\@=/
+    "                          end=/\]\%(\s\=[[(]\)\@=/
+    "                          concealends
+    "                          contains=@markdownInline,markdownLineStart
+    "                          nextgroup=markdownLink,markdownId
+    "                          skipwhite
+    "     links to Conditional
+    "
+    "     markdownUrl    xxx match /\S\+/
+    "                        contained nextgroup=markdownUrlTitle
+    "                        skipwhite
+    "                        matchgroup=markdownUrlDelimiter
+    "                        start=/</
+    "                        end=/>/
+    "                        contained
+    "                        oneline
+    "                        keepend
+    "                        nextgroup=markdownUrlTitle
+    "                        skipwhite
+    "     links to Float
+    "}}}
+    exe 'syn match ' . a:ft
+        \ . 'CommentURL `\v<(((https=|ftp)://|file:)[^''  <>"]+|(www|web|w3)[a-z0-9_-]*\.[a-z0-9._-]+\.[^''  <>"]+)[a-zA-Z0-9/]`'
         \ . ' contained'
         \ . ' containedin='.a:commentGroup
 endfu
