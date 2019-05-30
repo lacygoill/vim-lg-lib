@@ -159,9 +159,8 @@ fu! lg#window#quit() abort "{{{1
 
     " If we're recording a macro, don't close the window;
     " stop the recording.
-    " TODO: remove `has()` once neovim has `reg_recording()`
-    if !has('nvim') && reg_recording() isnot# ''
-        return feedkeys('q', 'int')
+    if reg_recording() isnot# ''
+        return feedkeys('q', 'int')[-1]
     endif
 
     if (tabpagenr('$') ==# 1 && winnr('$') ==# 1) || get(g:, 'is_started_as_vimdiff')
