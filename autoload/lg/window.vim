@@ -157,13 +157,21 @@ fu! lg#window#quit() abort "{{{1
         return
     endif
 
-    " If we're recording a macro, don't close the window;
-    " stop the recording.
+    " If we're recording a macro, don't close the window; stop the recording.
     if reg_recording() isnot# ''
         return feedkeys('q', 'int')[-1]
     endif
 
-    if (tabpagenr('$') ==# 1 && winnr('$') ==# 1) || get(g:, 'is_started_as_vimdiff')
+    " Quit everything if:{{{
+    "
+    "    - there's only 1 window in 1 tabpage
+    "    - there're only 2 windows in 1 tabpage, one of which is a location list window
+    "    - Vim was started with `$ vimdiff`
+    "}}}
+    if (tabpagenr('$') ==# 1
+       \ && (winnr('$') ==# 1
+       \     || winnr('$') ==# 2 && !empty(filter(map(getwininfo(), {i,v -> v.loclist}), {i,v -> v}))))
+       \ || get(g:, 'is_started_as_vimdiff')
         qall!
 
     " In neovim, we could also test the existence of `b:terminal_job_pid`.
@@ -211,7 +219,8 @@ fu! lg#window#quit() abort "{{{1
         endtry
 
         " We could also install an autocmd in our vimrc:
-        "         au QuitPre * ++nested if &bt isnot# 'quickfix' | sil! lclose | endif
+        "
+        "     au QuitPre * ++nested if &bt isnot# 'quickfix' | sil! lclose | endif
         "
         " Inspiration:
         " https://github.com/romainl/vim-qf/blob/5f971f3ed7f59ff11610c00b8a1e343e2dbae510/plugin/qf.vim#L64-L65
