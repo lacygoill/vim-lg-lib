@@ -588,6 +588,8 @@ fu! s:get_filetype() abort "{{{2
         let ft = 'snip'
     elseif ft is# 'desktop'
         let ft = 'dt'
+    elseif ft is# 'systemd'
+        let ft = 'dosini'
     endif
     return ft
 endfu
