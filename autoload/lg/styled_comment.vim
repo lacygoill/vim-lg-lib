@@ -52,8 +52,7 @@
 " They only provide a syntax for multi-line comments.
 " To get  an idea of how you would  have to refactor this file if  you wanted to
 " support them, see this old commit:
-"
-"     https://github.com/lacygoill/vim-lg-lib/commit/7d309f78900b63df6f8989fbc929660cda76d076
+" https://github.com/lacygoill/vim-lg-lib/commit/7d309f78900b63df6f8989fbc929660cda76d076
 " }}}
 
 " Init {{{1
