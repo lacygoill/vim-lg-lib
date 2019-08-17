@@ -159,7 +159,7 @@ fu! lg#window#quit() abort "{{{1
 
     " If we're recording a macro, don't close the window; stop the recording.
     if reg_recording() isnot# ''
-        return feedkeys('q', 'int')[-1]
+        return feedkeys('q', 'in')[-1]
     endif
 
     " Quit everything if:{{{
