@@ -14,6 +14,7 @@ let s:patterns = {
                  \ 'path':            '\v%(\s\.%(\=|,))@!&%(^|\s|`)\zs[./~]\f+',
                  \ 'url':             '\%(https\=\|ftps\=\|www\)://\|!\=\[.\{-}\]\%((.\{-})\|\[.\{-}\]\)',
                  \ 'concealed_url':   '\v\[.{-}\zs\]\(.{-}\)',
+                 \ 'codespan':        '`.\{-1,}`',
                  \ }
 
 fu! lg#motion#regex#go(kwd, is_fwd, mode) abort "{{{1
