@@ -147,31 +147,31 @@ endfu
 
 fu! lg#window#quit() abort "{{{1
     " If we are in the command-line window, we want to close the latter,
-    " and return without doing anything else (save session).
+    " and return without doing anything else (no session save).
     "
-    "         ┌─ return ':' in a command-line window,
-    "         │  nothing in a regular buffer
+    "         ┌ return ':' in a command-line window,
+    "         │ nothing in a regular buffer
     "         │
-    if !empty(getcmdwintype())
-        close
-        return
-    endif
+    if !empty(getcmdwintype()) | close | return | endif
 
     " If we're recording a macro, don't close the window; stop the recording.
-    if reg_recording() isnot# ''
-        return feedkeys('q', 'in')[-1]
-    endif
+    if reg_recording() isnot# '' | return feedkeys('q', 'in')[-1] | endif
 
     " Quit everything if:{{{
     "
     "    - there's only 1 window in 1 tabpage
     "    - there're only 2 windows in 1 tabpage, one of which is a location list window
-    "    - Vim was started with `$ vimdiff`
+    "    - there're only 2 windows in 1 tabpage, the remaining one is a diff window
     "}}}
-    if (tabpagenr('$') ==# 1
-       \ && (winnr('$') ==# 1
-       \     || winnr('$') ==# 2 && !empty(filter(map(getwininfo(), {i,v -> v.loclist}), {i,v -> v}))))
-       \ || get(g:, 'is_started_as_vimdiff')
+    if tabpagenr('$') == 1
+       \ && (
+       \         winnr('$') == 1
+       \      || winnr('$') == 2
+       \         && (
+       \                !empty(filter(map(getwininfo(), {_,v -> v.loclist}), {_,v -> v}))
+       \             || getwinvar(winnr() == 1 ? 2 : 1, '&diff')
+       \            )
+       \    )
         qall!
 
     " In neovim, we could also test the existence of `b:terminal_job_pid`.
@@ -186,15 +186,11 @@ fu! lg#window#quit() abort "{{{1
 
         " if we were already in a loclist window, then `:lclose` has closed it,
         " and there's nothing left to close
-        if was_loclist
-            return
-        endif
+        if was_loclist | return | endif
 
         " same thing for preview window, but only in a help buffer outside of
         " preview winwow
-        if &bt is# 'help' && !&previewwindow
-            pclose
-        endif
+        if &bt is# 'help' && !&previewwindow | pclose | endif
 
         " create a new temporary file for the session we're going to save
         let s:undo_sessions = get(s:, 'undo_sessions', []) + [tempname()]
@@ -252,6 +248,20 @@ fu! lg#window#quit() abort "{{{1
             " So, I don't want to be bothered by an error.
             "}}}
             exe 'close'.(&l:bh is# 'wipe' ? '!' : '')
+            " Why?{{{
+            "
+            " Run `:diffthis` in 2 windows.
+            "
+            " Close both windows by pressing `SPC q`.
+            " The syntax highlighting has not been restored.
+            "
+            " You   need   to   call   `Restore_highlighting_after_diff()`   for
+            " everything to work  again properly; it's not as  simple as running
+            " `:syn enable`.
+            "}}}
+            if &l:diff
+                windo call Restore_highlighting_after_diff()
+            endif
         catch
             return lg#catch_error()
         endtry
