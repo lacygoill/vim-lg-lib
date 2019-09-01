@@ -93,7 +93,7 @@ fu! lg#map#save(mode, is_local, keys) abort "{{{1
         let o_map_save = lg#map#save('o', a:is_local, a:keys)
         " And so, instead of returning a dictionary, it will return a list
         " of up to 3 dictionaries; 1 for each mode.
-        return filter([n_map_save, x_map_save, o_map_save], {i,v -> !empty(v)})
+        return filter([n_map_save, x_map_save, o_map_save], {_,v -> !empty(v)})
     endif
 
     let keys = type(a:keys) ==# type([]) ? a:keys : [a:keys]

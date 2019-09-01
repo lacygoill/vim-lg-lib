@@ -630,7 +630,7 @@ fu! s:get_mapcmd(mode, maparg) abort "{{{2
     let mapcmd .= '  <expr>'
 
     let mapcmd .= join(map(['buffer', 'nowait', 'silent'],
-    \                      { i,v -> get(a:maparg, v, 0) ? '<'.v.'>' : ''}))
+    \                      {_,v -> get(a:maparg, v, 0) ? '<'.v.'>' : ''}))
 
     return mapcmd
 endfu

@@ -99,7 +99,28 @@ let s:custom_groups = [
 " filetype plugin {{{1
 fu! lg#styled_comment#fold() abort "{{{2
     let ft = expand('<amatch>')
-    exe 'augroup my_'.ft
+    " Why naming the augroup `my_fold_x` instead of just `my_x`?{{{
+    "
+    " Suppose you install this autocmd in `after/ftplugin/x.vim`:
+    "
+    "     augroup my_x
+    "         au! * <buffer>
+    "         au BufWinEnter " do sth
+    "     augroup END
+    "
+    " It will be removed by the `au! * <buffer>` from the next autocmd.
+    "
+    " Indeed, in your vimrc, you have run `:filetype plugin on`, or vim-plug has
+    " done it for you.
+    " And  a bit  later, still  in  your vimrc,  you have  installed an  autocmd
+    " listening to `FileType`  which calls the current function  (the augroup is
+    " named `styled_comments`).
+    "
+    " So,   when  `FileType`   is   fired,  all   the   ftplugins  are   sourced
+    " first  (including  the  ones  in   `after/`),  *then*  the  autocmds  from
+    " `styled_comments` are run.
+    "}}}
+    exe 'augroup my_fold_'.ft
         au! *            <buffer>
         au  BufWinEnter  <buffer>  setl fdm=marker
                                \ | setl fdt=fold#fdt#get()
@@ -113,7 +134,7 @@ fu! lg#styled_comment#undo_ftplugin() abort "{{{2
     let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe')
         \ . "
         \ | setl cocu< cole< fdm< fdt<
-        \ | exe 'au! my_".ft." * <buffer>'
+        \ | exe 'au! my_fold_".ft." * <buffer>'
         \ "
 endfu
 " }}}1
@@ -338,7 +359,7 @@ fu! s:fix_allbut(ft) abort "{{{2
     " current plugin defines.
     "}}}
     let groups = copy(s:custom_groups)
-    call map(groups, {i,v ->
+    call map(groups, {_,v ->
         \ v[0] is# '@' ? '@' . a:ft . substitute(v, '@', '', '') : a:ft . v})
     let groups = join(groups, ',')
     exe 'syn cluster '.a:ft.'MyCustomGroups contains='.groups
@@ -352,8 +373,8 @@ fu! s:fix_allbut(ft) abort "{{{2
         " be hard to get the name of the syntax group.
         "}}}
         let s:allbut_groups[a:ft] = map(filter(split(execute('syn list'), '\n'),
-            \ {i,v -> v =~# '\m\CALLBUT' && v !~# '^\s'}),
-            \ {i,v -> matchstr(v, '\S\+')})
+            \ {_,v -> v =~# '\m\CALLBUT' && v !~# '^\s'}),
+            \ {_,v -> matchstr(v, '\S\+')})
         " Ignore groups defined for embedding another language.{{{
         "
         " Otherwise, this  function breaks the  syntax highlighting in  some Vim
@@ -410,18 +431,18 @@ fu! s:fix_allbut(ft) abort "{{{2
         " break  sth else,  consider  maintaining  your own  version  of the  syntax
         " plugin, in which you ignore `@xMyCustomGroups` whenever it's necessary.
         "}}}
-        call filter(s:allbut_groups[a:ft], {i,v -> v =~# '^' . a:ft})
+        call filter(s:allbut_groups[a:ft], {_,v -> v =~# '^' . a:ft})
     endif
 
     for group in s:allbut_groups[a:ft]
         let cmds = s:get_cmds_to_reset_group(group)
 
         " add `@xMyCustomGroups` after `ALLBUT`
-        call map(cmds, {i,v -> substitute(v, '\m\CALLBUT,', 'ALLBUT,@'.a:ft.'MyCustomGroups,', '')})
+        call map(cmds, {_,v -> substitute(v, '\m\CALLBUT,', 'ALLBUT,@'.a:ft.'MyCustomGroups,', '')})
 
         " clear and redefine all the items in the group
         exe 'syn clear ' . group
-        call map(cmds, {i,v -> execute(v)})
+        call map(cmds, {_,v -> execute(v)})
     endfor
 endfu
 
@@ -489,7 +510,7 @@ fu! s:fix_comment_region(ft) abort "{{{2
     "
     " While it should be highlighted as a string.
     "}}}
-    if empty(filter(copy(cmds), {i,v -> v =~# '^syn\%[tax]\s\+region'}))
+    if empty(filter(copy(cmds), {_,v -> v =~# '^syn\%[tax]\s\+region'}))
         return
     endif
     " FIXME: This may break the highlighting of a list item.{{{
@@ -502,9 +523,9 @@ fu! s:fix_comment_region(ft) abort "{{{2
     " If it gets too complex, get rid of this function, and redefine the comment
     " group in `~/.vim/after/syntax/x.vim` on a per-filetype basis.
     "}}}
-    call map(cmds, {i,v -> v . ' keepend'})
-    exe 'syn clear ' . a:ft.'Comment'
-    call map(cmds, {i,v -> execute(v)})
+    call map(cmds, {_,v -> v . ' keepend'})
+    exe 'syn clear ' . a:ft . 'Comment'
+    call map(cmds, {_,v -> execute(v)})
 endfu
 
 fu! s:get_cmds_to_reset_group(group) abort "{{{2
@@ -512,7 +533,7 @@ fu! s:get_cmds_to_reset_group(group) abort "{{{2
     let definition = split(execute('syn list ' . a:group), '\n')
 
     " remove noise
-    call filter(definition, {i,v -> v !~# '^---\|^\s\+links\s\+to\s\+'})
+    call filter(definition, {_,v -> v !~# '^---\|^\s\+links\s\+to\s\+'})
     if empty(definition)
         return []
     endif
@@ -520,7 +541,7 @@ fu! s:get_cmds_to_reset_group(group) abort "{{{2
 
     " add  `:syn [keyword|match|region]` to  build new commands  to redefine
     " the items in the group
-    let cmds = map(definition, {i,v ->
+    let cmds = map(definition, {_,v ->
         \ match(v, '\m\C\<start=') >= 0
         \ ?     'syn region ' . a:group . ' ' . v
         \ : match(v, '\m\C\<match\>') >= 0

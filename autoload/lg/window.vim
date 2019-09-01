@@ -48,19 +48,19 @@ fu! lg#window#has_neighbor(dir, ...) abort "{{{1
 
     if a:dir is# 'right'
         let rightedge = win_screenpos(winnr)[1] + winwidth(winnr) - 1
-        let neighbors = map(neighbors, {i,v ->  v != winnr && win_screenpos(v)[1] > rightedge})
+        let neighbors = map(neighbors, {_,v ->  v != winnr && win_screenpos(v)[1] > rightedge})
 
     elseif a:dir is# 'left'
         let leftedge = win_screenpos(winnr)[1] - 1
-        let neighbors = map(neighbors, {i,v ->  v != winnr && win_screenpos(v)[1] < leftedge})
+        let neighbors = map(neighbors, {_,v ->  v != winnr && win_screenpos(v)[1] < leftedge})
 
     elseif a:dir is# 'up'
         let upedge = win_screenpos(winnr)[0] - 1
-        let neighbors = map(neighbors, {i,v ->  v != winnr && win_screenpos(v)[0] < upedge})
+        let neighbors = map(neighbors, {_,v ->  v != winnr && win_screenpos(v)[0] < upedge})
 
     elseif a:dir is# 'down'
         let downedge = win_screenpos(winnr)[0] + winheight(winnr) - 1
-        let neighbors = map(neighbors, {i,v ->  v != winnr && win_screenpos(v)[0] > downedge})
+        let neighbors = map(neighbors, {_,v ->  v != winnr && win_screenpos(v)[0] > downedge})
     endif
 
     if index(neighbors, 1) >=0
@@ -133,7 +133,7 @@ fu! lg#window#qf_open(type) abort "{{{1
         "}}}
         let win_ids = gettabinfo(tabpagenr())[0].windows
         let loc_id  = win_getid()
-        let id = get(filter(win_ids, {i,v ->
+        let id = get(filter(win_ids, {_,v ->
             \ get(getloclist(v, {'winid': 0}), 'winid', 0) ==# loc_id
             \ && v !=# loc_id })
             \ , 0, 0)
@@ -308,7 +308,7 @@ fu! lg#window#restore_closed(cnt) abort "{{{1
             " terminal buffer?
 "}}}
             call writefile(filter(readfile(session_file),
-            \                     { i,v -> v !~# '\v^badd \+\d+ \!/bin/%(bash|zsh)' }
+            \                     {_,v -> v !~# '\v^badd \+\d+ \!/bin/%(bash|zsh)'}
             \                    ),
             \              session_file)
         endif
