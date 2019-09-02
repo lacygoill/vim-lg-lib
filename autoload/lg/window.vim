@@ -248,20 +248,6 @@ fu! lg#window#quit() abort "{{{1
             " So, I don't want to be bothered by an error.
             "}}}
             exe 'close'.(&l:bh is# 'wipe' ? '!' : '')
-            " Why?{{{
-            "
-            " Run `:diffthis` in 2 windows.
-            "
-            " Close both windows by pressing `SPC q`.
-            " The syntax highlighting has not been restored.
-            "
-            " You   need   to   call   `Restore_highlighting_after_diff()`   for
-            " everything to work  again properly; it's not as  simple as running
-            " `:syn enable`.
-            "}}}
-            if &l:diff
-                windo call Restore_highlighting_after_diff()
-            endif
         catch
             return lg#catch_error()
         endtry
