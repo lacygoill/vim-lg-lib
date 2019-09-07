@@ -510,7 +510,7 @@ fu! s:fix_comment_region(ft) abort "{{{2
     "
     " While it should be highlighted as a string.
     "}}}
-    if empty(filter(copy(cmds), {_,v -> v =~# '^syn\%[tax]\s\+region'}))
+    if match(cmds, '^syn\%[tax]\s\+region') == -1
         return
     endif
     " FIXME: This may break the highlighting of a list item.{{{
@@ -641,11 +641,11 @@ fu! s:highlight_groups_links(ft) abort "{{{2
     exe 'hi link '.a:ft.'CommentListItemCodeSpan      CommentListItemCodeSpan'
     exe 'hi link '.a:ft.'CommentListItemItalic        markdownListItemItalic'
     exe 'hi link '.a:ft.'CommentOption                markdownOption'
-    exe 'hi link '.a:ft.'CommentOutput                PreProc'
+    exe 'hi link '.a:ft.'CommentOutput                CommentPreProc'
     exe 'hi link '.a:ft.'CommentPointer               markdownPointer'
     exe 'hi link '.a:ft.'CommentRule                  markdownRule'
     exe 'hi link '.a:ft.'CommentTable                 markdownTable'
-    exe 'hi link '.a:ft.'CommentTitle                 PreProc'
+    exe 'hi link '.a:ft.'CommentTitle                 CommentPreProc'
 endfu
 
 fu! s:syn_commentleader(ft, cml) abort "{{{2

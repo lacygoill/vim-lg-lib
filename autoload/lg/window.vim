@@ -152,7 +152,7 @@ fu! lg#window#quit() abort "{{{1
     "         ┌ return ':' in a command-line window,
     "         │ nothing in a regular buffer
     "         │
-    if !empty(getcmdwintype()) | close | return | endif
+    if !empty(getcmdwintype()) | q | return | endif
 
     " If we're recording a macro, don't close the window; stop the recording.
     if reg_recording() isnot# '' | return feedkeys('q', 'in')[-1] | endif
@@ -168,7 +168,7 @@ fu! lg#window#quit() abort "{{{1
        \         winnr('$') == 1
        \      || winnr('$') == 2
        \         && (
-       \                !empty(filter(map(getwininfo(), {_,v -> v.loclist}), {_,v -> v}))
+       \                index(map(getwininfo(), {_,v -> v.loclist}), 1) >= 0
        \             || getwinvar(winnr() == 1 ? 2 : 1, '&diff')
        \            )
        \    )
@@ -180,8 +180,20 @@ fu! lg#window#quit() abort "{{{1
 
     else
         let was_loclist = get(b:, 'qf_is_loclist', 0)
-        " if the window we're closing is associated to a ll window,
-        " close the latter too
+        " if the window we're closing is associated to a ll window, close the latter too
+        " We could also install an autocmd in our vimrc:{{{
+        "
+        "     au QuitPre * ++nested if &bt isnot# 'quickfix' | sil! lclose | endif
+        "
+        " Inspiration:
+        " https://github.com/romainl/vim-qf/blob/5f971f3ed7f59ff11610c00b8a1e343e2dbae510/plugin/qf.vim#L64-L65
+        "
+        " But in this  case, we couldn't close the current  window with `:close`
+        " at the end of the function.
+        " We would have to use `:q`, because `:close` doesn't emit `QuitPre`.
+        " For the moment, I prefer to use `:close` because it doesn't close
+        " a window if it's the last one.
+        "}}}
         sil! lclose
 
         " if we were already in a loclist window, then `:lclose` has closed it,
@@ -214,30 +226,18 @@ fu! lg#window#quit() abort "{{{1
             let &ssop = ssop_save
         endtry
 
-        " We could also install an autocmd in our vimrc:
-        "
-        "     au QuitPre * ++nested if &bt isnot# 'quickfix' | sil! lclose | endif
-        "
-        " Inspiration:
-        " https://github.com/romainl/vim-qf/blob/5f971f3ed7f59ff11610c00b8a1e343e2dbae510/plugin/qf.vim#L64-L65
-        "
-        " But in this case, we couldn't close the window with `:close`.
-        " We would have to use `:q`, because `:close` doesn't emit `QuitPre`.
-        " For the moment, I prefer to use `:close` because it doesn't close
-        " a window if it's the last one.
-
         try
-            " Why :close instead of :quit ?{{{
+            " Why `:close` instead of `:quit`?{{{
             "
-            "     Launch Vim with no file arguments:    $ vim
-            "     Open a help buffer:                   :h autocmd
-            "     Give focus to the unnamed buffer:     C-w w
-            "     Quit the unnamed buffer:              :q
+            "     $ vim
+            "     :h
+            "     C-w w
+            "     :q
             "
             " Vim quits entirely instead of only closing the window.
             " It considers help buffers as unimportant.
             "
-            " :close doesn't close a window if it's the last one.
+            " `:close` doesn't close a window if it's the last one.
             "}}}
             " Why adding a bang if `&l:bh is# 'wipe'`?{{{
             "
