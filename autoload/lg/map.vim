@@ -19,9 +19,9 @@ fu! lg#map#restore(map_save) abort "{{{1
     "
     " If we've saved a mapping for:
     "
-    "     - a mode different than '', `lg#map#save()` will have returned a dictionary
-    "     - the mode ''             , `lg#map#save()` will have returned a list
-    "                                                                    of up to 3 dictionaries
+    "    - a mode different than '', `lg#map#save()` will have returned a dictionary
+    "    - the mode ''             , `lg#map#save()` will have returned a list
+    "                                                                   of up to 3 dictionaries
     "}}}
     if type(a:map_save) ==# type({})
         call s:restore(a:map_save)
@@ -57,22 +57,22 @@ fu! s:restore(map_save) abort "{{{1
             " `maparg.mode` could contain several modes (`nox` for example).
             " So we must split iterate over all characters inside.
             for c in split(maparg.mode, '\zs')
-                sil! exe c.'unmap '.(maparg.buffer ? ' <buffer> ' : '').maparg.lhs
+                sil! exe c..'unmap '..(maparg.buffer ? ' <buffer> ' : '')..maparg.lhs
             endfor
 
         " restore a saved mapping
         else
             for c in split(maparg.mode, '\zs')
                 exe  c
-                \ . (maparg.noremap ? 'noremap   ' : 'map ')
-                \ . (maparg.buffer  ? ' <buffer> ' : '')
-                \ . (maparg.expr    ? ' <expr>   ' : '')
-                \ . (maparg.nowait  ? ' <nowait> ' : '')
-                \ . (maparg.silent  ? ' <silent> ' : '')
-                \ .  maparg.lhs
-                \ . ' '
-                \ . substitute(
-                \              substitute(maparg.rhs, '<SID>', '<SNR>'.maparg.sid.'_', 'g'),
+                \ ..(maparg.noremap ? 'noremap   ' : 'map ')
+                \ ..(maparg.buffer  ? ' <buffer> ' : '')
+                \ ..(maparg.expr    ? ' <expr>   ' : '')
+                \ ..(maparg.nowait  ? ' <nowait> ' : '')
+                \ ..(maparg.silent  ? ' <silent> ' : '')
+                \ ..maparg.lhs
+                \ ..' '
+                \ ..substitute(
+                \              substitute(maparg.rhs, '<SID>', '<SNR>'..maparg.sid..'_', 'g'),
                 \              '|', '<bar>', 'g')
             endfor
         endif
@@ -91,8 +91,8 @@ fu! lg#map#save(mode, is_local, keys) abort "{{{1
         let n_map_save = lg#map#save('n', a:is_local, a:keys)
         let x_map_save = lg#map#save('x', a:is_local, a:keys)
         let o_map_save = lg#map#save('o', a:is_local, a:keys)
-        " And so, instead of returning a dictionary, it will return a list
-        " of up to 3 dictionaries; 1 for each mode.
+        " And so, instead of returning a dictionary, it will return a list of up
+        " to three dictionaries; one for each mode.
         return filter([n_map_save, x_map_save, o_map_save], {_,v -> !empty(v)})
     endif
 
@@ -103,16 +103,17 @@ fu! lg#map#save(mode, is_local, keys) abort "{{{1
     if a:is_local
         for a_key in keys
             " save info about the local mapping
-            let maparg =  maparg(a_key, a:mode, 0, 1)
+            let maparg = maparg(a_key, a:mode, 0, 1)
 
-            " make sure it's local
-            if !get(maparg, 'buffer', 1)
-            "                         │
-            "                         └ if there isn't even a 'buffer' key,
-            "                           `maparg`  is probably  empty, but  don't
-            "                           bail out;  we want  to know  the mapping
-            "                           doesn't exist ('unmapped' key)
-                continue
+            " If there is no local mapping, but there *is* a global mapping, ignore the latter.{{{
+            "
+            " By making `maparg` empty, we make sure that we will save some info
+            " about the non-existing local mapping.
+            " In particular, we  need the `unmapped` key to know  that the local
+            " mapping does not exist.
+            "}}}
+            if has_key(maparg, 'buffer') && ! maparg.buffer
+                let maparg = {}
             endif
 
             let map_save[a_key] = !empty(maparg)
@@ -139,18 +140,13 @@ fu! lg#map#save(mode, is_local, keys) abort "{{{1
             " We want to be able to get info about a global mapping even if a local
             " one shadows it.
             " To do that, we will temporarily remove the local mapping.
-            sil! exe a:mode.'unmap <buffer> '.a_key
+            sil! exe a:mode..'unmap <buffer> '..a_key
 
             " save info about the global one
             let maparg = maparg(a_key, a:mode, 0, 1)
 
             " make sure it's global
             if get(maparg, 'buffer', 0)
-            "                        │
-            "                        └ if there isn't even a 'buffer' key,
-            "                          `maparg`  is  probably empty,  but  don't
-            "                          bail  out; we  want to  know the  mapping
-            "                          doesn't exist ('unmapped' key)
                 continue
             endif
 
@@ -164,24 +160,25 @@ fu! lg#map#save(mode, is_local, keys) abort "{{{1
                               \          }
 
             " If there's no mapping, why do we still save this dictionary: {{{
-
+            "
             "     {
             "     \ 'unmapped' : 1,
             "     \ 'buffer'   : 0,
             "     \ 'lhs'      : a_key,
             "     \ 'mode'     : a:mode,
             "     \ }
-
-            " …?
+            "
+            " ?
+            "
             " Suppose we have a key which is mapped to nothing.
             " We save it (with an empty dictionary).
             " It's possible that after the saving, the key is mapped to something.
             " Restoring this key means deleting whatever mapping may now exist.
             " But to be able to unmap the key, we need 3 information:
             "
-            "         - is the mapping global or buffer-local (<buffer> argument)?
-            "         - the lhs
-            "         - the mode (normal, visual, …)
+            "    - is the mapping global or buffer-local (<buffer> argument)?
+            "    - the lhs
+            "    - the mode (normal, visual, …)
             "}}}
 
             " restore the local one
