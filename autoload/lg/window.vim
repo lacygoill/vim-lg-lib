@@ -1,8 +1,7 @@
 fu! lg#window#get_modifier(...) abort "{{{1
-"   ││                     │
-"   ││                     └ optional flag meaning we're going to open a loc window
-"   └┤
-"    └ public so that it can be called in `vim-qf`
+"   ├┘                     ├┘
+"   │                      └ optional flag meaning we're going to open a loc window
+"   └ public so that it can be called in `vim-qf`
 "     `qf#open()` in autoload/
 
     let origin = winnr()

@@ -75,12 +75,12 @@ fu! s:init() abort "{{{1
     " character standing for the default mode we want. As a default mode, I want
     " `nvo`.  For `maparg()`, `nvo` is represented with:
     "
-    "     - an empty string in its input
-    "     - a single space in its output
+    "    - an empty string in its input
+    "    - a single space in its output
     "
-    " We need to be consistent with the output of `maparg()`. So, we choose
-    " an empty space.
-"}}}
+    " We need to be consistent with the output of `maparg()`.
+    " So, we choose an empty space.
+    "}}}
 
     let s:RECURSIVE_MAPCMD = {
     \                          'n': 'nmap',
@@ -242,8 +242,8 @@ fu! s:move(lhs) abort "{{{2
     "
     "     exe mapcmd.'  '.a:m.bwd.'  <sid>move('.string(a:m.bwd).')'
     "     exe mapcmd.'  '.a:m.fwd.'  <sid>move('.string(a:m.fwd).')'
-    "                                            └─────────────┤
-    "                                                          └ automatically translated
+    "                                            ├─────────────┘
+    "                                            └ automatically translated
     "
     " And mapping commands automatically translate special keys.
     "}}}
@@ -300,13 +300,13 @@ fu! s:move_again(dir) abort "{{{2
     "
     " It's a numeric flag, whose value can be:
     "
-    "       ┌────┬───────────────────────────────────────────┐
-    "       │ 0  │ we are NOT going to repeat a motion       │
-    "       ├────┼───────────────────────────────────────────┤
-    "       │ -1 │ we are about to repeat a motion BACKWARDS │
-    "       ├────┼───────────────────────────────────────────┤
-    "       │ 1  │ we are about to repeat a motion FORWARDS  │
-    "       └────┴───────────────────────────────────────────┘
+    "    ┌────┬───────────────────────────────────────────┐
+    "    │ 0  │ we are NOT going to repeat a motion       │
+    "    ├────┼───────────────────────────────────────────┤
+    "    │ -1 │ we are about to repeat a motion BACKWARDS │
+    "    ├────┼───────────────────────────────────────────┤
+    "    │ 1  │ we are about to repeat a motion FORWARDS  │
+    "    └────┴───────────────────────────────────────────┘
     "}}}
     " Why do we set it now?{{{
     "
@@ -354,16 +354,16 @@ fu! s:move_again(dir) abort "{{{2
     "}}}
     " To emulate `<silent>`, why not simply `:redraw!`?{{{
     "
-    "     - overkill
+    "    - overkill
     "
-    "     - If  the  motion  wants  to  echo   a  message,  it  will
-    "       probably  be erased. That's not what <silent> does.  <silent>
-    "       only prevents the rhs from being  echo'ed. But it can still
-    "       display  a message  if it wants to.
+    "    - If  the  motion  wants  to  echo   a  message,  it  will
+    "      probably  be erased. That's not what <silent> does.  <silent>
+    "      only prevents the rhs from being  echo'ed. But it can still
+    "      display  a message  if it wants to.
     "
-    "     - Sometimes, the command-line may seem to flash.
-    "       Currently,  it  happens when  we  cycle  through the  levels  of
-    "       lightness of the colorscheme (]oL  co;  ;).
+    "    - Sometimes, the command-line may seem to flicker.
+    "      Currently,  it  happens when  we  cycle  through the  levels  of
+    "      lightness of the colorscheme (]oL  co;  ;).
     "}}}
     " Why do we need to replace `|` with `<bar>`?{{{
     "
@@ -451,8 +451,8 @@ fu! s:populate(motion, mode, lhs, is_fwd, maparg) abort "{{{2
         " This inconsistency between '' and ' ' mimics the one found in `maparg()`.
         " For `maparg()`, `nvo` is represented with:
         "
-        "     - an empty string in its input
-        "     - a single space in its output
+        "    - an empty string in its input
+        "    - a single space in its output
         "}}}
         let a:motion[dir].lhs = a:lhs
         let a:motion[dir].rhs = a:lhs
@@ -639,8 +639,8 @@ fu! s:get_motion_info(lhs) abort "{{{2
     " Purpose:{{{
     " return the info about the motion in the db:
     "
-    "     - which contains `a:lhs` (no matter for which direction)
-    "     - whose mode is the identical to the one in which we currently are
+    "    - which contains `a:lhs` (no matter for which direction)
+    "    - whose mode is the identical to the one in which we currently are
     "}}}
 
     let mode = s:get_current_mode()
@@ -655,8 +655,8 @@ fu! s:get_motion_info(lhs) abort "{{{2
         "
         " The current function is called from:
         "
-        "     - s:move()
-        "     - s:move_again()
+        "    - s:move()
+        "    - s:move_again()
         "
         " In `s:move()`, `s:get_motion_info()` is passed a keysequence which has
         " been translated automatically  because `s:move()` was in the  rhs of a
@@ -677,9 +677,9 @@ fu! s:get_motion_info(lhs) abort "{{{2
         "}}}
         if   index([m.bwd.lhs, m.fwd.lhs], a:lhs) >= 0
         \ && index([mode, ' '], m.bwd.mode) >= 0
-        "                      └────────┤
-        "                               └ mode of the motion:
-        "                                 originally obtained with `maparg()`
+        "                       ├────────┘
+        "                       └ mode of the motion:
+        "                         originally obtained with `maparg()`
         "
         " Why this last condition? {{{
         "

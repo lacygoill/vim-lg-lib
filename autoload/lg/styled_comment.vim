@@ -99,34 +99,10 @@ let s:custom_groups = [
 " filetype plugin {{{1
 fu! lg#styled_comment#fold() abort "{{{2
     let ft = expand('<amatch>')
-    " Why naming the augroup `my_fold_x` instead of just `my_x`?{{{
-    "
-    " Suppose you install this autocmd in `after/ftplugin/x.vim`:
-    "
-    "     augroup my_x
-    "         au! * <buffer>
-    "         au BufWinEnter " do sth
-    "     augroup END
-    "
-    " It will be removed by the `au! * <buffer>` from the next autocmd.
-    "
-    " Indeed, in your vimrc, you have run `:filetype plugin on`, or vim-plug has
-    " done it for you.
-    " And  a bit  later, still  in  your vimrc,  you have  installed an  autocmd
-    " listening to `FileType`  which calls the current function  (the augroup is
-    " named `styled_comments`).
-    "
-    " So,   when  `FileType`   is   fired,  all   the   ftplugins  are   sourced
-    " first  (including  the  ones  in   `after/`),  *then*  the  autocmds  from
-    " `styled_comments` are run.
-    "}}}
-    exe 'augroup my_fold_'.ft
-        au! *            <buffer>
-        au  BufWinEnter  <buffer>  setl fdm=marker
-                               \ | setl fdt=fold#fdt#get()
-                               \ | setl cocu=nc
-                               \ | setl cole=3
-    augroup END
+    setl fdm=marker
+    setl fdt=fold#fdt#get()
+    setl cocu=nc
+    setl cole=3
 endfu
 
 fu! lg#styled_comment#undo_ftplugin() abort "{{{2
@@ -134,7 +110,6 @@ fu! lg#styled_comment#undo_ftplugin() abort "{{{2
     let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe')
         \ . "
         \ | setl cocu< cole< fdm< fdt<
-        \ | exe 'au! my_fold_".ft." * <buffer>'
         \ "
 endfu
 " }}}1
@@ -238,8 +213,8 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "
     " For offsets when defining the syntax groups:
     "
-    "     - xxxCommentTitle
-    "     - xxxCommentTitleLeader
+    "    - xxxCommentTitle
+    "    - xxxCommentTitleLeader
     "}}}
     " Why capturing it now?{{{
     "
@@ -763,7 +738,7 @@ fu! s:syn_code_block(ft, cml, commentGroup) abort "{{{2
     " - some item
     exe 'syn region '.a:ft.'CommentListItemCodeBlock'
         \ . ' matchgroup=Comment'
-        \ . ' start=/'.a:cml.'         /'
+        \ . ' start=/'.a:cml.' \{9,}/'
         \ . ' end=/$/'
         \ . ' keepend'
         \ . ' contained'
