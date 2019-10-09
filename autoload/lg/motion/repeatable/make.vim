@@ -229,7 +229,7 @@ fu! s:move(lhs) abort "{{{2
     let motion = s:get_motion_info(a:lhs)
 
     " for some reason, no motion in the db matches `a:lhs`
-    if type(motion) !=# type({})
+    if type(motion) != type({})
         return ''
     endif
 
@@ -292,7 +292,7 @@ fu! s:move_again(dir) abort "{{{2
     " The last motion is  local to a buffer, you change the  buffer, and in this
     " one the motion doesn't exist…
     "}}}
-    if type(motion) !=# type({})
+    if type(motion) != type({})
         return ''
     endif
 
@@ -627,9 +627,9 @@ fu! s:get_mapcmd(mode, maparg) abort "{{{2
 
     let mapcmd = s:{is_recursive ? '' : 'NON_'}RECURSIVE_MAPCMD[a:mode]
 
-    let mapcmd .= '  <expr>'
+    let mapcmd ..= '  <expr>'
 
-    let mapcmd .= join(map(['buffer', 'nowait', 'silent'],
+    let mapcmd ..= join(map(['buffer', 'nowait', 'silent'],
     \                      {_,v -> get(a:maparg, v, 0) ? '<'.v.'>' : ''}))
 
     return mapcmd
@@ -772,7 +772,7 @@ fu! s:unshadow(m, mode) abort "{{{2
 endfu
 
 fu! s:update_undo_ftplugin() abort "{{{2
-    if stridx(get(b:, 'undo_ftplugin', ''), 'unlet! b:repeatable_motions') ==# -1
+    if stridx(get(b:, 'undo_ftplugin', ''), 'unlet! b:repeatable_motions') == -1
         let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe')
             \ . ' | unlet! b:repeatable_motions'
     endif

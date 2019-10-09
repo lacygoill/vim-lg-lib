@@ -80,7 +80,7 @@ endfu
 fu! s:add_text_to_write(opt, m, scope) abort "{{{2
     let text = printf('  %s  %s | %s',
     \                 a:m.bwd.mode, a:m.bwd.untranslated_lhs, a:m.fwd.untranslated_lhs)
-    let text .= a:opt.verbose1
+    let text ..= a:opt.verbose1
             \ ?     '    '.a:m['original mapping']
             \ :     ''
 
@@ -90,7 +90,7 @@ fu! s:add_text_to_write(opt, m, scope) abort "{{{2
         "
         " Why didn't you wrote earlier:
         "
-        "     let line .= "\n"
+        "     let line ..= "\n"
         "     \           .'       '.a:m['original mapping']."\n"
         "     \           .'       Made repeatable from '.a:m['made repeatable from']
         "     \           ."\n"

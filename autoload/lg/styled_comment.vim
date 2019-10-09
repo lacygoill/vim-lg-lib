@@ -288,7 +288,6 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " This  is neat;  study how  it's possible,  and try  to redefine  the other
     " syntax groups, so that we have less arguments to pass.
     call s:syn_option(ft)
-    call s:syn_key(ft, commentGroup)
     call s:syn_url(ft, commentGroup)
     call s:syn_foldmarkers(ft, cml_0_1, commentGroup)
 
@@ -1018,18 +1017,6 @@ fu! s:syn_pointer(ft, cml, commentGroup) abort "{{{2
     exe 'syn match '.a:ft.'CommentPointer'
         \ . ' /'.a:cml.'\s*\%([v^✘✔]\+\s*\)\+$/'
         \ . ' contains='.a:ft.'CommentLeader'
-        \ . ' contained'
-        \ . ' containedin='.a:commentGroup
-endfu
-
-fu! s:syn_key(ft, commentGroup) abort "{{{2
-    " some <kbd>key</kbd>
-    exe 'syn region '.a:ft.'CommentKey'
-        \ . ' matchgroup=Special'
-        \ . ' start=/<kbd>/'
-        \ . ' end=/<\/kbd>/'
-        \ . ' oneline'
-        \ . ' concealends'
         \ . ' contained'
         \ . ' containedin='.a:commentGroup
 endfu

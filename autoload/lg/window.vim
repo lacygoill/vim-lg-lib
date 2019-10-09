@@ -1,3 +1,19 @@
+fu! lg#window#focus_previous_if_on_right() abort "{{{1
+    if s:previous_window_is_on_right()
+        wincmd p
+    else
+        wincmd l
+    endif
+endfu
+
+fu! s:previous_window_is_on_right() abort
+    let nr = winnr()
+    let rightedge_current_window = win_screenpos(nr)[1] + winwidth(nr) - 1
+    let nr = winnr('#')
+    let leftedge_previous_window = win_screenpos(nr)[1]
+    return rightedge_current_window + 1 == leftedge_previous_window - 1
+endfu
+
 fu! lg#window#get_modifier(...) abort "{{{1
 "   ├┘                     ├┘
 "   │                      └ optional flag meaning we're going to open a loc window
@@ -78,7 +94,7 @@ fu! lg#window#qf_open(type) abort "{{{1
         let id = a:type is# 'loc'
         \            ?    getloclist(0, {'winid':0})
         \            :    getqflist(   {'winid':0})
-        if get(id, 'winid', 0) ==# 0
+        if get(id, 'winid', 0) == 0
             " Why :[cl]open? Are they valid commands here?{{{
             "
             " Probably not, because these commands  don't populate the qfl, they
@@ -133,12 +149,12 @@ fu! lg#window#qf_open(type) abort "{{{1
         let win_ids = gettabinfo(tabpagenr())[0].windows
         let loc_id  = win_getid()
         let id = get(filter(win_ids, {_,v ->
-            \ get(getloclist(v, {'winid': 0}), 'winid', 0) ==# loc_id
-            \ && v !=# loc_id })
+            \ get(getloclist(v, {'winid': 0}), 'winid', 0) == loc_id
+            \ && v != loc_id })
             \ , 0, 0)
     endif
 
-    if id !=# 0
+    if id != 0
         call win_gotoid(id)
     endif
     return ''
@@ -302,9 +318,9 @@ fu! lg#window#restore_closed(cnt) abort "{{{1
         " │ if it's too long to fit on a single line,
         " │ it will trigger a press-enter prompt
         sil exe 'so '.session_file
-        let s:undo_sessions = a:cnt ==# 1 ? s:undo_sessions[:-2] : []
-        "                                                           │
-        "            if we gave a count to restore several windows, ┘
+        let s:undo_sessions = a:cnt == 1 ? s:undo_sessions[:-2] : []
+        "                                                          │
+        "           if we gave a count to restore several windows, ┘
         "
         " … we  probably want to  reset the  stack of sessions,  otherwise the
         " next time we  would hit `{number} leader u`, if  `{number}` is too big
