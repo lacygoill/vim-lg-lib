@@ -396,7 +396,7 @@ fu! s:move_again(dir) abort "{{{2
     " command. IOW, when the last motion was `fx`, `f` is insufficient to know
     " where to move.
     "}}}
-    call timer_start(0, {-> execute('let s:is_repeating_motion = 0')})
+    call timer_start(0, {_ -> execute('let s:is_repeating_motion = 0')})
 
     " If we're using  `]q` &friends, we need to redraw  all statuslines, so that
     " the position in the list is updated immediately.
@@ -407,7 +407,7 @@ fu! s:move_again(dir) abort "{{{2
     " AND the  statuslines. However, if we eliminate  `:redraw` later, uncomment
     " the next line.
     "
-    "     call timer_start(0, { -> execute('redraws!') })
+    "     call timer_start(0, {_ -> execute('redraws!') })
 
     return ''
 endfu
