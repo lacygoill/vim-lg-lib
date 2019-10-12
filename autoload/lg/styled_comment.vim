@@ -111,7 +111,7 @@ endfu
 fu lg#styled_comment#undo_ftplugin() abort "{{{2
     let ft = expand('<amatch>')
     let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe')
-        \ . "
+        \ .."
         \ | setl cocu< cole< fdm< fdt<
         \ "
 endfu
@@ -234,8 +234,8 @@ fu lg#styled_comment#syntax() abort "{{{2
     " This is needed for `xkb` where the comment leader is `//`.
     "}}}
     let cml = escape(cml, '\/')
-    let cml_0_1 = '\V\%('.cml.'\)\=\m'
-    let cml = '\V'.cml.'\m'
+    let cml_0_1 = '\V\%('..cml..'\)\=\m'
+    let cml = '\V'..cml..'\m'
     let commentGroup = s:get_commentgroup(ft)
 
     call s:syn_commentleader(ft, cml)
@@ -337,9 +337,9 @@ fu s:fix_allbut(ft) abort "{{{2
     "}}}
     let groups = copy(s:CUSTOM_GROUPS)
     call map(groups, {_,v ->
-        \ v[0] is# '@' ? '@' . a:ft . substitute(v, '@', '', '') : a:ft . v})
+        \ v[0] is# '@' ? '@'..a:ft..trim(v, '@') : a:ft..v})
     let groups = join(groups, ',')
-    exe 'syn cluster '.a:ft.'MyCustomGroups contains='.groups
+    exe 'syn cluster '..a:ft..'MyCustomGroups contains='..groups
 
     " get the list of groups using `ALLBUT`, and save it in a script-local variable
     " to avoid having to recompute it every time we reload the same kind of buffer
@@ -408,17 +408,17 @@ fu s:fix_allbut(ft) abort "{{{2
         " break  sth else,  consider  maintaining  your own  version  of the  syntax
         " plugin, in which you ignore `@xMyCustomGroups` whenever it's necessary.
         "}}}
-        call filter(s:allbut_groups[a:ft], {_,v -> v =~# '^' . a:ft})
+        call filter(s:allbut_groups[a:ft], {_,v -> v =~# '^'..a:ft})
     endif
 
     for group in s:allbut_groups[a:ft]
         let cmds = s:get_cmds_to_reset_group(group)
 
         " add `@xMyCustomGroups` after `ALLBUT`
-        call map(cmds, {_,v -> substitute(v, '\m\CALLBUT,', 'ALLBUT,@'.a:ft.'MyCustomGroups,', '')})
+        call map(cmds, {_,v -> substitute(v, '\m\CALLBUT,', 'ALLBUT,@'..a:ft..'MyCustomGroups,', '')})
 
         " clear and redefine all the items in the group
-        exe 'syn clear ' . group
+        exe 'syn clear '..group
         call map(cmds, {_,v -> execute(v)})
     endfor
 endfu
@@ -468,7 +468,7 @@ fu s:fix_comment_region(ft) abort "{{{2
     " Here, that's not going to happen; our contained styles never go beyond the
     " last character of a comment.
     "}}}
-    let cmds = s:get_cmds_to_reset_group(a:ft.'Comment')
+    let cmds = s:get_cmds_to_reset_group(a:ft..'Comment')
     " Do not reset the comment group if it doesn't contain any region item.{{{
     "
     " It's only needed for a region, not for a match.
@@ -500,14 +500,14 @@ fu s:fix_comment_region(ft) abort "{{{2
     " If it gets too complex, get rid of this function, and redefine the comment
     " group in `~/.vim/after/syntax/x.vim` on a per-filetype basis.
     "}}}
-    call map(cmds, {_,v -> v . ' keepend'})
-    exe 'syn clear ' . a:ft . 'Comment'
+    call map(cmds, {_,v -> v..' keepend'})
+    exe 'syn clear '..a:ft..'Comment'
     call map(cmds, {_,v -> execute(v)})
 endfu
 
 fu s:get_cmds_to_reset_group(group) abort "{{{2
     " get original definition
-    let definition = split(execute('syn list ' . a:group), '\n')
+    let definition = split(execute('syn list '..a:group), '\n')
 
     " remove noise
     call filter(definition, {_,v -> v !~# '^---\|^\s\+links\s\+to\s\+'})
@@ -520,10 +520,10 @@ fu s:get_cmds_to_reset_group(group) abort "{{{2
     " the items in the group
     let cmds = map(definition, {_,v ->
         \ match(v, '\m\C\<start=') >= 0
-        \ ?     'syn region ' . a:group . ' ' . v
+        \ ?     'syn region '..a:group..' '..v
         \ : match(v, '\m\C\<match\>') >= 0
-        \ ?     'syn match ' . a:group . ' ' . substitute(v, 'match', '', '')
-        \ :     'syn keyword ' . a:group . ' ' . v
+        \ ?     'syn match '..a:group..' '..substitute(v, 'match', '', '')
+        \ :     'syn keyword '..a:group..' '..v
         \ })
 
     return cmds
@@ -575,7 +575,7 @@ fu s:get_commentgroup(ft) abort "{{{2
     elseif a:ft is# 'sh'
         return 'shComment,shQuickComment'
     else
-        return a:ft.'Comment'
+        return a:ft..'Comment'
     endif
 endfu
 
@@ -592,37 +592,37 @@ fu s:get_filetype() abort "{{{2
 endfu
 
 fu s:highlight_groups_links(ft) abort "{{{2
-    exe 'hi '.a:ft.'FoldMarkers term=bold cterm=bold gui=bold'
+    exe 'hi '..a:ft..'FoldMarkers term=bold cterm=bold gui=bold'
 
-    exe 'hi link '.a:ft.'CommentURL CommentUnderlined'
+    exe 'hi link '..a:ft..'CommentURL CommentUnderlined'
 
-    exe 'hi link '.a:ft.'CommentBold                  CommentBold'
-    exe 'hi link '.a:ft.'CommentBoldItalic            CommentBoldItalic'
-    exe 'hi link '.a:ft.'CommentCodeBlock             CommentCodeSpan'
-    exe 'hi link '.a:ft.'CommentCodeSpan              CommentCodeSpan'
-    exe 'hi link '.a:ft.'CommentItalic                CommentItalic'
+    exe 'hi link '..a:ft..'CommentBold                  CommentBold'
+    exe 'hi link '..a:ft..'CommentBoldItalic            CommentBoldItalic'
+    exe 'hi link '..a:ft..'CommentCodeBlock             CommentCodeSpan'
+    exe 'hi link '..a:ft..'CommentCodeSpan              CommentCodeSpan'
+    exe 'hi link '..a:ft..'CommentItalic                CommentItalic'
 
-    exe 'hi link '.a:ft.'CommentBlockquote            markdownBlockquote'
-    exe 'hi link '.a:ft.'CommentBlockquoteBold        markdownBlockquoteBold'
-    exe 'hi link '.a:ft.'CommentBlockquoteBoldItalic  markdownBlockquoteBoldItalic'
-    exe 'hi link '.a:ft.'CommentBlockquoteCodeSpan    markdownBlockquoteCodeSpan'
-    exe 'hi link '.a:ft.'CommentBlockquoteItalic      markdownBlockquoteItalic'
+    exe 'hi link '..a:ft..'CommentBlockquote            markdownBlockquote'
+    exe 'hi link '..a:ft..'CommentBlockquoteBold        markdownBlockquoteBold'
+    exe 'hi link '..a:ft..'CommentBlockquoteBoldItalic  markdownBlockquoteBoldItalic'
+    exe 'hi link '..a:ft..'CommentBlockquoteCodeSpan    markdownBlockquoteCodeSpan'
+    exe 'hi link '..a:ft..'CommentBlockquoteItalic      markdownBlockquoteItalic'
 
-    exe 'hi link '.a:ft.'CommentKey                   markdownKey'
-    exe 'hi link '.a:ft.'CommentLeader                Comment'
-    exe 'hi link '.a:ft.'CommentListItem              markdownListItem'
-    exe 'hi link '.a:ft.'CommentListItemBlockquote    markdownListItemBlockquote'
-    exe 'hi link '.a:ft.'CommentListItemBold          markdownListItemBold'
-    exe 'hi link '.a:ft.'CommentListItemBoldItalic    markdownListItemBoldItalic'
-    exe 'hi link '.a:ft.'CommentListItemCodeBlock     CommentCodeSpan'
-    exe 'hi link '.a:ft.'CommentListItemCodeSpan      CommentListItemCodeSpan'
-    exe 'hi link '.a:ft.'CommentListItemItalic        markdownListItemItalic'
-    exe 'hi link '.a:ft.'CommentOption                markdownOption'
-    exe 'hi link '.a:ft.'CommentOutput                CommentPreProc'
-    exe 'hi link '.a:ft.'CommentPointer               markdownPointer'
-    exe 'hi link '.a:ft.'CommentRule                  markdownRule'
-    exe 'hi link '.a:ft.'CommentTable                 markdownTable'
-    exe 'hi link '.a:ft.'CommentTitle                 CommentPreProc'
+    exe 'hi link '..a:ft..'CommentKey                   markdownKey'
+    exe 'hi link '..a:ft..'CommentLeader                Comment'
+    exe 'hi link '..a:ft..'CommentListItem              markdownListItem'
+    exe 'hi link '..a:ft..'CommentListItemBlockquote    markdownListItemBlockquote'
+    exe 'hi link '..a:ft..'CommentListItemBold          markdownListItemBold'
+    exe 'hi link '..a:ft..'CommentListItemBoldItalic    markdownListItemBoldItalic'
+    exe 'hi link '..a:ft..'CommentListItemCodeBlock     CommentCodeSpan'
+    exe 'hi link '..a:ft..'CommentListItemCodeSpan      CommentListItemCodeSpan'
+    exe 'hi link '..a:ft..'CommentListItemItalic        markdownListItemItalic'
+    exe 'hi link '..a:ft..'CommentOption                markdownOption'
+    exe 'hi link '..a:ft..'CommentOutput                CommentPreProc'
+    exe 'hi link '..a:ft..'CommentPointer               markdownPointer'
+    exe 'hi link '..a:ft..'CommentRule                  markdownRule'
+    exe 'hi link '..a:ft..'CommentTable                 markdownTable'
+    exe 'hi link '..a:ft..'CommentTitle                 CommentPreProc'
 endfu
 
 fu s:syn_commentleader(ft, cml) abort "{{{2
@@ -631,9 +631,9 @@ fu s:syn_commentleader(ft, cml) abort "{{{2
     " Without it, if your comment leader appears inside a list item, it would be
     " highlighted as a comment leader, instead of being part of the item.
     "}}}
-    exe 'syn match '.a:ft.'CommentLeader'
-        \ . ' /\%(^\s*\)\@<='.a:cml.'/'
-        \ . ' contained'
+    exe 'syn match '..a:ft..'CommentLeader'
+        \ ..' /\%(^\s*\)\@<='..a:cml..'/'
+        \ ..' contained'
 endfu
 
 fu s:syn_commenttitle(ft, cml, nr) abort "{{{2
@@ -652,29 +652,29 @@ fu s:syn_commenttitle(ft, cml, nr) abort "{{{2
         return
     endif
 
-    exe 'syn match '.a:ft.'CommentTitleLeader'
-        \ . ' /'.a:cml.'\s\+/ms=s+'.a:nr
-        \ . ' contained'
+    exe 'syn match '..a:ft..'CommentTitleLeader'
+        \ ..' /'..a:cml..'\s\+/ms=s+'..a:nr
+        \ ..' contained'
     " Don't remove `containedin=`!{{{
     "
     " We need it, for example, to allow `awkCommentTitle` to be contained in
     " `awkComment`. Same thing for many other filetypes.
     "}}}
-    exe 'syn match '.a:ft.'CommentTitle'
-        \ . ' /'.a:cml.'\s*\u\w*\%(\s\+\u\w*\)*:/hs=s+'.a:nr
-        \ . ' contained'
-        \ . ' containedin='.a:ft.'Comment'.(a:ft is# 'c' ? 'L' : '')
-        \ . ' contains='.a:ft.'CommentTitleLeader,'
-        \ .              a:ft.'Todo'
+    exe 'syn match '..a:ft..'CommentTitle'
+        \ ..' /'..a:cml..'\s*\u\w*\%(\s\+\u\w*\)*:/hs=s+'..a:nr
+        \ ..' contained'
+        \ ..' containedin='..a:ft..'Comment'..(a:ft is# 'c' ? 'L' : '')
+        \ ..' contains='..a:ft..'CommentTitleLeader,'
+        \ ..a:ft..'Todo'
 endfu
 
 fu s:syn_list_item(ft, cml, commentGroup) abort "{{{2
-    exe 'syn cluster '.a:ft.'CommentListItemElements'
-        \ . ' contains='.a:ft.'CommentListItemItalic,'
-        \ .              a:ft.'CommentListItemBold,'
-        \ .              a:ft.'CommentListItemBoldItalic,'
-        \ .              a:ft.'CommentListItemCodeSpan,'
-        \ .              a:ft.'CommentListItemCodeBlock,'
+    exe 'syn cluster '..a:ft..'CommentListItemElements'
+        \ ..' contains='..a:ft..'CommentListItemItalic,'
+        \               ..a:ft..'CommentListItemBold,'
+        \               ..a:ft..'CommentListItemBoldItalic,'
+        \               ..a:ft..'CommentListItemCodeSpan,'
+        \               ..a:ft..'CommentListItemCodeBlock,'
 
     " - some item 1
     "   some text
@@ -704,17 +704,17 @@ fu s:syn_list_item(ft, cml, commentGroup) abort "{{{2
     " With and without limiting the backtracking of `\%(^\s*\)\@<=`.
     "}}}
     let list_marker = '[-*+]'
-    exe 'syn region '.a:ft.'CommentListItem'
-        \ . ' start=/\%(^\s*\)\@<='.a:cml.' \{,4\}\%('.list_marker.'\|\d\+\.\)\s\+\S/'
-        \ . ' end=/'.a:cml.'\%(\s*\n\s*'.a:cml.' \{,4}\S\)\@='
-        \       . '\|\n\%(\s*'.a:cml.'.*\%(}'.'}}\|{'.'{{\)\)\@='
-        \       . '\|^\%(\s*'.a:cml.'\)\@!/'
-        \ . ' keepend'
-        \ . ' contains='.a:ft.'FoldMarkers,'
-        \ .              a:ft.'CommentLeader,'
-        \ .          '@'.a:ft.'CommentListItemElements'
-        \ . ' contained'
-        \ . ' containedin='.a:commentGroup
+    exe 'syn region '..a:ft..'CommentListItem'
+        \ ..' start=/\%(^\s*\)\@<='..a:cml..' \{,4\}\%('..list_marker..'\|\d\+\.\)\s\+\S/'
+        \ ..' end=/'..a:cml..'\%(\s*\n\s*'..a:cml..' \{,4}\S\)\@='
+        \       ..'\|\n\%(\s*'..a:cml..'.*\%(}'..'}}\|{'..'{{\)\)\@='
+        \       ..'\|^\%(\s*'..a:cml..'\)\@!/'
+        \ ..' keepend'
+        \ ..' contains='..a:ft..'FoldMarkers,'
+        \               ..a:ft..'CommentLeader,'
+        \          ..'@'..a:ft..'CommentListItemElements'
+        \ ..' contained'
+        \ ..' containedin='..a:commentGroup
 endfu
 
 fu s:syn_code_block(ft, cml, commentGroup) abort "{{{2
@@ -724,28 +724,28 @@ fu s:syn_code_block(ft, cml, commentGroup) abort "{{{2
     " comment leader (instead of complete lines).
     " It's less noisy.
     "}}}
-    exe 'syn region '.a:ft.'CommentCodeBlock'
-        \ . ' matchgroup=Comment'
-        \ . ' start=/'.a:cml.' \{5,}/'
-        \ . ' end=/$/'
-        \ . ' keepend'
-        \ . ' contained'
-        \ . ' containedin='.a:commentGroup
-        \ . ' oneline'
+    exe 'syn region '..a:ft..'CommentCodeBlock'
+        \ ..' matchgroup=Comment'
+        \ ..' start=/'..a:cml..' \{5,}/'
+        \ ..' end=/$/'
+        \ ..' keepend'
+        \ ..' contained'
+        \ ..' containedin='..a:commentGroup
+        \ ..' oneline'
 
     " - some item
     "
     "         some code block
     "
     " - some item
-    exe 'syn region '.a:ft.'CommentListItemCodeBlock'
-        \ . ' matchgroup=Comment'
-        \ . ' start=/'.a:cml.' \{9,}/'
-        \ . ' end=/$/'
-        \ . ' keepend'
-        \ . ' contained'
-        \ . ' containedin='.a:ft.'CommentListItem'
-        \ . ' oneline'
+    exe 'syn region '..a:ft..'CommentListItemCodeBlock'
+        \ ..' matchgroup=Comment'
+        \ ..' start=/'..a:cml..' \{9,}/'
+        \ ..' end=/$/'
+        \ ..' keepend'
+        \ ..' contained'
+        \ ..' containedin='..a:ft..'CommentListItem'
+        \ ..' oneline'
 endfu
 
 fu s:syn_code_span(ft, commentGroup) abort "{{{2
@@ -788,36 +788,36 @@ fu s:syn_code_span(ft, commentGroup) abort "{{{2
     "     $ vim !$
     "}}}
     " some `code span` in a comment
-    exe 'syn region '.a:ft.'CommentCodeSpan'
-        \ . ' matchgroup=Comment'
-        \ . ' start=/\z(`\+\)/'
-        \ . '   end=/\z1/'
-        \ . ' keepend'
-        \ . ' concealends'
-        \ . ' contained'
-        \ . ' containedin='.a:commentGroup
-        \ . ' oneline'
+    exe 'syn region '..a:ft..'CommentCodeSpan'
+        \ ..' matchgroup=Comment'
+        \ ..' start=/\z(`\+\)/'
+        \ ..'   end=/\z1/'
+        \ ..' keepend'
+        \ ..' concealends'
+        \ ..' contained'
+        \ ..' containedin='..a:commentGroup
+        \ ..' oneline'
 
     " - some `code span` item
-    exe 'syn region '.a:ft.'CommentListItemCodeSpan'
-        \ . ' matchgroup=markdownListItem'
-        \ . ' start=/\z(`\+\)/'
-        \ . '   end=/\z1/'
-        \ . ' keepend'
-        \ . ' concealends'
-        \ . ' contained'
-        \ . ' oneline'
+    exe 'syn region '..a:ft..'CommentListItemCodeSpan'
+        \ ..' matchgroup=markdownListItem'
+        \ ..' start=/\z(`\+\)/'
+        \ ..'   end=/\z1/'
+        \ ..' keepend'
+        \ ..' concealends'
+        \ ..' contained'
+        \ ..' oneline'
 
     " > some `code span` in a quote
-    exe 'syn region '.a:ft.'CommentBlockquoteCodeSpan'
-        \ . ' matchgroup=markdownBlockquote'
-        \ . ' start=/\z(`\+\)/'
-        \ . '   end=/\z1/'
-        \ . ' keepend'
-        \ . ' concealends'
-        \ . ' contained'
-        \ . ' containedin='.a:ft.'CommentBlockquote'
-        \ . ' oneline'
+    exe 'syn region '..a:ft..'CommentBlockquoteCodeSpan'
+        \ ..' matchgroup=markdownBlockquote'
+        \ ..' start=/\z(`\+\)/'
+        \ ..'   end=/\z1/'
+        \ ..' keepend'
+        \ ..' concealends'
+        \ ..' contained'
+        \ ..' containedin='..a:ft..'CommentBlockquote'
+        \ ..' oneline'
 endfu
 
 fu s:syn_italic(ft, commentGroup) abort "{{{2
@@ -830,104 +830,104 @@ fu s:syn_italic(ft, commentGroup) abort "{{{2
     endif
 
     " some *italic* comment
-    exe 'syn region '.a:ft.'CommentItalic'
-        \ . ' matchgroup=Comment'
-        \ . ' start=/\*/'
-        \ . ' end=/\*/'
-        \ . ' keepend'
-        \ . ' concealends'
-        \ . ' contained'
-        \ . ' containedin='.a:commentGroup
-        \ . ' oneline'
+    exe 'syn region '..a:ft..'CommentItalic'
+        \ ..' matchgroup=Comment'
+        \ ..' start=/\*/'
+        \ ..' end=/\*/'
+        \ ..' keepend'
+        \ ..' concealends'
+        \ ..' contained'
+        \ ..' containedin='..a:commentGroup
+        \ ..' oneline'
 
     " - some *italic* item
-    exe 'syn region '.a:ft.'CommentListItemItalic'
-        \ . ' matchgroup=markdownListItem'
-        \ . ' start=/\*/'
-        \ . ' end=/\*/'
-        \ . ' keepend'
-        \ . ' concealends'
-        \ . ' contained'
-        \ . ' oneline'
+    exe 'syn region '..a:ft..'CommentListItemItalic'
+        \ ..' matchgroup=markdownListItem'
+        \ ..' start=/\*/'
+        \ ..' end=/\*/'
+        \ ..' keepend'
+        \ ..' concealends'
+        \ ..' contained'
+        \ ..' oneline'
 
     " > some *italic* quote
-    exe 'syn region '.a:ft.'CommentBlockquoteItalic'
-        \ . ' matchgroup=markdownBlockquote'
-        \ . ' start=/\*/'
-        \ . ' end=/\*/'
-        \ . ' keepend'
-        \ . ' concealends'
-        \ . ' contained'
-        \ . ' containedin='.a:ft.'CommentBlockquote'
-        \ . ' oneline'
+    exe 'syn region '..a:ft..'CommentBlockquoteItalic'
+        \ ..' matchgroup=markdownBlockquote'
+        \ ..' start=/\*/'
+        \ ..' end=/\*/'
+        \ ..' keepend'
+        \ ..' concealends'
+        \ ..' contained'
+        \ ..' containedin='..a:ft..'CommentBlockquote'
+        \ ..' oneline'
 endfu
 
 fu s:syn_bold(ft, commentGroup) abort "{{{2
     " some **bold** comment
-    exe 'syn region '.a:ft.'CommentBold'
-        \ . ' matchgroup=Comment'
-        \ . ' start=/\*\*/'
-        \ . '  end=/\*\*/'
-        \ . ' keepend'
-        \ . ' concealends'
-        \ . ' contained'
-        \ . ' containedin='.a:commentGroup
-        \ . ' oneline'
+    exe 'syn region '..a:ft..'CommentBold'
+        \ ..' matchgroup=Comment'
+        \ ..' start=/\*\*/'
+        \ ..'  end=/\*\*/'
+        \ ..' keepend'
+        \ ..' concealends'
+        \ ..' contained'
+        \ ..' containedin='..a:commentGroup
+        \ ..' oneline'
 
     " - some **bold** item
-    exe 'syn region '.a:ft.'CommentListItemBold'
-        \ . ' matchgroup=markdownListItem'
-        \ . ' start=/\*\*/'
-        \ . '  end=/\*\*/'
-        \ . ' keepend'
-        \ . ' concealends'
-        \ . ' contained'
-        \ . ' oneline'
+    exe 'syn region '..a:ft..'CommentListItemBold'
+        \ ..' matchgroup=markdownListItem'
+        \ ..' start=/\*\*/'
+        \ ..'  end=/\*\*/'
+        \ ..' keepend'
+        \ ..' concealends'
+        \ ..' contained'
+        \ ..' oneline'
 
     " > some **bold** quote
-    exe 'syn region '.a:ft.'CommentBlockquoteBold'
-        \ . ' matchgroup=markdownBlockquote'
-        \ . ' start=/\*\*/'
-        \ . '   end=/\*\*/'
-        \ . ' keepend'
-        \ . ' concealends'
-        \ . ' contained'
-        \ . ' containedin='.a:ft.'CommentBlockquote'
-        \ . ' oneline'
+    exe 'syn region '..a:ft..'CommentBlockquoteBold'
+        \ ..' matchgroup=markdownBlockquote'
+        \ ..' start=/\*\*/'
+        \ ..'   end=/\*\*/'
+        \ ..' keepend'
+        \ ..' concealends'
+        \ ..' contained'
+        \ ..' containedin='..a:ft..'CommentBlockquote'
+        \ ..' oneline'
 endfu
 
 fu s:syn_bolditalic(ft, commentGroup) abort "{{{2
     " some ***bold and italic*** comment
-    exe 'syn region '.a:ft.'CommentBoldItalic'
-        \ . ' matchgroup=Comment'
-        \ . ' start=/\*\*\*/'
-        \ . '  end=/\*\*\*/'
-        \ . ' keepend'
-        \ . ' concealends'
-        \ . ' contained'
-        \ . ' containedin='.a:commentGroup
-        \ . ' oneline'
+    exe 'syn region '..a:ft..'CommentBoldItalic'
+        \ ..' matchgroup=Comment'
+        \ ..' start=/\*\*\*/'
+        \ ..'  end=/\*\*\*/'
+        \ ..' keepend'
+        \ ..' concealends'
+        \ ..' contained'
+        \ ..' containedin='..a:commentGroup
+        \ ..' oneline'
 
     " - some ***bold and italic*** item
-    exe 'syn region '.a:ft.'CommentListItemBoldItalic'
-        \ . ' matchgroup=markdownListItem'
-        \ . ' start=/\*\*\*/'
-        \ . '  end=/\*\*\*/'
-        \ . ' keepend'
-        \ . ' concealends'
-        \ . ' contained'
-        \ . ' oneline'
+    exe 'syn region '..a:ft..'CommentListItemBoldItalic'
+        \ ..' matchgroup=markdownListItem'
+        \ ..' start=/\*\*\*/'
+        \ ..'  end=/\*\*\*/'
+        \ ..' keepend'
+        \ ..' concealends'
+        \ ..' contained'
+        \ ..' oneline'
 
     " > some ***bold and italic*** quote
-    exe 'syn region '.a:ft.'CommentBlockquoteBoldItalic'
-        \ . ' matchgroup=markdownBlockquote'
-        \ . ' start=/\*\*\*/'
-        \ . '  end=/\*\*\*/'
-        \ . ' keepend'
-        \ . ' concealends'
-        \ . ' contained'
-        \ . ' containedin='.a:ft.'CommentBlockquote'
-        \ . ' oneline'
+    exe 'syn region '..a:ft..'CommentBlockquoteBoldItalic'
+        \ ..' matchgroup=markdownBlockquote'
+        \ ..' start=/\*\*\*/'
+        \ ..'  end=/\*\*\*/'
+        \ ..' keepend'
+        \ ..' concealends'
+        \ ..' contained'
+        \ ..' containedin='..a:ft..'CommentBlockquote'
+        \ ..' oneline'
 endfu
 
 fu s:syn_blockquote(ft, cml, commentGroup) abort "{{{2
@@ -940,38 +940,38 @@ fu s:syn_blockquote(ft, cml, commentGroup) abort "{{{2
     " To stay  consistent, we should be able  to do the same in  the comments of
     " other filetypes.
     "}}}
-    exe 'syn match '.a:ft.'CommentBlockquote'
-        \ . ' /'.a:cml.' \{,4}>.*/'
-        \ . ' contained'
-        \ . ' containedin='.a:commentGroup
-        \ . ' contains='.a:ft.'CommentLeader,'
-        \ .              a:ft.'CommentBold,'
-        \ .              a:ft.'CommentBlockquoteConceal'
-        \ . ' oneline'
+    exe 'syn match '..a:ft..'CommentBlockquote'
+        \ ..' /'..a:cml..' \{,4}>.*/'
+        \ ..' contained'
+        \ ..' containedin='..a:commentGroup
+        \ ..' contains='..a:ft..'CommentLeader,'
+        \               ..a:ft..'CommentBold,'
+        \               ..a:ft..'CommentBlockquoteConceal'
+        \ ..' oneline'
 
-    exe 'syn match '.a:ft.'CommentBlockquoteConceal'
-        \ . ' /\%('.a:cml.' \{,4}\)\@<=>\s\=/'
-        \ . ' contained'
-        \ . ' conceal'
+    exe 'syn match '..a:ft..'CommentBlockquoteConceal'
+        \ ..' /\%('..a:cml..' \{,4}\)\@<=>\s\=/'
+        \ ..' contained'
+        \ ..' conceal'
 
     " -   some list item
     "
     "     > some quote
     "
     " -   some list item
-    exe 'syn match '.a:ft.'CommentListItemBlockquote'
-        \ . ' /'.a:cml.' \{5}>.*/'
-        \ . ' contained'
-        \ . ' containedin='.a:ft.'CommentListItem'
-        \ . ' contains='.a:ft.'CommentLeader,'
-        \ .              a:ft.'CommentBlockquoteBold,'
-        \ .              a:ft.'CommentListItemBlockquoteConceal'
-        \ . ' oneline'
+    exe 'syn match '..a:ft..'CommentListItemBlockquote'
+        \ ..' /'..a:cml..' \{5}>.*/'
+        \ ..' contained'
+        \ ..' containedin='..a:ft..'CommentListItem'
+        \ ..' contains='..a:ft..'CommentLeader,'
+        \               ..a:ft..'CommentBlockquoteBold,'
+        \               ..a:ft..'CommentListItemBlockquoteConceal'
+        \ ..' oneline'
 
-    exe 'syn match '.a:ft.'CommentListItemBlockquoteConceal'
-        \ . ' /\%('.a:cml.' \{5}\)\@<=>\s\=/'
-        \ . ' contained'
-        \ . ' conceal'
+    exe 'syn match '..a:ft..'CommentListItemBlockquoteConceal'
+        \ ..' /\%('..a:cml..' \{5}\)\@<=>\s\=/'
+        \ ..' contained'
+        \ ..' conceal'
 endfu
 
 fu s:syn_output(ft, cml) abort "{{{2
@@ -991,37 +991,37 @@ fu s:syn_output(ft, cml) abort "{{{2
     " It's required in  the second statement because we don't  want to highlight
     " with `Ignore` *all* the output of a command, only the last tilde.
     "}}}
-    exe 'syn match '.a:ft.'CommentOutput'
-        \ . ' /\%(^\s*'.a:cml.' \{5,}\)\@<=.*\~$/'
-        \ . ' contained'
-        \ . ' containedin='.a:ft.'CommentCodeBlock'
-        \ . ' nextgroup='.a:ft.'CommentIgnore'
+    exe 'syn match '..a:ft..'CommentOutput'
+        \ ..' /\%(^\s*'..a:cml..' \{5,}\)\@<=.*\~$/'
+        \ ..' contained'
+        \ ..' containedin='..a:ft..'CommentCodeBlock'
+        \ ..' nextgroup='..a:ft..'CommentIgnore'
 
-    exe 'syn match '.a:ft.'CommentIgnore'
-        \ . ' /\%(^\s*'.a:cml.'.*\)\@<=.$/'
-        \ . ' contained'
-        \ . ' containedin='.a:ft.'CommentOutput'
-        \ . ' conceal'
+    exe 'syn match '..a:ft..'CommentIgnore'
+        \ ..' /\%(^\s*'..a:cml..'.*\)\@<=.$/'
+        \ ..' contained'
+        \ ..' containedin='..a:ft..'CommentOutput'
+        \ ..' conceal'
 endfu
 
 fu s:syn_option(ft) abort "{{{2
     " some `'option'`
     " - some `'option'`
-    exe 'syn match '.a:ft.'CommentOption'
-        \ . ' /`\@1<=''[a-z]\{2,}''`\@=/'
-        \ . ' contained'
-        \ . ' containedin='.a:ft.'CommentCodeSpan,'.a:ft.'CommentListItemCodeSpan'
+    exe 'syn match '..a:ft..'CommentOption'
+        \ ..' /`\@1<=''[a-z]\{2,}''`\@=/'
+        \ ..' contained'
+        \ ..' containedin='..a:ft..'CommentCodeSpan,'..a:ft..'CommentListItemCodeSpan'
 endfu
 
 fu s:syn_pointer(ft, cml, commentGroup) abort "{{{2
     " not a pointer v
     " v
     "       ^
-    exe 'syn match '.a:ft.'CommentPointer'
-        \ . ' /'.a:cml.'\s*\%([v^✘✔]\+\s*\)\+$/'
-        \ . ' contains='.a:ft.'CommentLeader'
-        \ . ' contained'
-        \ . ' containedin='.a:commentGroup
+    exe 'syn match '..a:ft..'CommentPointer'
+        \ ..' /'..a:cml..'\s*\%([v^✘✔]\+\s*\)\+$/'
+        \ ..' contains='..a:ft..'CommentLeader'
+        \ ..' contained'
+        \ ..' containedin='..a:commentGroup
 endfu
 
 fu s:syn_rule(ft, cml, commentGroup) abort "{{{2
@@ -1037,11 +1037,11 @@ fu s:syn_rule(ft, cml, commentGroup) abort "{{{2
     " We  just add  ` *`  in front  of it,  because there  could be  some spaces
     " between the comment leader and a horizontal rule.
     "}}}
-    exe 'syn match '.a:ft.'CommentRule'
-        \ . ' /'.a:cml.' *- *- *-[ -]*$/'
-        \ . ' contained'
-        \ . ' containedin='.a:commentGroup
-        \ . ' contains='.a:ft.'CommentLeader'
+    exe 'syn match '..a:ft..'CommentRule'
+        \ ..' /'..a:cml..' *- *- *-[ -]*$/'
+        \ ..' contained'
+        \ ..' containedin='..a:commentGroup
+        \ ..' contains='..a:ft..'CommentLeader'
 endfu
 
 fu s:syn_table(ft, cml, commentGroup) abort "{{{2
@@ -1068,14 +1068,14 @@ fu s:syn_table(ft, cml, commentGroup) abort "{{{2
     " Although, I  guess you could  include a  code span without  concealing the
     " backticks, but you would need to define another code span syntax item.
     "}}}
-    exe 'syn region '.a:ft.'CommentTable'
-        \ . ' matchgroup=Comment'
-        \ . ' start=/'.a:cml.'    \%([┌└]─\|│.*[^ \t│].*│\|├─.*┤\|│.*├\)\@=/'
-        \ . ' end=/$/'
-        \ . ' keepend'
-        \ . ' oneline'
-        \ . ' contained'
-        \ . ' containedin='.a:commentGroup
+    exe 'syn region '..a:ft..'CommentTable'
+        \ ..' matchgroup=Comment'
+        \ ..' start=/'..a:cml..'    \%([┌└]─\|│.*[^ \t│].*│\|├─.*┤\|│.*├\)\@=/'
+        \ ..' end=/$/'
+        \ ..' keepend'
+        \ ..' oneline'
+        \ ..' contained'
+        \ ..' containedin='..a:commentGroup
 endfu
 
 fu s:syn_url(ft, commentGroup) abort "{{{2
@@ -1109,10 +1109,10 @@ fu s:syn_url(ft, commentGroup) abort "{{{2
     "                        skipwhite
     "     links to Float
     "}}}
-    exe 'syn match ' . a:ft
-        \ . 'CommentURL `\v<(((https=|ftp)://|file:)[^''  <>"]+|(www|web|w3)[a-z0-9_-]*\.[a-z0-9._-]+\.[^''  <>"]+)[a-zA-Z0-9/]`'
-        \ . ' contained'
-        \ . ' containedin='.a:commentGroup
+    exe 'syn match '..a:ft
+        \ ..'CommentURL `\v<(((https=|ftp)://|file:)[^''  <>"]+|(www|web|w3)[a-z0-9_-]*\.[a-z0-9._-]+\.[^''  <>"]+)[a-zA-Z0-9/]`'
+        \ ..' contained'
+        \ ..' containedin='..a:commentGroup
 endfu
 
 fu s:syn_foldmarkers(ft, cml_0_1, commentGroup) abort "{{{2
@@ -1155,19 +1155,19 @@ fu s:syn_foldmarkers(ft, cml_0_1, commentGroup) abort "{{{2
     let cml_left = escape(matchstr(split(&l:cms, '%s', 1)[0], '\S*'), '\/')
     let cml_right = escape(matchstr(split(&l:cms, '%s', 1)[1], '\S*'), '\/')
     if cml_right is# ''
-        let pat = a:cml_0_1.'\s*\%({'.'{{\|}'.'}}\)\d*\s*\ze\n'
+        let pat = a:cml_0_1..'\s*\%({'..'{{\|}'..'}}\)\d*\s*\ze\n'
         let contained = ' contained'
     else
-        let pat = '\s*\V'.cml_left.'\m\s*\%({'.'{{\|}'.'}}\)\d*\s*\V'.cml_right.'\m\s*$'
+        let pat = '\s*\V'..cml_left..'\m\s*\%({'..'{{\|}'..'}}\)\d*\s*\V'..cml_right..'\m\s*$'
         let contained = ''
     endif
-    exe 'syn match '.a:ft.'FoldMarkers'
-        \ . ' /'.pat.'/'
-        \ . ' conceal'
-        \ . ' cchar=❭'
-        \ . ' contains='.a:ft.'CommentLeader'
-        \ . contained
-        \ . ' containedin='.a:commentGroup
-        \ .             ','.a:ft.'CommentCodeBlock'
+    exe 'syn match '..a:ft..'FoldMarkers'
+        \ ..' /'..pat..'/'
+        \ ..' conceal'
+        \ ..' cchar=❭'
+        \ ..' contains='..a:ft..'CommentLeader'
+        \ ..contained
+        \ ..' containedin='..a:commentGroup
+        \             ..','..a:ft..'CommentCodeBlock'
 endfu
 
