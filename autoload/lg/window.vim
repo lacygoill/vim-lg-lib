@@ -1,4 +1,4 @@
-fu! lg#window#focus_previous_if_on_right() abort "{{{1
+fu lg#window#focus_previous_if_on_right() abort "{{{1
     if s:previous_window_is_on_right()
         wincmd p
     else
@@ -6,7 +6,7 @@ fu! lg#window#focus_previous_if_on_right() abort "{{{1
     endif
 endfu
 
-fu! s:previous_window_is_on_right() abort
+fu s:previous_window_is_on_right() abort
     let nr = winnr()
     let rightedge_current_window = win_screenpos(nr)[1] + winwidth(nr) - 1
     let nr = winnr('#')
@@ -14,13 +14,13 @@ fu! s:previous_window_is_on_right() abort
     return rightedge_current_window + 1 == leftedge_previous_window - 1
 endfu
 
-fu! lg#window#get_modifier(...) abort "{{{1
-"   ├┘                     ├┘
-"   │                      └ optional flag meaning we're going to open a loc window
-"   └ public so that it can be called in `vim-qf`
-"     `qf#open()` in autoload/
+fu lg#window#get_modifier(...) abort "{{{1
+"  ├┘                     ├┘
+"  │                      └ optional flag meaning we're going to open a loc window
+"  └ public so that it can be called in `vim-qf`
+"    `qf#open()` in autoload/
 
-    let origin = winnr()
+    let winnr = winnr()
 
     "  ┌ are we opening a loc window?
     "  │
@@ -30,15 +30,15 @@ fu! lg#window#get_modifier(...) abort "{{{1
         let mod = 'vert leftabove'
 
     " there's nothing above or below us
-    elseif !lg#window#has_neighbor('up') && !lg#window#has_neighbor('down')
+    elseif winnr('j') == winnr && winnr('k') == winnr
         let mod = 'botright'
 
     " we're at the top
-    elseif !lg#window#has_neighbor('up')
+    elseif winnr('k') == winnr
         let mod = 'topleft'
 
     " we're at the bottom
-    elseif !lg#window#has_neighbor('down')
+    elseif winnr('j') == winnr
         let mod = 'botright'
 
     " we're in a middle window
@@ -57,7 +57,7 @@ fu! lg#window#get_modifier(...) abort "{{{1
     return mod
 endfu
 
-fu! lg#window#has_neighbor(dir, ...) abort "{{{1
+fu lg#window#has_neighbor(dir, ...) abort "{{{1
     let winnr = a:0 ? a:1 : winnr()
     let neighbors = range(1, winnr('$'))
 
@@ -84,7 +84,7 @@ fu! lg#window#has_neighbor(dir, ...) abort "{{{1
     return 0
 endfu
 
-fu! lg#window#qf_open(type) abort "{{{1
+fu lg#window#qf_open(type) abort "{{{1
     let we_are_in_qf = &bt is# 'quickfix'
 
     if !we_are_in_qf
@@ -160,7 +160,7 @@ fu! lg#window#qf_open(type) abort "{{{1
     return ''
 endfu
 
-fu! lg#window#quit() abort "{{{1
+fu lg#window#quit() abort "{{{1
     " If we are in the command-line window, we want to close the latter,
     " and return without doing anything else (no session save).
     "
@@ -269,7 +269,7 @@ fu! lg#window#quit() abort "{{{1
     endif
 endfu
 
-fu! lg#window#restore_closed(cnt) abort "{{{1
+fu lg#window#restore_closed(cnt) abort "{{{1
     if empty(get(s:, 'undo_sessions', ''))
         return
     endif

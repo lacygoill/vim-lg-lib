@@ -1,4 +1,4 @@
-fu! lg#catch_error() abort "{{{1
+fu lg#catch_error() abort "{{{1
     if get(g:, 'my_verbose_errors', 0)
         let func_name = matchstr(v:throwpoint, 'function \zs.\{-}\ze,')
         let line = matchstr(v:throwpoint, '\%(function \)\?.\{-}, \zsline \d\+')
@@ -29,7 +29,7 @@ fu! lg#catch_error() abort "{{{1
     return ''
 endfu
 
-fu! lg#man_k(pgm) abort "{{{1
+fu lg#man_k(pgm) abort "{{{1
     let cur_word = expand('<cword>')
     exe 'Man '.a:pgm
 

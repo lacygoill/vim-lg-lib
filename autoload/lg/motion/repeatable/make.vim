@@ -35,36 +35,36 @@ if exists('g:autoloaded_lg#motion#repeatable#make')
 endif
 let g:autoloaded_lg#motion#repeatable#make = 1
 
-fu! s:init() abort "{{{1
+fu s:init() abort "{{{1
     let s:last_motion = ''
 
     " database for global motions, which will be populated progressively
     let s:repeatable_motions = []
 
-    let s:KEYCODES = [
-        \ '<BS>',
-        \ '<Bar>',
-        \ '<Bslash>',
-        \ '<C-',
-        \ '<CR>',
-        \ '<Del>',
-        \ '<Down>',
-        \ '<End>',
-        \ '<Esc>',
-        \ '<F',
-        \ '<Home>',
-        \ '<Left>',
-        \ '<M-',
-        \ '<PageDown>',
-        \ '<PageUp>',
-        \ '<Plug>',
-        \ '<Right>',
-        \ '<S-',
-        \ '<Space>',
-        \ '<Tab>',
-        \ '<Up>',
-        \ '<lt>',
-        \ ]
+    let s:KEYCODES =<< trim END
+        <BS>
+        <Bar>
+        <Bslash>
+        <C-
+        <CR>
+        <Del>
+        <Down>
+        <End>
+        <Esc>
+        <F
+        <Home>
+        <Left>
+        <M-
+        <PageDown>
+        <PageUp>
+        <Plug>
+        <Right>
+        <S-
+        <Space>
+        <Tab>
+        <Up>
+        <lt>
+    END
     let s:KEYCODES = join(s:KEYCODES, '\|')
 
     let s:DEFAULT_MAPARG = {'buffer': 0, 'expr': 0, 'mode': ' ', 'noremap': 1, 'nowait': 0, 'silent': 0}
@@ -99,7 +99,7 @@ endfu
 call s:init()
 
 " Core {{{1
-fu! s:make_repeatable(m, mode, is_local, from) abort "{{{2
+fu s:make_repeatable(m, mode, is_local, from) abort "{{{2
     " can only make ONE motion repeatable
 
     let bwd_lhs    = a:m.bwd
@@ -134,7 +134,7 @@ fu! s:make_repeatable(m, mode, is_local, from) abort "{{{2
     " like pressing `cd`, where `cd` is defined like so:
     "
     "     nno  <expr>  cd  Func()
-    "     fu! Func()
+    "     fu Func()
     "         return Func()
     "     endfu
     "}}}
@@ -225,7 +225,7 @@ fu! s:make_repeatable(m, mode, is_local, from) abort "{{{2
     endif
 endfu
 
-fu! s:move(lhs) abort "{{{2
+fu s:move(lhs) abort "{{{2
     let motion = s:get_motion_info(a:lhs)
 
     " for some reason, no motion in the db matches `a:lhs`
@@ -273,7 +273,7 @@ fu! s:move(lhs) abort "{{{2
        \ :     s:translate(motion[dir].rhs)
 endfu
 
-fu! s:move_again(dir) abort "{{{2
+fu s:move_again(dir) abort "{{{2
     " This function is called by various mappings whose suffix is `,` or `;`.
 
     " make sure the arguments are valid,
@@ -412,7 +412,7 @@ fu! s:move_again(dir) abort "{{{2
     return ''
 endfu
 
-fu! s:populate(motion, mode, lhs, is_fwd, maparg) abort "{{{2
+fu s:populate(motion, mode, lhs, is_fwd, maparg) abort "{{{2
     let dir = a:is_fwd ? 'fwd' : 'bwd'
 
     " make a custom mapping repeatable
@@ -481,7 +481,7 @@ fu! s:populate(motion, mode, lhs, is_fwd, maparg) abort "{{{2
 endfu
 " }}}1
 " Interface {{{1
-fu! lg#motion#repeatable#make#all(what) abort "{{{2
+fu lg#motion#repeatable#make#all(what) abort "{{{2
     " can make several motions repeatable
 
     " sanitize input
@@ -537,12 +537,12 @@ fu! lg#motion#repeatable#make#all(what) abort "{{{2
     endif
 endfu
 
-fu! lg#motion#repeatable#make#set_last_used(lhs) abort "{{{2
+fu lg#motion#repeatable#make#set_last_used(lhs) abort "{{{2
     let s:last_motion = s:translate(a:lhs)
 endfu
 " }}}1
 " Misc. {{{1
-fu! s:collides_with_db(motion, repeatable_motions) abort "{{{2
+fu s:collides_with_db(motion, repeatable_motions) abort "{{{2
     " Purpose:{{{
     " Detect whether the motion we're trying  to make repeatable collides with
     " a motion in the db.
@@ -592,7 +592,7 @@ fu! s:collides_with_db(motion, repeatable_motions) abort "{{{2
     return 0
 endfu
 
-fu! s:get_current_mode() abort "{{{2
+fu s:get_current_mode() abort "{{{2
     " Why the substitutions?{{{
     "
     "     substitute(mode(1), "[vV\<c-v>]", 'x', ''):
@@ -607,7 +607,7 @@ fu! s:get_current_mode() abort "{{{2
     return substitute(substitute(mode(1), "[vV\<c-v>]", 'x', ''), 'no', 'o', '')
 endfu
 
-fu! s:get_direction(lhs, motion) abort "{{{2
+fu s:get_direction(lhs, motion) abort "{{{2
     "            ┌ no need to translate: it has been translated in a mapping
     "            │         ┌ no need to translate: it has been translated in `s:populate()`
     "            │         │
@@ -615,7 +615,7 @@ fu! s:get_direction(lhs, motion) abort "{{{2
     return is_fwd ? 'fwd' : 'bwd'
 endfu
 
-fu! s:get_mapcmd(mode, maparg) abort "{{{2
+fu s:get_mapcmd(mode, maparg) abort "{{{2
     "                  ┌ the value of the 'noremap' key stands for the NON-recursiveness
     "                  │ but we want a flag standing for the recursiveness
     "                  │ so we need to invert the value of the key
@@ -635,7 +635,7 @@ fu! s:get_mapcmd(mode, maparg) abort "{{{2
     return mapcmd
 endfu
 
-fu! s:get_motion_info(lhs) abort "{{{2
+fu s:get_motion_info(lhs) abort "{{{2
     " Purpose:{{{
     " return the info about the motion in the db:
     "
@@ -693,7 +693,7 @@ fu! s:get_motion_info(lhs) abort "{{{2
         "
         "     1. go to a function containing a `:return` statement
         "     2. enter visual mode
-        "     3. press `%` on `fu!`
+        "     3. press `%` on `fu`
         "     4. press `;`
         "     5. press Escape
         "     6. press `;`
@@ -730,21 +730,21 @@ fu! s:get_motion_info(lhs) abort "{{{2
     endfor
 endfu
 
-fu! s:install_wrapper(mode, m, maparg) abort "{{{2
+fu s:install_wrapper(mode, m, maparg) abort "{{{2
     let mapcmd = s:get_mapcmd(a:mode, a:maparg)
     exe mapcmd.'  '.a:m.bwd.'  <sid>move('.string(a:m.bwd).')'
     exe mapcmd.'  '.a:m.fwd.'  <sid>move('.string(a:m.fwd).')'
 endfu
 
-fu! lg#motion#repeatable#make#is_repeating() abort "{{{2
+fu lg#motion#repeatable#make#is_repeating() abort "{{{2
     return get(s:, 'is_repeating_motion', 0)
 endfu
 
-fu! lg#motion#repeatable#make#share_env() abort "{{{2
+fu lg#motion#repeatable#make#share_env() abort "{{{2
     return s:repeatable_motions
 endfu
 
-fu! s:translate(seq) abort "{{{2
+fu s:translate(seq) abort "{{{2
     " Purpose:{{{
     " When  we  populate  the  database   of  repeatable  motions,  as  well  as
     " `s:last_motion`,  we   need  to   get  a  normalized   form  of   the  lhs
@@ -764,14 +764,14 @@ fu! s:translate(seq) abort "{{{2
     "                                         └ to not break the string passed to `eval()` prematurely
 endfu
 
-fu! s:unshadow(m, mode) abort "{{{2
+fu s:unshadow(m, mode) abort "{{{2
     let map_save = lg#map#save(a:mode, 1, [a:m.bwd, a:m.fwd])
     exe 'sil! '.a:mode.'unmap <buffer> '.a:m.bwd
     exe 'sil! '.a:mode.'unmap <buffer> '.a:m.fwd
     return map_save
 endfu
 
-fu! s:update_undo_ftplugin() abort "{{{2
+fu s:update_undo_ftplugin() abort "{{{2
     if stridx(get(b:, 'undo_ftplugin', ''), 'unlet! b:repeatable_motions') == -1
         let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe')
             \ . ' | unlet! b:repeatable_motions'

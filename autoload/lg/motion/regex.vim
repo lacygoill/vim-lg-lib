@@ -17,7 +17,7 @@ let s:patterns = {
                  \ 'codespan':        '`.\{-1,}`',
                  \ }
 
-fu! lg#motion#regex#go(kwd, is_fwd, mode) abort "{{{1
+fu lg#motion#regex#go(kwd, is_fwd, mode) abort "{{{1
     let cnt = v:count1
     let pat = get(s:patterns, a:kwd, '')
 
@@ -45,7 +45,7 @@ fu! lg#motion#regex#go(kwd, is_fwd, mode) abort "{{{1
     endif
 endfu
 
-fu! lg#motion#regex#rhs(kwd, is_fwd) abort "{{{1
+fu lg#motion#regex#rhs(kwd, is_fwd) abort "{{{1
     "               ┌ necessary to get the full  name of the mode, otherwise in
     "               │ operator-pending mode, we would get 'n' instead of 'no'
     "               │

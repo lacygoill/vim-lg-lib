@@ -5,38 +5,38 @@ let g:autoloaded_lg#motion#repeatable#listing = 1
 
 " init {{{1
 
-let s:REPEATABLE_MOTIONS = lg#motion#repeatable#make#share_env()
-let s:MODE2LETTER = {'normal': 'n', 'visual': 'x', 'operator-pending': 'no', 'nvo': ' '}
+const s:REPEATABLE_MOTIONS = lg#motion#repeatable#make#share_env()
+const s:MODE2LETTER = {'normal': 'n', 'visual': 'x', 'operator-pending': 'no', 'nvo': ' '}
 
 " Interface {{{1
-fu! lg#motion#repeatable#listing#complete(arglead, cmdline, pos) abort "{{{2
+fu lg#motion#repeatable#listing#complete(arglead, cmdline, pos) abort "{{{2
     let word_before_cursor = matchstr(a:cmdline, '.*\s\zs-\S.*\%'.a:pos.'c.')
     if word_before_cursor =~# '-mode\s\+\w*$'
-        let modes = [
-            \ 'normal',
-            \ 'visual',
-            \ 'operator-pending',
-            \ 'nvo',
-            \ ]
+        let modes =<< trim END
+            normal
+            visual
+            operator-pending
+            nvo
+        END
         return join(modes, "\n")
 
     elseif word_before_cursor =~# '-scope\s\+\w*$'
         return "local\nglobal"
 
     elseif empty(a:arglead) || a:arglead[0] is# '-'
-        let opt = [
-            \ '-mode ',
-            \ '-scope ',
-            \ '-v ',
-            \ '-vv ',
-            \ ]
+        let opt =<< trim END
+            -mode
+            -scope
+            -v
+            -vv
+        END
         return join(opt, "\n")
     endif
 
     return ''
 endfu
 
-fu! lg#motion#repeatable#listing#main(...) abort "{{{2
+fu lg#motion#repeatable#listing#main(...) abort "{{{2
     " get the asked options
     let cmd_args = split(a:1)
     let opt = {
@@ -58,7 +58,7 @@ fu! lg#motion#repeatable#listing#main(...) abort "{{{2
 endfu
 " }}}1
 " Core {{{1
-fu! s:populate_listing(opt) abort "{{{2
+fu s:populate_listing(opt) abort "{{{2
     let lists = a:opt.scope is# 'local'
             \ ?     [get(b:, 'repeatable_motions', [])]
             \ : a:opt.scope is# 'global'
@@ -77,7 +77,7 @@ fu! s:populate_listing(opt) abort "{{{2
     endfor
 endfu
 
-fu! s:add_text_to_write(opt, m, scope) abort "{{{2
+fu s:add_text_to_write(opt, m, scope) abort "{{{2
     let text = printf('  %s  %s | %s',
     \                 a:m.bwd.mode, a:m.bwd.untranslated_lhs, a:m.fwd.untranslated_lhs)
     let text ..= a:opt.verbose1
@@ -109,7 +109,7 @@ fu! s:add_text_to_write(opt, m, scope) abort "{{{2
     call extend(s:listing[a:scope], lines)
 endfu
 
-fu! s:get_lines() abort "{{{2
+fu s:get_lines() abort "{{{2
     if empty(s:listing.global) && empty(s:listing.local)
         return []
     else
@@ -127,7 +127,7 @@ fu! s:get_lines() abort "{{{2
 endfu
 " }}}1
 " Misc. {{{1
-fu! s:customize_preview_window() abort "{{{2
+fu s:customize_preview_window() abort "{{{2
     if &l:pvw
         call matchadd('Title', '^Motions repeated with:')
         call matchadd('SpecialKey', '^\%(global\|local\)$')

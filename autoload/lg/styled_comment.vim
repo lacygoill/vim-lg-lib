@@ -10,12 +10,12 @@
 "
 " In the value returned by `s:get_commentgroup()`, include as many groups as you found.
 " }}}
-" Whenever you create or remove a custom syntax group from `lg#styled_comment#syntax()`, update `s:custom_groups`!{{{
+" Whenever you create or remove a custom syntax group from `lg#styled_comment#syntax()`, update `s:CUSTOM_GROUPS`!{{{
 "
 " Otherwise, you may have a broken syntax highlighting in any filetype whose
 " default syntax plugin uses `ALLBUT`.
 "
-" `s:custom_groups` is used by `s:fix_allbut()` to define `@xMyCustomGroups`.
+" `s:CUSTOM_GROUPS` is used by `s:fix_allbut()` to define `@xMyCustomGroups`.
 " We use this cluster to exclude our  custom groups from the ones installed by a
 " default syntax plugin.
 " In the future, it may be useful in a `after/syntax/x.vim`.
@@ -57,47 +57,50 @@
 
 " Init {{{1
 
-let s:blacklist = ['css', 'html']
+const s:BLACKLIST =<< trim END
+    css
+    html
+END
 
 let s:allbut_groups = {}
 
-let s:custom_groups = [
-    \ 'CommentBlockquote',
-    \ 'CommentBlockquoteBold',
-    \ 'CommentBlockquoteBoldItalic',
-    \ 'CommentBlockquoteCodeSpan',
-    \ 'CommentBlockquoteConceal',
-    \ 'CommentBlockquoteItalic',
-    \ 'CommentBold',
-    \ 'CommentBoldItalic',
-    \ 'CommentCodeBlock',
-    \ 'CommentCodeSpan',
-    \ 'CommentIgnore',
-    \ 'CommentItalic',
-    \ 'CommentKey',
-    \ 'CommentLeader',
-    \ 'CommentListItem',
-    \ 'CommentListItemBlockquote',
-    \ 'CommentListItemBlockquoteConceal',
-    \ 'CommentListItemBold',
-    \ 'CommentListItemBoldItalic',
-    \ 'CommentListItemCodeBlock',
-    \ 'CommentListItemCodeSpan',
-    \ 'CommentListItemItalic',
-    \ 'CommentOption',
-    \ 'CommentOutput',
-    \ 'CommentPointer',
-    \ 'CommentRule',
-    \ 'CommentTable',
-    \ 'CommentTitle',
-    \ 'CommentTitleLeader',
-    \ 'FoldMarkers',
-    \ '@CommentListItemElements',
-    \ ]
+const s:CUSTOM_GROUPS =<< trim END
+    CommentBlockquote
+    CommentBlockquoteBold
+    CommentBlockquoteBoldItalic
+    CommentBlockquoteCodeSpan
+    CommentBlockquoteConceal
+    CommentBlockquoteItalic
+    CommentBold
+    CommentBoldItalic
+    CommentCodeBlock
+    CommentCodeSpan
+    CommentIgnore
+    CommentItalic
+    CommentKey
+    CommentLeader
+    CommentListItem
+    CommentListItemBlockquote
+    CommentListItemBlockquoteConceal
+    CommentListItemBold
+    CommentListItemBoldItalic
+    CommentListItemCodeBlock
+    CommentListItemCodeSpan
+    CommentListItemItalic
+    CommentOption
+    CommentOutput
+    CommentPointer
+    CommentRule
+    CommentTable
+    CommentTitle
+    CommentTitleLeader
+    FoldMarkers
+    @CommentListItemElements
+END
 " }}}1
 
 " filetype plugin {{{1
-fu! lg#styled_comment#fold() abort "{{{2
+fu lg#styled_comment#fold() abort "{{{2
     let ft = expand('<amatch>')
     setl fdm=marker
     setl fdt=fold#fdt#get()
@@ -105,7 +108,7 @@ fu! lg#styled_comment#fold() abort "{{{2
     setl cole=3
 endfu
 
-fu! lg#styled_comment#undo_ftplugin() abort "{{{2
+fu lg#styled_comment#undo_ftplugin() abort "{{{2
     let ft = expand('<amatch>')
     let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe')
         \ . "
@@ -114,7 +117,7 @@ fu! lg#styled_comment#undo_ftplugin() abort "{{{2
 endfu
 " }}}1
 " syntax plugin {{{1
-fu! lg#styled_comment#syntax() abort "{{{2
+fu lg#styled_comment#syntax() abort "{{{2
     " Use `\s` instead of ` `!{{{
     "
     " This is necessary for a whitespace before a comment leader:
@@ -242,7 +245,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
     " For some filetypes, such as html  and css, it's too difficult to implement
     " some styles without any undesirable side effects.
     " }}}
-    if index(s:blacklist, ft) == -1
+    if index(s:BLACKLIST, ft) == -1
         call s:syn_list_item(ft, cml, commentGroup)
         " Don't move the call to `syn_code_block()` somewhere below!{{{
         "
@@ -309,7 +312,7 @@ fu! lg#styled_comment#syntax() abort "{{{2
     "}}}
 endfu
 
-fu! s:fix_allbut(ft) abort "{{{2
+fu s:fix_allbut(ft) abort "{{{2
     " What's the purpose of this function?{{{
     "
     " Some default syntax plugins define groups with the argument `contains=ALLBUT`.
@@ -332,7 +335,7 @@ fu! s:fix_allbut(ft) abort "{{{2
     " It defines  a cluster  containing all  the custom  syntax groups  that the
     " current plugin defines.
     "}}}
-    let groups = copy(s:custom_groups)
+    let groups = copy(s:CUSTOM_GROUPS)
     call map(groups, {_,v ->
         \ v[0] is# '@' ? '@' . a:ft . substitute(v, '@', '', '') : a:ft . v})
     let groups = join(groups, ',')
@@ -420,7 +423,7 @@ fu! s:fix_allbut(ft) abort "{{{2
     endfor
 endfu
 
-fu! s:fix_comment_region(ft) abort "{{{2
+fu s:fix_comment_region(ft) abort "{{{2
     " Sometimes, a line is wrongly highlighted as a comment. {{{
     "
     " For  some filetypes,  if a  commented code  block precedes  an uncommented
@@ -478,7 +481,7 @@ fu! s:fix_comment_region(ft) abort "{{{2
     " In  a Vim  file, it  would also cause  `"string"` to  be highlighted  as a
     " comment in:
     "
-    "     fu! Func() abort
+    "     fu Func() abort
     "         return "string"
     "     endfu
     "
@@ -502,7 +505,7 @@ fu! s:fix_comment_region(ft) abort "{{{2
     call map(cmds, {_,v -> execute(v)})
 endfu
 
-fu! s:get_cmds_to_reset_group(group) abort "{{{2
+fu s:get_cmds_to_reset_group(group) abort "{{{2
     " get original definition
     let definition = split(execute('syn list ' . a:group), '\n')
 
@@ -526,7 +529,7 @@ fu! s:get_cmds_to_reset_group(group) abort "{{{2
     return cmds
 endfu
 
-fu! s:get_commentgroup(ft) abort "{{{2
+fu s:get_commentgroup(ft) abort "{{{2
     if a:ft is# 'c'
         " What's the difference between `cComment` and `cCommentL`?{{{
         "
@@ -576,7 +579,7 @@ fu! s:get_commentgroup(ft) abort "{{{2
     endif
 endfu
 
-fu! s:get_filetype() abort "{{{2
+fu s:get_filetype() abort "{{{2
     let ft = expand('<amatch>')
     if ft is# 'snippets'
         let ft = 'snip'
@@ -588,7 +591,7 @@ fu! s:get_filetype() abort "{{{2
     return ft
 endfu
 
-fu! s:highlight_groups_links(ft) abort "{{{2
+fu s:highlight_groups_links(ft) abort "{{{2
     exe 'hi '.a:ft.'FoldMarkers term=bold cterm=bold gui=bold'
 
     exe 'hi link '.a:ft.'CommentURL CommentUnderlined'
@@ -622,7 +625,7 @@ fu! s:highlight_groups_links(ft) abort "{{{2
     exe 'hi link '.a:ft.'CommentTitle                 CommentPreProc'
 endfu
 
-fu! s:syn_commentleader(ft, cml) abort "{{{2
+fu s:syn_commentleader(ft, cml) abort "{{{2
     " Why `\%(^\s*\)\@<=`?{{{
     "
     " Without it, if your comment leader appears inside a list item, it would be
@@ -633,7 +636,7 @@ fu! s:syn_commentleader(ft, cml) abort "{{{2
         \ . ' contained'
 endfu
 
-fu! s:syn_commenttitle(ft, cml, nr) abort "{{{2
+fu s:syn_commenttitle(ft, cml, nr) abort "{{{2
     " Why this guard?{{{
     "
     " The default Vim syntax plugin already installs this style.
@@ -665,7 +668,7 @@ fu! s:syn_commenttitle(ft, cml, nr) abort "{{{2
         \ .              a:ft.'Todo'
 endfu
 
-fu! s:syn_list_item(ft, cml, commentGroup) abort "{{{2
+fu s:syn_list_item(ft, cml, commentGroup) abort "{{{2
     exe 'syn cluster '.a:ft.'CommentListItemElements'
         \ . ' contains='.a:ft.'CommentListItemItalic,'
         \ .              a:ft.'CommentListItemBold,'
@@ -714,7 +717,7 @@ fu! s:syn_list_item(ft, cml, commentGroup) abort "{{{2
         \ . ' containedin='.a:commentGroup
 endfu
 
-fu! s:syn_code_block(ft, cml, commentGroup) abort "{{{2
+fu s:syn_code_block(ft, cml, commentGroup) abort "{{{2
     " Why a region?{{{
     "
     " I  want `xCommentCodeBlock`  to highlight  only  after 5  spaces from  the
@@ -745,7 +748,7 @@ fu! s:syn_code_block(ft, cml, commentGroup) abort "{{{2
         \ . ' oneline'
 endfu
 
-fu! s:syn_code_span(ft, commentGroup) abort "{{{2
+fu s:syn_code_span(ft, commentGroup) abort "{{{2
     " What does `matchroup` do?{{{
     "
     " From `:h :syn-matchgroup`:
@@ -817,7 +820,7 @@ fu! s:syn_code_span(ft, commentGroup) abort "{{{2
         \ . ' oneline'
 endfu
 
-fu! s:syn_italic(ft, commentGroup) abort "{{{2
+fu s:syn_italic(ft, commentGroup) abort "{{{2
     " It's impossible  to reliably  support the  italic style  in a  css buffer,
     " because the comment leader includes a star.
     " See our comments about the pitfall to avoid when trying to add support for
@@ -859,7 +862,7 @@ fu! s:syn_italic(ft, commentGroup) abort "{{{2
         \ . ' oneline'
 endfu
 
-fu! s:syn_bold(ft, commentGroup) abort "{{{2
+fu s:syn_bold(ft, commentGroup) abort "{{{2
     " some **bold** comment
     exe 'syn region '.a:ft.'CommentBold'
         \ . ' matchgroup=Comment'
@@ -893,7 +896,7 @@ fu! s:syn_bold(ft, commentGroup) abort "{{{2
         \ . ' oneline'
 endfu
 
-fu! s:syn_bolditalic(ft, commentGroup) abort "{{{2
+fu s:syn_bolditalic(ft, commentGroup) abort "{{{2
     " some ***bold and italic*** comment
     exe 'syn region '.a:ft.'CommentBoldItalic'
         \ . ' matchgroup=Comment'
@@ -927,7 +930,7 @@ fu! s:syn_bolditalic(ft, commentGroup) abort "{{{2
         \ . ' oneline'
 endfu
 
-fu! s:syn_blockquote(ft, cml, commentGroup) abort "{{{2
+fu s:syn_blockquote(ft, cml, commentGroup) abort "{{{2
     " > some quote
     " <not> a quote
     " Why do you allow `xCommentBold` to be contained in `xCommentBlockquote`?{{{
@@ -971,7 +974,7 @@ fu! s:syn_blockquote(ft, cml, commentGroup) abort "{{{2
         \ . ' conceal'
 endfu
 
-fu! s:syn_output(ft, cml) abort "{{{2
+fu s:syn_output(ft, cml) abort "{{{2
     "     $ shell command
     "     output~
     " Why `\%(...\)\@<=` for these 2 statements?{{{
@@ -1001,7 +1004,7 @@ fu! s:syn_output(ft, cml) abort "{{{2
         \ . ' conceal'
 endfu
 
-fu! s:syn_option(ft) abort "{{{2
+fu s:syn_option(ft) abort "{{{2
     " some `'option'`
     " - some `'option'`
     exe 'syn match '.a:ft.'CommentOption'
@@ -1010,7 +1013,7 @@ fu! s:syn_option(ft) abort "{{{2
         \ . ' containedin='.a:ft.'CommentCodeSpan,'.a:ft.'CommentListItemCodeSpan'
 endfu
 
-fu! s:syn_pointer(ft, cml, commentGroup) abort "{{{2
+fu s:syn_pointer(ft, cml, commentGroup) abort "{{{2
     " not a pointer v
     " v
     "       ^
@@ -1021,7 +1024,7 @@ fu! s:syn_pointer(ft, cml, commentGroup) abort "{{{2
         \ . ' containedin='.a:commentGroup
 endfu
 
-fu! s:syn_rule(ft, cml, commentGroup) abort "{{{2
+fu s:syn_rule(ft, cml, commentGroup) abort "{{{2
     " some
     " ---
     " rule
@@ -1041,7 +1044,7 @@ fu! s:syn_rule(ft, cml, commentGroup) abort "{{{2
         \ . ' contains='.a:ft.'CommentLeader'
 endfu
 
-fu! s:syn_table(ft, cml, commentGroup) abort "{{{2
+fu s:syn_table(ft, cml, commentGroup) abort "{{{2
     " some table:
     "    ┌───────┬──────┐
     "    │  one  │ two  │
@@ -1075,7 +1078,7 @@ fu! s:syn_table(ft, cml, commentGroup) abort "{{{2
         \ . ' containedin='.a:commentGroup
 endfu
 
-fu! s:syn_url(ft, commentGroup) abort "{{{2
+fu s:syn_url(ft, commentGroup) abort "{{{2
     " Where does the regex come from?{{{
     "
     " https://github.com/tmux-plugins/vim-tmux/blob/4e77341a2f8b9b7e41e81e9debbcecaea5987c85/syntax/tmux.vim#L161
@@ -1112,7 +1115,7 @@ fu! s:syn_url(ft, commentGroup) abort "{{{2
         \ . ' containedin='.a:commentGroup
 endfu
 
-fu! s:syn_foldmarkers(ft, cml_0_1, commentGroup) abort "{{{2
+fu s:syn_foldmarkers(ft, cml_0_1, commentGroup) abort "{{{2
     " If you don't care about html and css, you could probably simplify the code
     " of this function, and get rid of `cml_right`.
 

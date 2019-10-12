@@ -11,7 +11,7 @@ let s:REG_TRANSLATIONS = {
 \                          '/': 'slash',
 \                        }
 
-fu! lg#reg#restore(names) abort "{{{1
+fu lg#reg#restore(names) abort "{{{1
     for name in a:names
         let prefix   = get(s:REG_TRANSLATIONS, name, name)
         let contents = s:{prefix}_save[0]
@@ -59,7 +59,7 @@ fu! lg#reg#restore(names) abort "{{{1
     endfor
 endfu
 
-fu! lg#reg#save(names) abort "{{{1
+fu lg#reg#save(names) abort "{{{1
     for name in a:names
         let prefix          = get(s:REG_TRANSLATIONS, name, name)
         let s:{prefix}_save = [getreg(name), getregtype(name)]

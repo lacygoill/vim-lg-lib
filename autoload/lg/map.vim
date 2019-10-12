@@ -1,4 +1,4 @@
-fu! lg#map#restore(map_save) abort "{{{1
+fu lg#map#restore(map_save) abort "{{{1
     " Why?{{{
     "
     " Sometimes, we may need to restore mappings stored in a variable which we
@@ -41,7 +41,7 @@ endfu
 " Its values are the info about those mappings stored in sub-dictionaries.
 "}}}
 
-fu! s:restore(map_save) abort "{{{1
+fu s:restore(map_save) abort "{{{1
     for maparg in values(a:map_save)
         " If the mapping is local to a buffer, check we're in the right one.
         " Also make sure we have at least the 'lhs' key; just to be sure we
@@ -79,7 +79,7 @@ fu! s:restore(map_save) abort "{{{1
     endfor
 endfu
 
-fu! lg#map#save(mode, is_local, keys) abort "{{{1
+fu lg#map#save(mode, is_local, keys) abort "{{{1
     " The function accepts a list of keys, or just a single key (in a string).
     if type(a:keys) != type([]) && type(a:keys) != type('')
         return

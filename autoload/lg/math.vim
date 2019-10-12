@@ -1,4 +1,4 @@
-fu! lg#math#is_prime(n) abort "{{{1
+fu lg#math#is_prime(n) abort "{{{1
     let n = a:n
     if type(n) != type(0) || n < 0
         echo 'Not a positive number'
@@ -105,7 +105,7 @@ fu! lg#math#is_prime(n) abort "{{{1
     return 1
 endfu
 
-fu! lg#math#matrix_transposition(...) abort "{{{1
+fu lg#math#matrix_transposition(...) abort "{{{1
     " This function expects several lists as arguments, with all the same length.
     " We could imagine the lists piled up, forming a matrix.
     " The function should return a single list of lists, whose items are the
@@ -163,7 +163,7 @@ fu! lg#math#matrix_transposition(...) abort "{{{1
     return transposed
 endfu
 
-fu! lg#math#max(numbers) abort "{{{1
+fu lg#math#max(numbers) abort "{{{1
     " reimplement `max()` and `min()` because the builtins don't handle floats
     if !len(a:numbers)
         return 0
@@ -177,7 +177,7 @@ fu! lg#math#max(numbers) abort "{{{1
     return max
 endfu
 
-fu! lg#math#min(numbers) abort "{{{1
+fu lg#math#min(numbers) abort "{{{1
     if !len(a:numbers)
         return 0
     endif
