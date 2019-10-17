@@ -58,44 +58,44 @@
 " Init {{{1
 
 const s:BLACKLIST =<< trim END
-    css
-    html
+css
+html
 END
 
 let s:allbut_groups = {}
 
 const s:CUSTOM_GROUPS =<< trim END
-    CommentBlockquote
-    CommentBlockquoteBold
-    CommentBlockquoteBoldItalic
-    CommentBlockquoteCodeSpan
-    CommentBlockquoteConceal
-    CommentBlockquoteItalic
-    CommentBold
-    CommentBoldItalic
-    CommentCodeBlock
-    CommentCodeSpan
-    CommentIgnore
-    CommentItalic
-    CommentKey
-    CommentLeader
-    CommentListItem
-    CommentListItemBlockquote
-    CommentListItemBlockquoteConceal
-    CommentListItemBold
-    CommentListItemBoldItalic
-    CommentListItemCodeBlock
-    CommentListItemCodeSpan
-    CommentListItemItalic
-    CommentOption
-    CommentOutput
-    CommentPointer
-    CommentRule
-    CommentTable
-    CommentTitle
-    CommentTitleLeader
-    FoldMarkers
-    @CommentListItemElements
+CommentBlockquote
+CommentBlockquoteBold
+CommentBlockquoteBoldItalic
+CommentBlockquoteCodeSpan
+CommentBlockquoteConceal
+CommentBlockquoteItalic
+CommentBold
+CommentBoldItalic
+CommentCodeBlock
+CommentCodeSpan
+CommentIgnore
+CommentItalic
+CommentKey
+CommentLeader
+CommentListItem
+CommentListItemBlockquote
+CommentListItemBlockquoteConceal
+CommentListItemBold
+CommentListItemBoldItalic
+CommentListItemCodeBlock
+CommentListItemCodeSpan
+CommentListItemItalic
+CommentOption
+CommentOutput
+CommentPointer
+CommentRule
+CommentTable
+CommentTitle
+CommentTitleLeader
+FoldMarkers
+@CommentListItemElements
 END
 " }}}1
 
@@ -111,9 +111,9 @@ endfu
 fu lg#styled_comment#undo_ftplugin() abort "{{{2
     let ft = expand('<amatch>')
     let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe')
-        \ .."
+        \ ..'
         \ | setl cocu< cole< fdm< fdt<
-        \ "
+        \ '
 endfu
 " }}}1
 " syntax plugin {{{1
@@ -724,9 +724,17 @@ fu s:syn_code_block(ft, cml, commentGroup) abort "{{{2
     " comment leader (instead of complete lines).
     " It's less noisy.
     "}}}
+    " Why `^\s*` in the `start` argument?{{{
+    "
+    " Without  it, `,  and something  else` would  be wrongly  highlighted as  a
+    " codeblock on the second line:
+    "
+    " some long text common to both lines, and something unique
+    " "                                  , and something else
+    "}}}
     exe 'syn region '..a:ft..'CommentCodeBlock'
         \ ..' matchgroup=Comment'
-        \ ..' start=/'..a:cml..' \{5,}/'
+        \ ..' start=/^\s*'..a:cml..' \{5,}/'
         \ ..' end=/$/'
         \ ..' keepend'
         \ ..' contained'
@@ -740,7 +748,7 @@ fu s:syn_code_block(ft, cml, commentGroup) abort "{{{2
     " - some item
     exe 'syn region '..a:ft..'CommentListItemCodeBlock'
         \ ..' matchgroup=Comment'
-        \ ..' start=/'..a:cml..' \{9,}/'
+        \ ..' start=/^\s*'..a:cml..' \{9,}/'
         \ ..' end=/$/'
         \ ..' keepend'
         \ ..' contained'

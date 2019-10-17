@@ -6,7 +6,7 @@ let g:autoloaded_lg#motion#regex = 1
 let s:patterns = {
                  \ '{{':              '\v\{{3}%(\d+)?\s*$',
                  \ '#':               '^#\|^=',
-                 \ 'fu':              '^\s*fu\%[nction]!\s\+',
+                 \ 'fu':              '^\s*fu\%[nction]!\=\s\+',
                  \ 'endfu':           '^\s*endf\%[unction]\%(\s\|"\|$\)',
                  \ 'sh_fu':           '^\s*\S\+\s*()\s*{\%(\s*#\s*{{'.'{\d*\s*\)\=$',
                  \ 'sh_endfu':        '^}$',
@@ -35,7 +35,7 @@ fu lg#motion#regex#go(kwd, is_fwd, mode) abort "{{{1
     endif
 
     while cnt > 0
-        call search(pat, a:is_fwd ? 'W' : 'bW')
+        call search(pat, a:is_fwd ? '' : 'b')
         let cnt -= 1
     endwhile
 

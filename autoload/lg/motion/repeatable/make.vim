@@ -42,28 +42,28 @@ fu s:init() abort "{{{1
     let s:repeatable_motions = []
 
     let s:KEYCODES =<< trim END
-        <BS>
-        <Bar>
-        <Bslash>
-        <C-
-        <CR>
-        <Del>
-        <Down>
-        <End>
-        <Esc>
-        <F
-        <Home>
-        <Left>
-        <M-
-        <PageDown>
-        <PageUp>
-        <Plug>
-        <Right>
-        <S-
-        <Space>
-        <Tab>
-        <Up>
-        <lt>
+    <BS>
+    <Bar>
+    <Bslash>
+    <C-
+    <CR>
+    <Del>
+    <Down>
+    <End>
+    <Esc>
+    <F
+    <Home>
+    <Left>
+    <M-
+    <PageDown>
+    <PageUp>
+    <Plug>
+    <Right>
+    <S-
+    <Space>
+    <Tab>
+    <Up>
+    <lt>
     END
     let s:KEYCODES = join(s:KEYCODES, '\|')
 
@@ -774,6 +774,6 @@ endfu
 fu s:update_undo_ftplugin() abort "{{{2
     if stridx(get(b:, 'undo_ftplugin', ''), 'unlet! b:repeatable_motions') == -1
         let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe')
-            \ . ' | unlet! b:repeatable_motions'
+            \ ..' | unlet! b:repeatable_motions'
     endif
 endfu
