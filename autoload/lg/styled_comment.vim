@@ -58,44 +58,44 @@
 " Init {{{1
 
 const s:BLACKLIST =<< trim END
-css
-html
+    css
+    html
 END
 
 let s:allbut_groups = {}
 
 const s:CUSTOM_GROUPS =<< trim END
-CommentBlockquote
-CommentBlockquoteBold
-CommentBlockquoteBoldItalic
-CommentBlockquoteCodeSpan
-CommentBlockquoteConceal
-CommentBlockquoteItalic
-CommentBold
-CommentBoldItalic
-CommentCodeBlock
-CommentCodeSpan
-CommentIgnore
-CommentItalic
-CommentKey
-CommentLeader
-CommentListItem
-CommentListItemBlockquote
-CommentListItemBlockquoteConceal
-CommentListItemBold
-CommentListItemBoldItalic
-CommentListItemCodeBlock
-CommentListItemCodeSpan
-CommentListItemItalic
-CommentOption
-CommentOutput
-CommentPointer
-CommentRule
-CommentTable
-CommentTitle
-CommentTitleLeader
-FoldMarkers
-@CommentListItemElements
+    CommentBlockquote
+    CommentBlockquoteBold
+    CommentBlockquoteBoldItalic
+    CommentBlockquoteCodeSpan
+    CommentBlockquoteConceal
+    CommentBlockquoteItalic
+    CommentBold
+    CommentBoldItalic
+    CommentCodeBlock
+    CommentCodeSpan
+    CommentIgnore
+    CommentItalic
+    CommentKey
+    CommentLeader
+    CommentListItem
+    CommentListItemBlockquote
+    CommentListItemBlockquoteConceal
+    CommentListItemBold
+    CommentListItemBoldItalic
+    CommentListItemCodeBlock
+    CommentListItemCodeSpan
+    CommentListItemItalic
+    CommentOption
+    CommentOutput
+    CommentPointer
+    CommentRule
+    CommentTable
+    CommentTitle
+    CommentTitleLeader
+    FoldMarkers
+    @CommentListItemElements
 END
 " }}}1
 
@@ -556,7 +556,7 @@ fu s:get_commentgroup(ft) abort "{{{2
         " Start of region:
         "     *
         "     *\S
-        "     /\@<!*\S
+        "     /\@1<!*\S
         "
         " End of region:
         "     *

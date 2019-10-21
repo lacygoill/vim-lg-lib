@@ -42,28 +42,28 @@ fu s:init() abort "{{{1
     let s:repeatable_motions = []
 
     let s:KEYCODES =<< trim END
-    <BS>
-    <Bar>
-    <Bslash>
-    <C-
-    <CR>
-    <Del>
-    <Down>
-    <End>
-    <Esc>
-    <F
-    <Home>
-    <Left>
-    <M-
-    <PageDown>
-    <PageUp>
-    <Plug>
-    <Right>
-    <S-
-    <Space>
-    <Tab>
-    <Up>
-    <lt>
+        <BS>
+        <Bar>
+        <Bslash>
+        <C-
+        <CR>
+        <Del>
+        <Down>
+        <End>
+        <Esc>
+        <F
+        <Home>
+        <Left>
+        <M-
+        <PageDown>
+        <PageUp>
+        <Plug>
+        <Right>
+        <S-
+        <Space>
+        <Tab>
+        <Up>
+        <lt>
     END
     let s:KEYCODES = join(s:KEYCODES, '\|')
 

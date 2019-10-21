@@ -13,10 +13,10 @@ fu lg#motion#repeatable#listing#complete(arglead, cmdline, pos) abort "{{{2
     let word_before_cursor = matchstr(a:cmdline, '.*\s\zs-\S.*\%'.a:pos.'c.')
     if word_before_cursor =~# '-mode\s\+\w*$'
         let modes =<< trim END
-        normal
-        visual
-        operator-pending
-        nvo
+            normal
+            visual
+            operator-pending
+            nvo
         END
         return join(modes, "\n")
 
@@ -25,10 +25,10 @@ fu lg#motion#repeatable#listing#complete(arglead, cmdline, pos) abort "{{{2
 
     elseif empty(a:arglead) || a:arglead[0] is# '-'
         let opt =<< trim END
-        -mode
-        -scope
-        -v
-        -vv
+            -mode
+            -scope
+            -v
+            -vv
         END
         return join(opt, "\n")
     endif
