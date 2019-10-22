@@ -101,7 +101,6 @@ END
 
 " filetype plugin {{{1
 fu lg#styled_comment#fold() abort "{{{2
-    let ft = expand('<amatch>')
     setl fdm=marker
     setl fdt=fold#fdt#get()
     setl cocu=nc
@@ -109,7 +108,6 @@ fu lg#styled_comment#fold() abort "{{{2
 endfu
 
 fu lg#styled_comment#undo_ftplugin() abort "{{{2
-    let ft = expand('<amatch>')
     let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe')
         \ ..'
         \ | setl cocu< cole< fdm< fdt<
