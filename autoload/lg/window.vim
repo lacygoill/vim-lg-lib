@@ -121,7 +121,7 @@ fu lg#window#qf_open(type) abort "{{{1
             " But, it wouldn't  open the qf window like our  autocmd in `vim-qf`
             " does.
             "}}}
-            exe 'do <nomodeline> QuickFixCmdPost '.(a:type is# 'loc' ? 'l' : 'c').'open'
+            exe 'do <nomodeline> QuickFixCmdPost '..(a:type is# 'loc' ? 'l' : 'c')..'open'
             return ''
         endif
         let id = id.winid
@@ -229,7 +229,7 @@ fu lg#window#quit() abort "{{{1
             let ssop_save = &ssop
             set ssop-=curdir
 
-            exe 'mksession! '.s:undo_sessions[-1]
+            exe 'mksession! '..s:undo_sessions[-1]
         catch
             return lg#catch_error()
         finally
@@ -262,7 +262,7 @@ fu lg#window#quit() abort "{{{1
             " buffer (ex: the one opened by `:DebugVimrc`).
             " So, I don't want to be bothered by an error.
             "}}}
-            exe 'close'.(&l:bh is# 'wipe' ? '!' : '')
+            exe 'close'..(&l:bh is# 'wipe' ? '!' : '')
         catch
             return lg#catch_error()
         endtry
@@ -283,41 +283,82 @@ fu lg#window#restore_closed(cnt) abort "{{{1
         "                                  │
         let session_file = s:undo_sessions[max([-a:cnt, -len(s:undo_sessions)])]
 
-        if !has('nvim')
-            " Eliminate terminal buffers, to avoid E947.{{{
-            "
-            " In Vim,  a terminal buffer is  considered modified as long  as the
-            " job is running.
-            "
-            " This is only the case in Vim, not Neovim.
-            " Which means you can restore a session containing a terminal buffer
-            " in Neovim (without its contents) but not in Vim.
-            "
-            " You can reproduce this kind of error, this way:
-            "
-            "    - open a terminal buffer
-            "    - save the session (`:mksession file.vim`)
-            "    - from the terminal buffer, restore the session (`:so file.vim`)
-            "
-            " Or:
-            "    - open a terminal buffer
-            "    - from the latter, execute:
-            "         :badd \!/bin/zsh
-            "
-            " FIXME:
-            " Why does  the error  only occur  when `:badd`  is executed  from a
-            " terminal buffer?
-"}}}
-            call writefile(filter(readfile(session_file),
-            \                     {_,v -> v !~# '\v^badd \+\d+ \!/bin/%(bash|zsh)'}
-            \                    ),
-            \              session_file)
-        endif
+        " We remove `:badd` commands from the session file, because{{{
+        "
+        " in Nvim, they  can prevent window-local options  from being re-applied
+        " when we restore a closed window.
+        "
+        " MWE1:
+        "
+        "     $ nvim
+        "     :sp $MYVIMRC
+        "     SPC q
+        "     SPC u
+        "
+        " MWE2:
+        "
+        "     $ nvim -Nu <(cat <<'EOF'
+        "     set hidden ssop-=folds
+        "     nno <space>q :<c-u>mksession! /tmp/.s.vim <bar> close<cr>
+        "     nno <space>U :<c-u>so /tmp/.s.vim<cr>
+        "     filetype plugin on
+        "     au FileType vim setl fdm=marker
+        "     EOF
+        "     ) +'sp ~/.vim/vimrc'
+        "
+        "     " press SPC q
+        "     " press SPC U
+        "
+        " In both examples, the folding is lost.
+        "
+        " ---
+        "
+        " The issue is due to a combination of 2 things:
+        "
+        "    - https://github.com/vim/vim/issues/4994
+        "
+        "    - in a Vim session file, `:badd` is run *after* `:edit`
+        "      in a Nvim session file, `:badd` is run *before* `:edit`
+        "
+        " Vim session file (✔):
+        "
+        "     edit ~/.vim/vimrc
+        "     wincmd t
+        "     badd ~/.vim/vimrc
+        "
+        " Nvim session file (✘):
+        "
+        "     badd ~/.vim/vimrc
+        "     edit ~/.vim/vimrc
+        "     split
+        "     wincmd w
+        "     enew
+        "     wincmd w
+        "
+        " ---
+        "
+        " Solution:
+        " In the session file, remove every line starting with `badd`.
+        "
+        " Let's do  it even in  Vim, in  case the order  of the commands  in the
+        " session file changes in the future, and the issue starts affecting Vim
+        " too.
+        " Besides,  `:badd` is  completely  useless here;  when  we source  this
+        " session file, we  know that all its buffers are  already in the buffer
+        " list (the session file was created during the current Vim session).
+        "}}}
+        " Ok but why you do the same for commands manipulating the arglist?{{{
+        "
+        " Look at the previous github issue; `:argadd` is mentioned.
+        " Besides, it is useless to reset the arglist.
+        "}}}
+        call writefile(filter(readfile(session_file),
+        \ {_,v -> v !~# '\m\C^\%(badd\|argglobal\|%argdel\|$argadd\)\>'}), session_file)
 
         " ┌ don't display the last filename;
         " │ if it's too long to fit on a single line,
         " │ it will trigger a press-enter prompt
-        sil exe 'so '.session_file
+        sil exe 'so '..session_file
         let s:undo_sessions = a:cnt == 1 ? s:undo_sessions[:-2] : []
         "                                                          │
         "           if we gave a count to restore several windows, ┘
