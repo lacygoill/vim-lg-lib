@@ -225,9 +225,9 @@ fu lg#window#quit() abort "{{{1
         try
             let session_save = v:this_session
 
-            " don't save cwd
+            " save a minimum of info (in particular, don't save cwd; `curdir`)
             let ssop_save = &ssop
-            set ssop-=curdir
+            set ssop=help,tabpages,winsize
 
             exe 'mksession! '..s:undo_sessions[-1]
         catch
@@ -353,7 +353,7 @@ fu lg#window#restore_closed(cnt) abort "{{{1
         " Besides, it is useless to reset the arglist.
         "}}}
         call writefile(filter(readfile(session_file),
-        \ {_,v -> v !~# '\m\C^\%(badd\|argglobal\|%argdel\|$argadd\)\>'}), session_file)
+        \ {_,v -> v !~# '\m\C^\%(badd\|arg\%(global\|local\)\|%argdel\|silent! argdel \*\|$argadd\)\>'}), session_file)
 
         " ┌ don't display the last filename;
         " │ if it's too long to fit on a single line,

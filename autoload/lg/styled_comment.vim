@@ -730,9 +730,13 @@ fu s:syn_code_block(ft, cml, commentGroup) abort "{{{2
     " some long text common to both lines, and something unique
     " "                                  , and something else
     "}}}
+    " Why inside a lookbehind?{{{
+    "
+    " Without `\@<=`, `^\s*` would break a codeblock in a shell function.
+    "}}}
     exe 'syn region '..a:ft..'CommentCodeBlock'
         \ ..' matchgroup=Comment'
-        \ ..' start=/^\s*'..a:cml..' \{5,}/'
+        \ ..' start=/\%(^\s*\)\@<='..a:cml..' \{5,}/'
         \ ..' end=/$/'
         \ ..' keepend'
         \ ..' contained'
@@ -746,7 +750,7 @@ fu s:syn_code_block(ft, cml, commentGroup) abort "{{{2
     " - some item
     exe 'syn region '..a:ft..'CommentListItemCodeBlock'
         \ ..' matchgroup=Comment'
-        \ ..' start=/^\s*'..a:cml..' \{9,}/'
+        \ ..' start=/\%(^\s*\)\@<='..a:cml..' \{9,}/'
         \ ..' end=/$/'
         \ ..' keepend'
         \ ..' contained'
