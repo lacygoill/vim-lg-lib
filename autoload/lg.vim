@@ -152,26 +152,23 @@ fu lg#win_execute(id, cmd, ...) abort "{{{1
         "     :set wmh=0|wincmd w|wincmd _|2res10
         "
         " Same commands but different results.
-        "
-        "     $ vim -Nu NONE +'helpg foobar' +'helpc|cw10|norm! G'
-        "     :set wmh=0|wincmd w|wincmd _|2res10
-        "
-        "     $ nvim -Nu NONE +'helpg foobar' +'helpc|cw10|norm! G'
-        "     :set wmh=0|wincmd w|wincmd _|2res10
         "}}}
         " Warning:{{{
         "
         " This is not the right fix:
         "
-        "     $ nvim
+        "     $ nvim +'helpg foobar'
+        "     :$
+        "     " press `C-e` 5 times
+        "     :wincmd k
         "
-        " TODO: finish the comment (hint: open qf window, move at the end, press
-        " C-e a few  times, then focus other window, and  come back; the winline
-        " position has been  altered; there is no perfect solution;  you have to
-        " choose the  less inconvenient  of two pitfalls)
+        " The view is altered in the qf window.
+        "
+        " I don't think  there is a perfect solution fixing;  you have to choose
+        " the less inconvenient of two pitfalls.
+        " This pitfall seems less inconvenient than the previous one.
         "}}}
         let x = line('.') + (winheight(0)-winline())
-        let g:d_x = 123
         if x > line('$')
             exe 'norm! '..(x-line('$')).."\<c-y>"
         endif
