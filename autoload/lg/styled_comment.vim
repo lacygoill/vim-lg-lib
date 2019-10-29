@@ -134,10 +134,18 @@ fu lg#styled_comment#fold() abort "{{{2
     "}}}
     exe 'augroup my_fold_'.ft
         au! * <buffer>
-        au BufWinEnter <buffer> setl fdm=marker
-                            \ | setl fdt=fold#fdt#get()
-                            \ | setl cocu=nc
-                            \ | setl cole=3
+        " Why `FileChangedShellPost`?{{{
+        "
+        " Without, the folding would be lost when:
+        "
+        "    - we write a file owned by root with `:W`
+        "    - we stash some changes with `$ git stash`
+        "}}}
+        au BufWinEnter,FileChangedShellPost <buffer>
+        \   setl fdm=marker
+        \ | setl fdt=fold#fdt#get()
+        \ | setl cocu=nc
+        \ | setl cole=3
     augroup END
 endfu
 
