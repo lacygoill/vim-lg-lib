@@ -132,26 +132,7 @@ fu lg#window#qf_open(type) abort "{{{1
 
     " if we are already in the ll window, get to the associated window
     elseif we_are_in_qf && a:type is# 'loc'
-        " TODO: simplify the code by inspecting the 'filewinid' property of the location list.
-        " What would the code look like?{{{
-        "
-        "     let id = get(getloclist(0, {'filewinid': 0}), 'filewinid', 0)
-        "
-        " Yes, you could replace the next 3 statements, with a single one.
-        "}}}
-        " Why don't you use it now?{{{
-        "
-        " Not supported in Neovim atm.
-        " Requires a patch:
-        "
-        "     https://github.com/vim/vim/releases/tag/v8.1.0345
-        "}}}
-        let win_ids = gettabinfo(tabpagenr())[0].windows
-        let loc_id  = win_getid()
-        let id = get(filter(win_ids, {_,v ->
-            \ get(getloclist(v, {'winid': 0}), 'winid', 0) == loc_id
-            \ && v != loc_id })
-            \ , 0, 0)
+        let id = get(getloclist(0, {'filewinid': 0}), 'filewinid', 0)
     endif
 
     if id != 0
@@ -372,10 +353,10 @@ fu lg#window#restore_closed(cnt) abort "{{{1
         " `{number}` was too small; time will tell
 
         " Idea:
-        " We could add a 2nd stack which wouldn't be reset when we give a count, and
-        " implement a 2nd mapping `leader U`, which could access this 2nd stack.
-        " It could be useful if we hit `{number} leader u`, but `{number}` wasn't
-        " big enough.
+        " We could add a 2nd stack which wouldn't be reset when we give a count,
+        " and implement a  2nd mapping `space C-u`, which could  access this 2nd
+        " stack.   It  could  be  useful  if we  hit  `{number}  space  U`,  but
+        " `{number}` wasn't big enough.
     catch
         return lg#catch_error()
     finally
