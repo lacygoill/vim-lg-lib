@@ -29,6 +29,16 @@ fu lg#catch_error() abort "{{{1
     return ''
 endfu
 
+fu lg#jump_to_closing_bracket() abort "{{{1
+    let opening_bracket = getline('.')[col('.')-1]
+    if index(['<', '(', '[', '{'], opening_bracket) == -1
+        return
+    endif
+    let closing_bracket = {'<': '>', '(': ')', '[': ']', '{': '}'}[opening_bracket]
+    call searchpair(opening_bracket, '', closing_bracket,
+    \ 'W', 'synIDattr(synID(line("."),col("."),1),"name") =~? "comment\\|string"')
+endfu
+
 fu lg#man_k(pgm) abort "{{{1
     let cur_word = expand('<cword>')
     exe 'Man '..a:pgm
