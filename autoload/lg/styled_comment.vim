@@ -132,7 +132,7 @@ fu lg#styled_comment#fold() abort "{{{2
     " I think that's due to:
     " https://github.com/vim/vim/issues/4994
     "}}}
-    exe 'augroup my_fold_'.ft
+    exe 'augroup my_fold_'..ft
         au! * <buffer>
         " Why `FileChangedShellPost`?{{{
         "

@@ -493,48 +493,49 @@ fu lg#motion#repeatable#make#all(what) abort "{{{2
         endtry
     endif
 
-    " Make the motions repeatable{{{
-    "
-    " We need to install a wrapper mapping  around each motion, to save the last
-    " used one.  Otherwise, how the repeating mappings would know what motion to
-    " repeat?
-    "
-    " We also need a database of repeatable motions, with all their information.
-    " Otherwise,  how  the repeating  mappings  would  be  able to  emulate  the
-    " original motion?
-    "}}}
-    let mode     = a:what.mode
-    let is_local = a:what.buffer
-    let from     = a:what.from
-    for m in a:what.motions
-        " Warning `execute()` is buggy in Neovim{{{
+    for mode in (a:what.mode is# '' ? [''] : split(a:what.mode, '\zs'))
+        " Make the motions repeatable{{{
         "
-        " It sometimes fail to capture anything. It  has been fixed in a Vim
-        " patch.  For this code to work in  Neovim, you need to wait for the
-        " patch to be merged there, or use `:redir`.
-       "}}}
-        " Why this check?{{{
+        " We need to  install a wrapper mapping around each  motion, to save the
+        " last used one.  Otherwise, how  the repeating mappings would know what
+        " motion to repeat?
         "
-        " If  the motion  is global,  one  of its  lhs  could be  shadowed by  a
-        " buffer-local  mapping using  the same  lhs. We handle  this particular
-        " case by temporarily removing the latter.
+        " We  also  need  a  database  of repeatable  motions,  with  all  their
+        " information.  Otherwise, how  the repeating mappings would  be able to
+        " emulate the original motion?
         "}}}
-        if !is_local && (     execute(mode.'map <buffer> '.m.bwd) !~# '^\n\nNo mapping found$'
-                         \ || execute(mode.'map <buffer> '.m.fwd) !~# '^\n\nNo mapping found$')
-            let map_save = s:unshadow(m, mode)
-            call s:make_repeatable(m, mode, is_local, from)
-            call lg#map#restore(map_save)
-        else
-            call s:make_repeatable(m, mode, is_local, from)
+        let is_local = a:what.buffer
+        let from = a:what.from
+        for m in a:what.motions
+            " Warning `execute()` is buggy in Neovim{{{
+            "
+            " It sometimes fail to capture anything. It  has been fixed in a Vim
+            " patch.  For this code to work in  Neovim, you need to wait for the
+            " patch to be merged there, or use `:redir`.
+           "}}}
+            " Why this check?{{{
+            "
+            " If  the motion  is global,  one  of its  lhs  could be  shadowed by  a
+            " buffer-local  mapping using  the same  lhs. We handle  this particular
+            " case by temporarily removing the latter.
+            "}}}
+            if !is_local && (     execute(mode.'map <buffer> '.m.bwd) !~# '^\n\nNo mapping found$'
+                             \ || execute(mode.'map <buffer> '.m.fwd) !~# '^\n\nNo mapping found$')
+                let map_save = s:unshadow(m, mode)
+                call s:make_repeatable(m, mode, is_local, from)
+                call lg#map#restore(map_save)
+            else
+                call s:make_repeatable(m, mode, is_local, from)
+            endif
+        endfor
+
+        " if not already done, install the `,` and `;` mappings to repeat the motions
+        if maparg(',') !~# 'move_again('
+            let mapcmd = mode.'noremap'
+            exe mapcmd." <expr> , <sid>move_again('bwd')"
+            exe mapcmd." <expr> ; <sid>move_again('fwd')"
         endif
     endfor
-
-    " if not already done, install the `,` and `;` mappings to repeat the motions
-    if maparg(',') !~# 'move_again('
-        let mapcmd = mode.'noremap'
-        exe mapcmd." <expr> , <sid>move_again('bwd')"
-        exe mapcmd." <expr> ; <sid>move_again('fwd')"
-    endif
 endfu
 
 fu lg#motion#repeatable#make#set_last_used(lhs) abort "{{{2
@@ -691,12 +692,12 @@ fu s:get_motion_info(lhs) abort "{{{2
         "
         " Here's what could happen:
         "
-        "     1. go to a function containing a `:return` statement
-        "     2. enter visual mode
-        "     3. press `%` on `fu`
-        "     4. press `;`
-        "     5. press Escape
-        "     6. press `;`
+        "    1. go to a function containing a `:return` statement
+        "    2. enter visual mode
+        "    3. press `%` on `fu`
+        "    4. press `;`
+        "    5. press Escape
+        "    6. press `;`
         "
         " Now `;` makes us enter visual  mode. It shouldn't. We want a motion in
         " normal mode.
@@ -711,7 +712,7 @@ fu s:get_motion_info(lhs) abort "{{{2
         "
         " So, we need to compare `m.bwd.mode` to the current mode, AND to a space.
         "}}}
-        " Note that there's an inconsistency in  maparg(){{{
+        " Note that there's an inconsistency in `maparg()`{{{
         "
         " Don't be confused:
         "
@@ -720,7 +721,7 @@ fu s:get_motion_info(lhs) abort "{{{2
         " the output, they will be represented  with a single space, not with an
         " empty string.
         "}}}
-        " There's also one between  maparg()  and  mode(){{{
+        " There's also one between `maparg()` and `mode()`{{{
         "
         " To express  the operator-pending mode,  `maparg()` expects 'o'  in its
         " input, while `mode(1)` uses 'no' in its output.

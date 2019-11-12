@@ -1,19 +1,3 @@
-fu lg#window#focus_previous_if_on_right() abort "{{{1
-    if s:previous_window_is_on_right()
-        wincmd p
-    else
-        wincmd l
-    endif
-endfu
-
-fu s:previous_window_is_on_right() abort
-    let nr = winnr()
-    let rightedge_current_window = win_screenpos(nr)[1] + winwidth(nr) - 1
-    let nr = winnr('#')
-    let leftedge_previous_window = win_screenpos(nr)[1]
-    return rightedge_current_window + 1 == leftedge_previous_window - 1
-endfu
-
 fu lg#window#get_modifier(...) abort "{{{1
 "  ├┘                     ├┘
 "  │                      └ optional flag meaning we're going to open a loc window
@@ -361,7 +345,7 @@ fu lg#window#restore_closed(cnt) abort "{{{1
         return lg#catch_error()
     finally
         " When we undo the closing of a window, we don't want the statusline to
-        " tell us we've restored a session with the indicator [S].
+        " tell us we've restored a session with the indicator `[S]`.
         " It's a detail of implementation we're not interested in.
         "
         " Besides, if a session is being tracked, it would temporarily replace

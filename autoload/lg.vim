@@ -29,16 +29,6 @@ fu lg#catch_error() abort "{{{1
     return ''
 endfu
 
-fu lg#jump_to_closing_bracket() abort "{{{1
-    let opening_bracket = getline('.')[col('.')-1]
-    if index(['<', '(', '[', '{'], opening_bracket) == -1
-        return
-    endif
-    let closing_bracket = {'<': '>', '(': ')', '[': ']', '{': '}'}[opening_bracket]
-    call searchpair(opening_bracket, '', closing_bracket,
-    \ 'W', 'synIDattr(synID(line("."),col("."),1),"name") =~? "comment\\|string"')
-endfu
-
 fu lg#man_k(pgm) abort "{{{1
     let cur_word = expand('<cword>')
     exe 'Man '..a:pgm
@@ -174,8 +164,8 @@ fu lg#win_execute(id, cmd, ...) abort "{{{1
         "
         " The view is altered in the qf window.
         "
-        " I don't think  there is a perfect solution fixing;  you have to choose
-        " the less inconvenient of two pitfalls.
+        " I don't think there is a perfect solution; you have to choose the less
+        " inconvenient of two pitfalls.
         " This pitfall seems less inconvenient than the previous one.
         "}}}
         let x = line('.') + (winheight(0)-winline())
