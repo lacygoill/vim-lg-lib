@@ -137,6 +137,35 @@ fu lg#window#quit() abort "{{{1
     " If we're recording a macro, don't close the window; stop the recording.
     if reg_recording() isnot# '' | return feedkeys('q', 'in')[-1] | endif
 
+    " In Nvim, a floating window has a number, and thus increases the value of `winnr('$')`.{{{
+    " This is not the case for a popup window in Vim.
+    "
+    " Because of that, in Nvim, if we  press `SPC q` while only 1 regular window
+    " – as  well as 1 floating  window – is  opened, `E444` is raised  (the code
+    " path ends up executing `:close` instead of `:qall!`).
+    " We need  to ignore  floating windows  when computing  the total  number of
+    " windows opened  in the current  tab page; we do  this by making  sure that
+    " `nvim_win_get_config(1234)` does *not* have the key `anchor`.
+    "
+    " From `:h nvim_open_win()`:
+    "
+    " > •  `anchor` : Decides which corner of the float to place at (row,col):
+    " >   • "NW" northwest (default)
+    " >   • "NE" northeast
+    " >   • "SW" southwest
+    " >   • "SE" southeast
+    "
+    " ---
+    "
+    " Is there a better way to detect whether a window is a float?
+    "}}}
+    if has('nvim')
+        let winnr_max = len(filter(range(1, winnr('$')),
+            \ {_,v -> ! has_key(nvim_win_get_config(win_getid(v)), 'anchor')}))
+    else
+        let winnr_max = winnr('$')
+    endif
+
     " Quit everything if:{{{
     "
     "    - there's only 1 window in 1 tabpage
@@ -145,8 +174,8 @@ fu lg#window#quit() abort "{{{1
     "}}}
     if tabpagenr('$') == 1
        \ && (
-       \         winnr('$') == 1
-       \      || winnr('$') == 2
+       \         winnr_max == 1
+       \      || winnr_max == 2
        \         && (
        \                index(map(getwininfo(), {_,v -> v.loclist}), 1) >= 0
        \             || getwinvar(winnr() == 1 ? 2 : 1, '&diff')
