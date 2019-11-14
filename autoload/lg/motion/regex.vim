@@ -35,7 +35,13 @@ fu lg#motion#regex#go(kwd, is_fwd, mode) abort "{{{1
     endif
 
     while cnt > 0
-        call search(pat, a:is_fwd ? '' : 'b')
+        " Don't remove `W`; I like it.{{{
+        "
+        " For  example,  when I'm  cycling  through  urls  in a  markdown  files
+        " searching for some link, I like knowing that I've visited them all.
+        " If you remove `W`, we keep cycling as long as we press the mapping.
+        "}}}
+        call search(pat, (a:is_fwd ? '' : 'b')..'W')
         let cnt -= 1
     endwhile
 
