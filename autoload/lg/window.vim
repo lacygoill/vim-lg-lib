@@ -134,6 +134,9 @@ fu lg#window#quit() abort "{{{1
     "         │
     if !empty(getcmdwintype()) | q | return | endif
 
+    " a sign may be left in the sign column if you close an undotree diff panel with `:q` or `:close`
+    if bufname('%') =~# '^diffpanel_\d\+$' | echo 'press "D" from the undotree buffer' | return | endif
+
     " If we're recording a macro, don't close the window; stop the recording.
     if reg_recording() isnot# '' | return feedkeys('q', 'in')[-1] | endif
 

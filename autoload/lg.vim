@@ -90,8 +90,8 @@ fu lg#win_execute(id, cmd, ...) abort "{{{1
         let curwinid = win_getid()
         " preserve previous window
         let prevwinid = win_getid(winnr('#'))
-        " preserve window size
-        let [curheight, curwidth, winrestcmd] = [winheight(0), winwidth(0), winrestcmd()]
+        " preserve window size of target window
+        let [tarheight, tarwidth, winrestcmd] = [winheight(a:id), winwidth(a:id), winrestcmd()]
         " Why `:noa`?{{{
         "
         " From `:h win_execute()`:
@@ -187,11 +187,12 @@ fu lg#win_execute(id, cmd, ...) abort "{{{1
         " > They will return to at least one line when they become active
         " > (since the cursor has to have somewhere to go.)
         "
-        " IOW,  the mere  fact of  temporarily focusing  a window  – even  while the
-        " autocmds are disabled –  may increase its height by 1,  which in turn will
-        " decrease the height of your original window by 1.
+        " IOW, the mere  fact of temporarily focusing a window  – even while the
+        " autocmds are disabled – may increase its height by 1.
         "}}}
-        if (&winminheight == 0 && curheight != winheight(0)) || (&winminwidth == 0 && curwidth != winwidth(0))
+        noa exe winrestcmd
+        if (&winminheight == 0 && tarheight != winheight(a:id))
+        \ || (&winminwidth == 0 && tarwidth != winwidth(a:id))
             noa exe winrestcmd
         endif
     endif
