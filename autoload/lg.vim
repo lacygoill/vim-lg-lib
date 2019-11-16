@@ -70,8 +70,17 @@ endfu
 
 fu lg#win_execute(id, cmd, ...) abort "{{{1
     let silent = a:0 ? [a:1] : []
+    " `a:cmd` could contain a call to a script-local function.{{{
+    "
+    " When that happens, `s:` will be replaced by `<SNR>123_` where `123` is the
+    " script id of the current file.
+    " This is wrong; it should be  the id of the script where `lg#win_execute()`
+    " was invoked; we need to resolve `s:` manually.
+    "}}}
+    let snr = matchstr(expand('<sfile>'), '\m\C.*\zs<SNR>\d\+_')
+    let cmd = substitute(a:cmd, '\m\C\<s:\ze\h\+(', snr, 'g')
     if !has('nvim')
-        call call('win_execute', [a:id, a:cmd] + silent)
+        call call('win_execute', [a:id, cmd] + silent)
     else
         " Make sure that the window layout is correct after running these commands:{{{
         "
@@ -106,12 +115,12 @@ fu lg#win_execute(id, cmd, ...) abort "{{{1
         " > When executing  {command} autocommands  will be triggered,  this may
         " > have unexpected side effects.  Use |:noautocmd| if needed.
         "}}}
-        exe a:cmd
+        exe cmd
         let after = winrestcmd()
         " Rationale:{{{
         "
-        " If `a:cmd` makes  the layout change, it means that  the current layout
-        " is desired, and that's  the one we should restore at  the end; not the
+        " If `cmd` makes the layout change,  it means that the current layout is
+        " desired, and  that's the  one we  should restore at  the end;  not the
         " original layout.
         "}}}
         if after isnot# before | let winrestcmd = after | endif
