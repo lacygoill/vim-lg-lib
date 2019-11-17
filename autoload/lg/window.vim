@@ -106,6 +106,16 @@ fu lg#window#qf_open(type) abort "{{{1
             " does.
             "}}}
             exe 'do <nomodeline> QuickFixCmdPost '..(a:type is# 'loc' ? 'l' : 'c')..'open'
+            " Fix status line in previous window.{{{
+            "
+            " When we press  `z[` to open the qf window, the  status line of the
+            " previous window wrongly displays `[QF]`.
+            "
+            " MWE:
+            "
+            "     do QuickFixCmdPost copen
+            "}}}
+            call lg#win_execute(lg#win_getid('#'), 'do <nomodeline> WinLeave')
             return ''
         endif
         let id = id.winid
