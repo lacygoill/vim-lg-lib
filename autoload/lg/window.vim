@@ -68,18 +68,14 @@ fu lg#window#has_neighbor(dir, ...) abort "{{{1
     return 0
 endfu
 
-fu lg#window#qf_open(type) abort "{{{1
+fu lg#window#qf_open_or_focus(type) abort "{{{1
     let we_are_in_qf = &bt is# 'quickfix'
-
     if !we_are_in_qf
-        "
-        "   ┌ dictionary: {'winid': 42}
-        "   │
-        let id = a:type is# 'loc'
-        \            ?    getloclist(0, {'winid':0})
-        \            :    getqflist(   {'winid':0})
-        if get(id, 'winid', 0) == 0
-            " Why :[cl]open? Are they valid commands here?{{{
+        let winid = a:type is# 'loc'
+            \ ? getloclist(0, {'winid': 0}).winid
+            \ : getqflist({'winid': 0}).winid
+        if ! winid
+            " Why `:[cl]open`? Are they valid commands here?{{{
             "
             " Probably not, because these commands  don't populate the qfl, they
             " just  open the  qf  window.
@@ -91,48 +87,34 @@ fu lg#window#qf_open(type) abort "{{{1
             "
             " It allows us to do this in any plugin populating the qfl:
             "
-            "         do <nomodeline> QuickFixCmdPost cwindow
-            "         open  the qf window  on the condition  it contains at  least 1 valid entry~
+            "     do <nomodeline> QuickFixCmdPost cwindow
+            "     open  the qf window  on the condition  it contains at  least 1 valid entry~
             "
-            "         do <nomodeline> QuickFixCmdPost copen
-            "         open the qf window unconditionally~
+            "     do <nomodeline> QuickFixCmdPost copen
+            "     open the qf window unconditionally~
             "}}}
             " Could we write sth simpler?{{{
             "
             " Yes:
-            "         return (a:type is# 'loc' ? 'l' : 'c').'open'
             "
-            " But, it wouldn't  open the qf window like our  autocmd in `vim-qf`
-            " does.
+            "     exe (a:type is# 'loc' ? 'l' : 'c').'open'
+            "
+            " But, it wouldn't open the qf window like our autocmd in `vim-qf` does.
             "}}}
             exe 'do <nomodeline> QuickFixCmdPost '..(a:type is# 'loc' ? 'l' : 'c')..'open'
-            " Fix status line in previous window.{{{
-            "
-            " When we press  `z[` to open the qf window, the  status line of the
-            " previous window wrongly displays `[QF]`.
-            "
-            " MWE:
-            "
-            "     do QuickFixCmdPost copen
-            "}}}
-            call lg#win_execute(lg#win_getid('#'), 'do <nomodeline> WinLeave')
-            return ''
+            return
         endif
-        let id = id.winid
 
-    " if we are already in the qf window, get back to the previous one
+    " if we are already in the qf window, focus the previous one
     elseif we_are_in_qf && a:type is# 'qf'
-        return 'wincmd p'
+        wincmd p | return
 
-    " if we are already in the ll window, get to the associated window
+    " if we are already in the ll window, focus the associated window
     elseif we_are_in_qf && a:type is# 'loc'
-        let id = get(getloclist(0, {'filewinid': 0}), 'filewinid', 0)
+        let winid = get(getloclist(0, {'filewinid': 0}), 'filewinid', 0)
     endif
 
-    if id != 0
-        call win_gotoid(id)
-    endif
-    return ''
+    call win_gotoid(winid)
 endfu
 
 fu lg#window#quit() abort "{{{1
@@ -145,7 +127,9 @@ fu lg#window#quit() abort "{{{1
     if !empty(getcmdwintype()) | q | return | endif
 
     " a sign may be left in the sign column if you close an undotree diff panel with `:q` or `:close`
-    if bufname('%') =~# '^diffpanel_\d\+$' | echo 'press "D" from the undotree buffer' | return | endif
+    if bufname('%') =~# '^diffpanel_\d\+$'
+        return plugin#undotree#close_diff_panel()
+    endif
 
     " If we're recording a macro, don't close the window; stop the recording.
     if reg_recording() isnot# '' | return feedkeys('q', 'in')[-1] | endif
@@ -367,10 +351,10 @@ fu lg#window#restore_closed(cnt) abort "{{{1
         " │ it will trigger a press-enter prompt
         sil exe 'so '..session_file
         let s:undo_sessions = a:cnt == 1 ? s:undo_sessions[:-2] : []
-        "                                                          │
+        "                                                          │{{{
         "           if we gave a count to restore several windows, ┘
         "
-        " … we  probably want to  reset the  stack of sessions,  otherwise the
+        " ... we  probably want to  reset the  stack of sessions,  otherwise the
         " next time we  would hit `{number} leader u`, if  `{number}` is too big
         " we would end up in a weird old session we don't remember
         "
@@ -383,6 +367,7 @@ fu lg#window#restore_closed(cnt) abort "{{{1
         " and implement a  2nd mapping `space C-u`, which could  access this 2nd
         " stack.   It  could  be  useful  if we  hit  `{number}  space  U`,  but
         " `{number}` wasn't big enough.
+        "}}}
     catch
         return lg#catch_error()
     finally

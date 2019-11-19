@@ -726,16 +726,16 @@ fu s:syn_list_item(ft, cml, commentGroup) abort "{{{2
     " An empty  line (except for  the comment  leader), followed by  a non-empty
     " line:
     "
-    "     cml.'\%(\s*\n\s*'.cml.'\s\=\S\)\@='
+    "     cml..'\%(\s*\n\s*'..cml..'\s\=\S\)\@='
     "
     " The end/beginning of a fold right after the end of the list (no empty line
     " in-between):
     "
-    "     '\n\%(\s*'.cml.'.*\%(}'.'}}\|{'.'{{\)\)\@='
+    "     '\n\%(\s*'..cml..'.*\%(}'..'}}\|{'..'{{\)\)\@='
     "
     " A non-commented line:
     "
-    "     '^\%(\s*'.cml.'\)\@!'
+    "     '^\%(\s*'..cml..'\)\@!'
     "}}}
     " The regexes include several lookafter with quantifiers.  Do they cause bad performance?{{{
     "
@@ -777,7 +777,7 @@ fu s:syn_code_block(ft, cml, commentGroup) abort "{{{2
     "}}}
     exe 'syn region '..a:ft..'CommentCodeBlock'
     \ ..' matchgroup=Comment'
-    \ ..' start=/\%(^\s*\)\@<='..a:cml..' \{5,}/'
+    \ ..' start=/\%(^\s*\)\@<='..a:cml..'\\\= \{5,}/'
     \ ..' end=/$/'
     \ ..' keepend'
     \ ..' contained'
