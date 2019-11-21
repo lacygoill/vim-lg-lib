@@ -74,6 +74,8 @@ fu lg#win_execute(id, cmd, ...) abort "{{{1
     "     $ vim -Nu NONE -o /tmp/file{1..2} +'set wmh=0|call win_execute(win_getid(2), "wincmd _")'
     "
     " The current window is squashed to 0 lines, so the cursor is not visible anymore.
+    " Note that  if you want  to maximize an  unfocused window (e.g.  the second
+    " one), you can/should simply execute `:2resize`.
     "}}}
     let silent = a:0 ? [a:1] : []
     " `a:cmd` could contain a call to a script-local function.{{{
