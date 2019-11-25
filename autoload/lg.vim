@@ -68,6 +68,77 @@ fu lg#man_k(pgm) abort "{{{1
     endtry
 endfu
 
+fu lg#set_stl(ft, stl, ...) abort "{{{1
+    if !has('nvim')
+        if !a:0
+            let &l:stl = a:stl
+        else
+            let &l:stl = '%!'..s:snr()..'set_stl('..string(a:stl)..', '..string(a:1)..')'
+        endif
+        return
+    endif
+
+    exe 'augroup '..a:ft..'_set_stl'
+        au! * <buffer>
+        if !a:0
+            exe 'au WinEnter,WinLeave <buffer> call s:update_stl('..string(a:ft)..', '..string(a:stl)..')'
+        else
+            exe 'au WinEnter <buffer> call s:update_stl('..string(a:ft)..', '..string(a:stl)..')'
+            exe 'au WinLeave <buffer> call s:update_stl('..string(a:ft)..', '..string(a:1)..')'
+        endif
+    augroup END
+endfu
+
+fu s:snr() abort
+    return matchstr(expand('<sfile>'), '.*\zs<SNR>\d\+_')
+endfu
+
+fu s:set_stl(stl_focused, stl_unfocused) abort
+    return a:stl_{g:statusline_winid == win_getid() ? '' : 'un'}focused
+endfu
+
+" Why don't you use a closure?{{{
+"
+" We  would  need to  overwrite  the  definition  of `s:update_stl`  every  time
+" `lg#set_stl()` is invoked.
+"
+" But we may have an existing autocmd which relies on the current definition.
+" MWE:
+"
+"     " source this
+"     fu Func(arg)
+"         exe 'augroup test_'..a:arg
+"             au! * <buffer>
+"             au WinEnter <buffer> call FuncA()
+"         augroup END
+"         fu! FuncA() closure
+"             echom a:arg
+"         endfu
+"     endfu
+"
+"     " open 2 windows displaying `foo` and `bar`
+"     " focus `foo`
+"     :call Func('foo') " we expect 'foo' to be written on the cmdline every time we enter its window
+"     " focus `bar`
+"     :call Func('bar') " we expect 'bar' to be written on the cmdline every time we enter its window
+"     " focus `foo`: 'bar' is displayed on the command-line; it should be 'foo'
+"}}}
+fu s:update_stl(ft, stl) abort
+    if &ft is# a:ft
+        let &l:stl = a:stl
+    else
+        exe 'au! '..a:ft..'_set_stl'
+    endif
+endfu
+
+fu lg#termname() abort "{{{1
+    if exists('$TMUX')
+        return system('tmux display -p "#{client_termname}"')[:-2]
+    else
+        return $TERM
+    endif
+endfu
+
 fu lg#win_execute(id, cmd, ...) abort "{{{1
     " TODO: Is this a bug?{{{
     "
