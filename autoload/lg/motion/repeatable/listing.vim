@@ -3,7 +3,7 @@ if exists('g:autoloaded_lg#motion#repeatable#listing')
 endif
 let g:autoloaded_lg#motion#repeatable#listing = 1
 
-" init {{{1
+" Init {{{1
 
 const s:REPEATABLE_MOTIONS = lg#motion#repeatable#make#share_env()
 const s:MODE2LETTER = {'normal': 'n', 'visual': 'x', 'operator-pending': 'no', 'nvo': ' '}
@@ -52,7 +52,7 @@ fu lg#motion#repeatable#listing#main(...) abort "{{{2
     call s:populate_listing(opt)
 
     " display it
-    let excmd = 'RepeatableMotions '.a:1
+    let excmd = 'RepeatableMotions '..a:1
     call debug#log#output({'excmd': excmd, 'lines': s:get_lines()})
     call s:customize_preview_window()
 endfu

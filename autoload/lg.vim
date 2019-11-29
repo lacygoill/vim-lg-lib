@@ -68,25 +68,55 @@ fu lg#man_k(pgm) abort "{{{1
     endtry
 endfu
 
-fu lg#set_stl(ft, stl, ...) abort "{{{1
+fu lg#set_stl(stl, ...) abort "{{{1
     if !has('nvim')
-        if !a:0
-            let &l:stl = a:stl
-        else
+        if a:0
             let &l:stl = '%!'..s:snr()..'set_stl('..string(a:stl)..', '..string(a:1)..')'
+        else
+            let &l:stl = a:stl
         endif
+        let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe')..'| set stl<'
         return
     endif
 
-    exe 'augroup '..a:ft..'_set_stl'
+    exe 'augroup '..&ft..'_set_stl'
         au! * <buffer>
-        if !a:0
-            exe 'au WinEnter,WinLeave <buffer> call s:update_stl('..string(a:ft)..', '..string(a:stl)..')'
+        if a:0
+            " Why `BufWinEnter`?{{{
+            "
+            " The current function is called when `FileType` is fired.
+            " It  installs the  next autocmd  which will  set `'stl'`  later, to
+            " overwrite the value set by `vim-statusline`.
+            " It works  as long as  `WinEnter` is fired right  after `FileType`,
+            " which is often the case, but not always:
+            "
+            "     $ nvim +'helpg foobar' +cclose
+            "     :copen
+            "
+            " In this example, when we re-open  the qf window, `WinEnter` is not
+            " fired right after `FileType`; but `BufWinEnter` is.
+            "}}}
+            exe 'au WinEnter,BufWinEnter <buffer> let &l:stl = '..string(a:stl)
+            exe 'au WinLeave <buffer> let &l:stl = '..string(a:1)
         else
-            exe 'au WinEnter <buffer> call s:update_stl('..string(a:ft)..', '..string(a:stl)..')'
-            exe 'au WinLeave <buffer> call s:update_stl('..string(a:ft)..', '..string(a:1)..')'
+            exe 'au BufWinEnter,WinEnter,WinLeave <buffer> let &l:stl = '..string(a:stl)
         endif
     augroup END
+    " Why don't you include `set stl<` for dirvish?{{{
+    "
+    " Because the dirvish plugin does sth weird.
+    " It fires two `FileType` events.
+    " After the  first one, `BufWinEnter`  is fired,  but after the  second one,
+    " neither `BufWinEnter` nor `WinEnter` is fired.
+    "
+    " So, when  the second  `FileType` is  fired, if  `b:undo_ftplugin` includes
+    " `set stl<`, the local value of `'stl'` will be made empty, and it won't be
+    " reset. IOW, initially, the  status line will just contain the  path to the
+    " viewed directory.
+    "}}}
+    let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe')
+        \ ..(&ft isnot# 'dirvish' ? '| set stl<' : '')
+        \ ..'| exe "au! '..&ft..'_set_stl * <buffer>"'
 endfu
 
 fu s:snr() abort
@@ -95,40 +125,6 @@ endfu
 
 fu s:set_stl(stl_focused, stl_unfocused) abort
     return a:stl_{g:statusline_winid == win_getid() ? '' : 'un'}focused
-endfu
-
-" Why don't you use a closure?{{{
-"
-" We  would  need to  overwrite  the  definition  of `s:update_stl`  every  time
-" `lg#set_stl()` is invoked.
-"
-" But we may have an existing autocmd which relies on the current definition.
-" MWE:
-"
-"     " source this
-"     fu Func(arg)
-"         exe 'augroup test_'..a:arg
-"             au! * <buffer>
-"             au WinEnter <buffer> call FuncA()
-"         augroup END
-"         fu! FuncA() closure
-"             echom a:arg
-"         endfu
-"     endfu
-"
-"     " open 2 windows displaying `foo` and `bar`
-"     " focus `foo`
-"     :call Func('foo') " we expect 'foo' to be written on the cmdline every time we enter its window
-"     " focus `bar`
-"     :call Func('bar') " we expect 'bar' to be written on the cmdline every time we enter its window
-"     " focus `foo`: 'bar' is displayed on the command-line; it should be 'foo'
-"}}}
-fu s:update_stl(ft, stl) abort
-    if &ft is# a:ft
-        let &l:stl = a:stl
-    else
-        exe 'au! '..a:ft..'_set_stl'
-    endif
 endfu
 
 fu lg#termname() abort "{{{1
