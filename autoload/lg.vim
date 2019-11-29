@@ -69,6 +69,27 @@ fu lg#man_k(pgm) abort "{{{1
 endfu
 
 fu lg#set_stl(stl, ...) abort "{{{1
+    " TODO: Once 8.1.1372 has been ported to Nvim, delete this function, and perform these refactorings:{{{
+    "
+    "     call lg#set_stl('foo')
+    "     →
+    "     setl stl=foo
+    "
+    " ---
+    "
+    "     call lg#set_stl('foo', 'bar')
+    "     →
+    "     let &l:stl = '%!g:statusline_winid == win_getid() ? "foo" : "bar"'
+    "
+    " Or if `foo`/`bar` is too complex:
+    "
+    "     call lg#set_stl('foo', 'bar')
+    "     →
+    "     setl stl=%!plugin#stl()
+    "     fu plugin#stl()
+    "         return g:statusline_winid == win_getid() ? 'foo' : 'bar'
+    "     endfu
+    "}}}
     if !has('nvim')
         if a:0
             let &l:stl = '%!'..s:snr()..'set_stl('..string(a:stl)..', '..string(a:1)..')'
