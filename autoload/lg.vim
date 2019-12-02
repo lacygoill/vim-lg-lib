@@ -89,6 +89,10 @@ fu lg#set_stl(stl, ...) abort "{{{1
     "     fu plugin#stl()
     "         return g:statusline_winid == win_getid() ? 'foo' : 'bar'
     "     endfu
+    "
+    " ---
+    "
+    " Also, make sure to include `set stl<` inside `b:undo_ftplugin` (except for dirvish).
     "}}}
     if !has('nvim')
         if a:0

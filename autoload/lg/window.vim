@@ -282,7 +282,7 @@ fu lg#window#restore_closed(cnt) abort "{{{1
         " MWE1:
         "
         "     $ nvim
-        "     :sp $MYVIMRC
+        "     :sp ~/.vim/vimrc
         "     SPC q
         "     SPC u
         "
