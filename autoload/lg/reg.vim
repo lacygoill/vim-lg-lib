@@ -53,7 +53,7 @@ fu lg#reg#restore(names) abort "{{{1
         "
         " That's why, at the moment, I don't try to restore the copy register
         " in ANY operator function. I simply CAN'T.
-"}}}
+        "}}}
 
         call setreg(name, contents, type)
     endfor

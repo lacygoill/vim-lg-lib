@@ -39,7 +39,7 @@ fu lg#math#is_prime(n) abort "{{{1
     "
     " Therefore, we have to test 2 and 3 manually.
     " Later we'll test all the `6k ± 1` numbers.
-"}}}
+    "}}}
     endif
 
     " We'll begin testing if `n` is divisible by 5 (first `6k ± 1` number).
@@ -73,7 +73,7 @@ fu lg#math#is_prime(n) abort "{{{1
     "
     "          n not prime             ⇒    n has a factor < √n
     "     ⇔    n has no factor < √n    ⇒    n is prime
-"}}}
+    "}}}
         if n % divisor == 0
             return 0
         endif

@@ -4,8 +4,6 @@ endif
 let g:autoloaded_lg#motion#regex = 1
 
 let s:patterns = {
-                 \ '{{':              '\v\{{3}%(\d+)?\s*$',
-                 \ '#':               '^#\|^=',
                  \ 'fu':              '^\s*fu\%[nction]!\=\s\+',
                  \ 'endfu':           '^\s*endf\%[unction]\%(\s\|"\|$\)',
                  \ 'sh_fu':           '^\s*\S\+\s*()\s*{\%(\s*#\s*{{'.'{\d*\s*\)\=$',
