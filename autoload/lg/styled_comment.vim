@@ -152,7 +152,7 @@ endfu
 fu lg#styled_comment#undo_ftplugin() abort "{{{2
     let ft = expand('<amatch>')
     let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe')
-    \ ..'| setl cocu< cole< fdm< fdt< | exe "au! my_fold_'.ft.' * <buffer>"'
+    \ ..'| setl cocu< cole< fdm< fdt< | exe "au! my_fold_'..ft..' * <buffer>"'
 endfu
 " }}}1
 " syntax plugin {{{1
@@ -714,6 +714,7 @@ fu s:syn_list_item(ft, cml, commentGroup) abort "{{{2
     \               ..a:ft..'CommentListItemBoldItalic,'
     \               ..a:ft..'CommentListItemCodeSpan,'
     \               ..a:ft..'CommentListItemCodeBlock,'
+    \               ..'@Spell'
 
     " - some item 1
     "   some text
@@ -889,6 +890,7 @@ fu s:syn_italic(ft, commentGroup) abort "{{{2
     \ ..' concealends'
     \ ..' contained'
     \ ..' containedin='..a:commentGroup
+    \ ..' contains=@Spell'
     \ ..' oneline'
 
     " - some *italic* item
@@ -899,6 +901,7 @@ fu s:syn_italic(ft, commentGroup) abort "{{{2
     \ ..' keepend'
     \ ..' concealends'
     \ ..' contained'
+    \ ..' contains=@Spell'
     \ ..' oneline'
 
     " > some *italic* quote
@@ -910,6 +913,7 @@ fu s:syn_italic(ft, commentGroup) abort "{{{2
     \ ..' concealends'
     \ ..' contained'
     \ ..' containedin='..a:ft..'CommentBlockquote'
+    \ ..' contains=@Spell'
     \ ..' oneline'
 endfu
 
@@ -923,6 +927,7 @@ fu s:syn_bold(ft, commentGroup) abort "{{{2
     \ ..' concealends'
     \ ..' contained'
     \ ..' containedin='..a:commentGroup
+    \ ..' contains=@Spell'
     \ ..' oneline'
 
     " - some **bold** item
@@ -933,6 +938,7 @@ fu s:syn_bold(ft, commentGroup) abort "{{{2
     \ ..' keepend'
     \ ..' concealends'
     \ ..' contained'
+    \ ..' contains=@Spell'
     \ ..' oneline'
 
     " > some **bold** quote
@@ -944,6 +950,7 @@ fu s:syn_bold(ft, commentGroup) abort "{{{2
     \ ..' concealends'
     \ ..' contained'
     \ ..' containedin='..a:ft..'CommentBlockquote'
+    \ ..' contains=@Spell'
     \ ..' oneline'
 endfu
 
@@ -957,6 +964,7 @@ fu s:syn_bolditalic(ft, commentGroup) abort "{{{2
     \ ..' concealends'
     \ ..' contained'
     \ ..' containedin='..a:commentGroup
+    \ ..' contains=@Spell'
     \ ..' oneline'
 
     " - some ***bold and italic*** item
@@ -967,6 +975,7 @@ fu s:syn_bolditalic(ft, commentGroup) abort "{{{2
     \ ..' keepend'
     \ ..' concealends'
     \ ..' contained'
+    \ ..' contains=@Spell'
     \ ..' oneline'
 
     " > some ***bold and italic*** quote
@@ -978,6 +987,7 @@ fu s:syn_bolditalic(ft, commentGroup) abort "{{{2
     \ ..' concealends'
     \ ..' contained'
     \ ..' containedin='..a:ft..'CommentBlockquote'
+    \ ..' contains=@Spell'
     \ ..' oneline'
 endfu
 
@@ -997,7 +1007,8 @@ fu s:syn_blockquote(ft, cml, commentGroup) abort "{{{2
     \ ..' containedin='..a:commentGroup
     \ ..' contains='..a:ft..'CommentLeader,'
     \               ..a:ft..'CommentBold,'
-    \               ..a:ft..'CommentBlockquoteConceal'
+    \               ..a:ft..'CommentBlockquoteConceal,'
+    \               ..'@Spell'
     \ ..' oneline'
 
     exe 'syn match '..a:ft..'CommentBlockquoteConceal'
@@ -1016,7 +1027,8 @@ fu s:syn_blockquote(ft, cml, commentGroup) abort "{{{2
     \ ..' containedin='..a:ft..'CommentListItem'
     \ ..' contains='..a:ft..'CommentLeader,'
     \               ..a:ft..'CommentBlockquoteBold,'
-    \               ..a:ft..'CommentListItemBlockquoteConceal'
+    \               ..a:ft..'CommentListItemBlockquoteConceal,'
+    \               ..'@Spell'
     \ ..' oneline'
 
     exe 'syn match '..a:ft..'CommentListItemBlockquoteConceal'
@@ -1127,6 +1139,7 @@ fu s:syn_table(ft, cml, commentGroup) abort "{{{2
     \ ..' oneline'
     \ ..' contained'
     \ ..' containedin='..a:commentGroup
+    \ ..' contains=@Spell'
 endfu
 
 fu s:syn_url(ft, commentGroup) abort "{{{2

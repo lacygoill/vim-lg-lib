@@ -519,8 +519,8 @@ fu lg#motion#repeatable#make#all(what) abort "{{{2
             " buffer-local  mapping using  the same  lhs. We handle  this particular
             " case by temporarily removing the latter.
             "}}}
-            if !is_local && (     execute(mode.'map <buffer> '.m.bwd) !~# '^\n\nNo mapping found$'
-                             \ || execute(mode.'map <buffer> '.m.fwd) !~# '^\n\nNo mapping found$')
+            if !is_local && (     execute(mode..'map <buffer> '..m.bwd) !~# '^\n\nNo mapping found$'
+                             \ || execute(mode..'map <buffer> '..m.fwd) !~# '^\n\nNo mapping found$')
                 let map_save = s:unshadow(m, mode)
                 call s:make_repeatable(m, mode, is_local, from)
                 call lg#map#restore(map_save)
