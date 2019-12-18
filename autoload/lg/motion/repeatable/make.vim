@@ -767,8 +767,8 @@ endfu
 
 fu s:unshadow(m, mode) abort "{{{2
     let map_save = lg#map#save(a:mode, 1, [a:m.bwd, a:m.fwd])
-    exe 'sil! '.a:mode.'unmap <buffer> '.a:m.bwd
-    exe 'sil! '.a:mode.'unmap <buffer> '.a:m.fwd
+    exe 'sil! '..a:mode..'unmap <buffer> '..a:m.bwd
+    exe 'sil! '..a:mode..'unmap <buffer> '..a:m.fwd
     return map_save
 endfu
 
