@@ -3,21 +3,21 @@ if exists('g:autoloaded_lg#motion#regex')
 endif
 let g:autoloaded_lg#motion#regex = 1
 
-let s:patterns = {
-                 \ 'fu':              '^\s*fu\%[nction]!\=\s\+',
-                 \ 'endfu':           '^\s*endf\%[unction]\%(\s\|"\|$\)',
-                 \ 'sh_fu':           '^\s*\S\+\s*()\s*{\%(\s*#\s*{{'.'{\d*\s*\)\=$',
-                 \ 'sh_endfu':        '^}$',
-                 \ 'ref':             '\[.\{-1,}\](\zs.\{-1,})',
-                 \ 'path':            '\v%(\s\.%(\=|,))@!&%(^|\s|`)\zs[./~]\f+',
-                 \ 'url':             '\%(https\=\|ftps\=\|www\)://\|!\=\[.\{-}\]\%((.\{-})\|\[.\{-}\]\)',
-                 \ 'concealed_url':   '\v\[.{-}\zs\]\(.{-}\)',
-                 \ 'codespan':        '`.\{-1,}`',
-                 \ }
+const s:PATTERNS = {
+    \ 'fu':            '^\s*fu\%[nction]!\=\s\+',
+    \ 'endfu':         '^\s*endf\%[unction]\%(\s\|"\|$\)',
+    \ 'sh_fu':         '^\s*\S\+\s*()\s*{\%(\s*#\s*{{'.'{\d*\s*\)\=$',
+    \ 'sh_endfu':      '^}$',
+    \ 'ref':           '\[.\{-1,}\](\zs.\{-1,})',
+    \ 'path':          '\f*/\&\%(\%(^\|\s\|`\)\)\@1<=[./~]\f\+',
+    \ 'url':           '\%(https\=\|ftps\=\|www\)://\|!\=\[.\{-}\]\%((.\{-})\|\[.\{-}\]\)',
+    \ 'concealed_url': '\[.\{-}\zs\](.\{-})',
+    \ 'codespan':      '`.\{-1,}`',
+    \ }
 
 fu lg#motion#regex#go(kwd, is_fwd, mode) abort "{{{1
     let cnt = v:count1
-    let pat = get(s:patterns, a:kwd, '')
+    let pat = get(s:PATTERNS, a:kwd, '')
 
     if empty(pat)
         return

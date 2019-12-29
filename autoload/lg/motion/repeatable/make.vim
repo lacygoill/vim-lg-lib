@@ -397,18 +397,6 @@ fu s:move_again(dir) abort "{{{2
     " where to move.
     "}}}
     call timer_start(0, {_ -> execute('let s:is_repeating_motion = 0')})
-
-    " If we're using  `]q` &friends, we need to redraw  all statuslines, so that
-    " the position in the list is updated immediately.
-    "
-    " TODO:
-    " It was needed in the past, but it's not anymore.
-    " Because we execute  `:redraw` via `vim-submode`, which  redraws the screen
-    " AND the  statuslines. However, if we eliminate  `:redraw` later, uncomment
-    " the next line.
-    "
-    "     call timer_start(0, {_ -> execute('redraws!') })
-
     return ''
 endfu
 

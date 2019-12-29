@@ -189,7 +189,7 @@ fu lg#window#quit() abort "{{{1
         " if the window we're closing is associated to a ll window, close the latter too
         " We could also install an autocmd in our vimrc:{{{
         "
-        "     au QuitPre * ++nested if &bt isnot# 'quickfix' | sil! lclose | endif
+        "     au QuitPre * ++nested if &bt isnot# 'quickfix' | lclose | endif
         "
         " Inspiration:
         " https://github.com/romainl/vim-qf/blob/5f971f3ed7f59ff11610c00b8a1e343e2dbae510/plugin/qf.vim#L64-L65
@@ -200,7 +200,7 @@ fu lg#window#quit() abort "{{{1
         " For the moment, I prefer to use `:close` because it doesn't close
         " a window if it's the last one.
         "}}}
-        sil! lclose
+        lclose
 
         " if we were already in a loclist window, then `:lclose` has closed it,
         " and there's nothing left to close
@@ -265,8 +265,7 @@ fu lg#window#restore_closed(cnt) abort "{{{1
         return
     endif
 
-    sil! noa tabdo tabclose
-    sil! noa windo close
+    sil noa tabonly | sil noa only
 
     try
         let session_save = v:this_session
@@ -347,8 +346,7 @@ fu lg#window#restore_closed(cnt) abort "{{{1
         \ {_,v -> v !~# '\m\C^\%(badd\|arg\%(global\|local\)\|%argdel\|silent! argdel \*\|$argadd\)\>'}), session_file)
 
         " ┌ don't display the last filename;
-        " │ if it's too long to fit on a single line,
-        " │ it will trigger a press-enter prompt
+        " │ if it's too long to fit on a single line, it will trigger a press-enter prompt
         sil exe 'so '..session_file
         let s:undo_sessions = a:cnt == 1 ? s:undo_sessions[:-2] : []
         "                                                          │{{{

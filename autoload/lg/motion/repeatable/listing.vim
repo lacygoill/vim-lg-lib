@@ -40,8 +40,8 @@ fu lg#motion#repeatable#listing#main(...) abort "{{{2
     " get the asked options
     let cmd_args = split(a:1)
     let opt = {
-        \ 'mode':     matchstr(a:1, '\v-mode\s+\zs[-a-z]+'),
-        \ 'scope':    matchstr(a:1, '\v-scope\s+\zs\w+'),
+        \ 'mode':     matchstr(a:1, '-mode\s\+\zs[-a-z]\+'),
+        \ 'scope':    matchstr(a:1, '-scope\s\+\zs\w\+'),
         \ 'verbose1': index(cmd_args, '-v') >= 0,
         \ 'verbose2': index(cmd_args, '-vv') >= 0,
         \ }
