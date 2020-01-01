@@ -29,45 +29,6 @@ fu lg#catch_error() abort "{{{1
     return ''
 endfu
 
-fu lg#man_k(pgm) abort "{{{1
-    let cur_word = expand('<cword>')
-    exe 'Man '..a:pgm
-
-    try
-        " populate location list
-        noa exe 'lvim /\<\C'..cur_word..'\>/ %'
-        " set its title
-        call setloclist(0, [], 'a', { 'title': cur_word })
-
-        sil! call lg#motion#repeatable#make#set_last_used(']l')
-    catch
-        try
-            sil exe 'Man '..cur_word
-        catch
-            " If the word under the cursor is not present in any man page, quit.
-            quit
-            " FIXME:
-            " If I hit `K` on a garbage word inside a shell script, the function
-            " doesn't quit, because `:Man garbage_word` isn't considered an error.
-            " If it was considered an error `:silent` wouldn't be enough to
-            " hide the warning message. We would have to add a bang.
-            " The problem comes from `man#open_page()` inside
-            " ~/.vim/plugged/vim-man/autoload/man.vim
-            "
-            " When it receives an optional word as an argument, and there's no
-            " manual page for it, the function calls `s:error()`. The latter
-            " don't raise any exception. Maybe we could use `:throw`, although
-            " I don't know how it works exactly. But then we would have errors
-            " when we execute `:Man garbage_word` manually.
-            "
-            " Edit:
-            " This whole code seems dubious. We  may silently ignore other valid
-            " errors, because of these 2 nested try conditionals.
-            " We should rethink this code.
-        endtry
-    endtry
-endfu
-
 fu lg#set_stl(stl, ...) abort "{{{1
     " TODO: Once 8.1.1372 has been ported to Nvim, delete this function, and perform these refactorings:{{{
     "

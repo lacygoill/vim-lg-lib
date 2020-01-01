@@ -250,7 +250,7 @@ fu lg#styled_comment#syntax() abort "{{{2
     " and stick to it (here and in the markdown syntax plugin)
 
     let ft = s:get_filetype()
-    let cml = matchstr(get(split(&l:cms, '%s'), 0, ''), '\S*')
+    let cml = matchstr(&l:cms, '\S*\ze\s*%s')
     " What do you need this `nr` for?{{{
     "
     " For offsets when defining the syntax groups:
@@ -1216,8 +1216,8 @@ fu s:syn_foldmarkers(ft, cml_0_1, commentGroup) abort "{{{2
     "    ❯❮
     "    ❱❰
     "}}}
-    let cml_left = escape(matchstr(split(&l:cms, '%s', 1)[0], '\S*'), '\/')
-    let cml_right = escape(matchstr(split(&l:cms, '%s', 1)[1], '\S*'), '\/')
+    let cml_left = escape(matchstr(&l:cms, '\S*\ze\s*%s'), '\/')
+    let cml_right = escape(matchstr(&l:cms, '.*%s\s*\zs.*'), '\/')
     if cml_right is# ''
         let pat = a:cml_0_1..'\s*\%({'..'{{\|}'..'}}\)\d*\s*\ze\n'
         let contained = ' contained'
