@@ -112,7 +112,7 @@ fu lg#map#save(mode, is_local, keys) abort "{{{1
             " In particular, we  need the `unmapped` key to know  that the local
             " mapping does not exist.
             "}}}
-            if has_key(maparg, 'buffer') && ! maparg.buffer
+            if has_key(maparg, 'buffer') && !maparg.buffer
                 let maparg = {}
             endif
 

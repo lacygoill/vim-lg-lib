@@ -74,7 +74,7 @@ fu lg#window#qf_open_or_focus(type) abort "{{{1
         let winid = a:type is# 'loc'
             \ ? getloclist(0, {'winid': 0}).winid
             \ : getqflist({'winid': 0}).winid
-        if ! winid
+        if !winid
             " Why `:[cl]open`? Are they valid commands here?{{{
             "
             " Probably not, because these commands  don't populate the qfl, they
@@ -158,7 +158,7 @@ fu lg#window#quit() abort "{{{1
     "}}}
     if has('nvim')
         let winnr_max = len(filter(range(1, winnr('$')),
-            \ {_,v -> ! has_key(nvim_win_get_config(win_getid(v)), 'anchor')}))
+            \ {_,v -> !has_key(nvim_win_get_config(win_getid(v)), 'anchor')}))
     else
         let winnr_max = winnr('$')
     endif

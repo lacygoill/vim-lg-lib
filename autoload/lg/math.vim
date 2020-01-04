@@ -1,3 +1,8 @@
+if exists('g:autoloaded_lg#math')
+    finish
+endif
+let g:autoloaded_lg#math = 1
+
 fu lg#math#is_prime(n) abort "{{{1
     let n = a:n
     if type(n) != type(0) || n < 0
@@ -189,4 +194,99 @@ fu lg#math#min(numbers) abort "{{{1
     endfor
     return min
 endfu
+
+fu lg#math#read_number(n) abort "{{{1
+    " Purpose:{{{
+    "
+    " Takes a number as input; outputs the english word standing for that number.
+    " E.g.:
+    "
+    "     :echo lg#math#read_number(123)
+    "     one hundred twenty three~
+    "}}}
+    let n = a:n
+    let [thousand, million, billion] = range(3)->map({_,v -> pow(10, (v+1)*3)->float2nr()})
+    if n >= billion
+        return lg#math#read_number(n/billion)..' billion '..lg#math#read_number(n%billion)
+    elseif n >= million
+        return lg#math#read_number(n/million)..' million '..lg#math#read_number(n%million)
+    elseif n >= thousand
+        return lg#math#read_number(n/thousand)..' thousand '..lg#math#read_number(n%thousand)
+    elseif n >= 100
+        return lg#math#read_number(n/100)..' hundred '..lg#math#read_number(n%100)
+    " Why `20` and not `10`?{{{
+    "
+    " Because numbers between 11 and 19 get special names.
+    " You don't say  "ten one", "ten two", "ten three",  but "eleven", "twelve",
+    " thirteen", ...
+    "
+    " See: https://english.stackexchange.com/q/7281/313834
+        "}}}
+    elseif n >= 20
+        " Why `g:tens[n/10]` instead of `lg#math#read_number(n/10)`?{{{
+        "
+        " Because you don't say "two ten three" for 23, but "twenty three".
+        " Also, notice how there is no word between the two expressions:
+        "
+        "     g:tens[n/10]..' '..lg#math#read_number(n%10)
+        "                 ^^^^^^^
+        "                 no word
+        "
+        " Previously, there was always a word (e.g. "hundred", "thousand", ...).
+        " The difference in the code reflects this difference of word syntax.
+        "}}}
+        let num = lg#math#read_number(n%10)
+        " Why the conditional operator?{{{
+        "
+        " Without, in the output for 20000, there would be a superfluous space:
+        "
+        "     twenty  thousand
+        "           ^^
+        "}}}
+        return s:TENS[n/10]..(num is# '' ? '' : ' '..num)
+    else
+        " Why the conditional operator?{{{
+        "
+        " You never say "zero" at the end, for a number divisible by 10^2, 10^3, 10^6, 10^9...
+        " E.g., you don't say "two hundred zero" for 200, but just "two hundred".
+        "}}}
+        return (n ? s:NUMS[n] : '')
+    endif
+endfu
+
+const s:NUMS =<< trim END
+    zero
+    one
+    two
+    three
+    four
+    five
+    six
+    seven
+    eight
+    nine
+    ten
+    eleven
+    twelve
+    thirteen
+    fourteen
+    fifteen
+    sixteen
+    seventeen
+    eighteen
+    nineteen
+END
+
+const s:TENS =<< trim END
+    zero
+    ten
+    twenty
+    thirty
+    fourty
+    fifty
+    sixty
+    seventy
+    eighty
+    ninety
+END
 

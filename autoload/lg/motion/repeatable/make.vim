@@ -235,15 +235,15 @@ fu s:move(lhs) abort "{{{2
 
     let dir = s:get_direction(a:lhs, motion)
 
-    " Why don't we translate `a:lhs`?{{{
+    " Why don't you translate `a:lhs`?{{{
     "
     " No need to.
     " This function is used in the rhs of wrapper mappings:
     "
-    "     exe mapcmd.'  '.a:m.bwd.'  <sid>move('.string(a:m.bwd).')'
-    "     exe mapcmd.'  '.a:m.fwd.'  <sid>move('.string(a:m.fwd).')'
-    "                                            ├─────────────┘
-    "                                            └ automatically translated
+    "     exe mapcmd..'  '..a:m.bwd..'  <sid>move('..string(a:m.bwd)..')'
+    "     exe mapcmd..'  '..a:m.fwd..'  <sid>move('..string(a:m.fwd)..')'
+    "                                                ├─────────────┘
+    "                                                └ automatically translated
     "
     " And mapping commands automatically translate special keys.
     "}}}
@@ -526,9 +526,6 @@ fu lg#motion#repeatable#make#all(what) abort "{{{2
     endfor
 endfu
 
-fu lg#motion#repeatable#make#set_last_used(lhs) abort "{{{2
-    let s:last_motion = s:translate(a:lhs)
-endfu
 " }}}1
 " Misc. {{{1
 fu s:collides_with_db(motion, repeatable_motions) abort "{{{2
@@ -629,7 +626,7 @@ fu s:get_motion_info(lhs) abort "{{{2
     " return the info about the motion in the db:
     "
     "    - which contains `a:lhs` (no matter for which direction)
-    "    - whose mode is the identical to the one in which we currently are
+    "    - whose mode is identical to the one in which we currently are
     "}}}
 
     let mode = s:get_current_mode()
@@ -644,20 +641,16 @@ fu s:get_motion_info(lhs) abort "{{{2
         "
         " The current function is called from:
         "
-        "    - s:move()
-        "    - s:move_again()
+        "    - `s:move()`
+        "    - `s:move_again()`
         "
         " In `s:move()`, `s:get_motion_info()` is passed a keysequence which has
         " been translated automatically  because `s:move()` was in the  rhs of a
         " mapping.
         "
         " In  `s:move_again()`, `s:get_motion_info()`  is  passed a  keysequence
-        " from `s:last_motion`.
-        " All the keysequences inside this dictionary are set by:
-        "
-        "     lg#motion#repeatable#make#set_last_used()
-        "
-        " And the latter translates every keysequence it receives.
+        " from `s:last_motion`. The  keysequence saved in the  latter is already
+        " translated.
         "}}}
         " Same question for `m.bwd.lhs` and `m.fwd.lhs`?{{{
         "

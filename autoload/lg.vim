@@ -57,7 +57,7 @@ fu lg#set_stl(stl, ...) abort "{{{1
     "}}}
     if !has('nvim')
         if a:0
-            let &l:stl = '%!'..s:snr()..'set_stl('..string(a:stl)..', '..string(a:1)..')'
+            let &l:stl = '%!'..s:snr..'set_stl('..string(a:stl)..', '..string(a:1)..')'
         else
             let &l:stl = a:stl
         endif
@@ -108,6 +108,7 @@ endfu
 fu s:snr() abort
     return matchstr(expand('<sfile>'), '.*\zs<SNR>\d\+_')
 endfu
+let s:snr = get(s:, 'snr', s:snr())
 
 fu s:set_stl(stl_focused, stl_unfocused) abort
     return a:stl_{g:statusline_winid == win_getid() ? '' : 'un'}focused
