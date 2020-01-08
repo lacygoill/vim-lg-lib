@@ -10,7 +10,7 @@ fu lg#window#get_modifier(...) abort "{{{1
     "  │
     "  │      ┌ and does it display a TOC?
     "  │      │
-    if a:0 && get(getloclist(0, {'title': 0}), 'title', '') =~# '\<TOC$'
+    if a:0 && getloclist(0, {'title': 0}).title =~# '\<TOC$'
         let mod = 'vert leftabove'
 
     " there's nothing above or below us

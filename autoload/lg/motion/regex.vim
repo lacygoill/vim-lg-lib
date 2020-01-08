@@ -25,7 +25,7 @@ fu lg#motion#regex#go(kwd, is_fwd, mode) abort "{{{1
 
     if a:mode is# 'n'
         norm! m'
-    elseif index(['v', 'V', "\<c-v>"], a:mode) >= 0
+    elseif a:mode =~# "[vV\<c-v>]"
         " If we  were initially  in visual mode,  we've left it  as soon  as the
         " mapping pressed Enter  to execute the call to this  function.  We need
         " to get back in visual mode, before the search.
@@ -44,7 +44,7 @@ fu lg#motion#regex#go(kwd, is_fwd, mode) abort "{{{1
     endwhile
 
     " the function  shouldn't do anything in operator-pending mode
-    if a:mode is# 'n' || index(['v', 'V', "\<c-v>"], a:mode) >= 0
+    if a:mode =~# "[nvV\<c-v>]"
         norm! zv
     endif
 endfu
