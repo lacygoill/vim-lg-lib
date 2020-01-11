@@ -186,63 +186,6 @@ fu lg#win_execute(id, cmd, ...) abort "{{{1
         " original layout.
         "}}}
         if after isnot# before | let winrestcmd = after | endif
-        " Rationale:{{{
-        "
-        "     $ nvim +'helpg foobar'
-        "     :cbottom | wincmd k
-        "
-        " The view is altered in the qf  window (the value of `winline()` changes from 1
-        " to 4); it should remain unchanged (it does in Vim).
-        "
-        " MWE:
-        "
-        "     $ vim -Nu NONE +'helpg foobar' +'helpc|cw10|norm! G' +'wincmd w|wincmd _|wincmd w|resize 10'
-        "
-        " This issue is a total mess.
-        " Inconsistencies between Vim and Nvim, and inconsistencies in Vim itself.
-        "
-        " Try this:
-        "
-        "     $ vim -Nu NONE +'helpg foobar' +'helpc|cw10|norm! G' +'wincmd w'
-        "     :wincmd _|wincmd w|resize 10
-        "
-        " Same result as in the first command before.
-        " Now try this:
-        "
-        "     $ vim -Nu NONE +'helpg foobar' +'helpc|cw10|norm! G'
-        "     :wincmd w|wincmd _|wincmd w|resize 10
-        "
-        " Different result (and yet same commands).
-        "
-        " Also, see this:
-        "
-        "     $ vim -Nu NONE +'helpg foobar' +'helpc|cw10|norm! G'
-        "     :set wmh=0|wincmd w|wincmd _|2res10
-        "
-        "     $ nvim -Nu NONE +'helpg foobar' +'helpc|cw10|norm! G'
-        "     :set wmh=0|wincmd w|wincmd _|2res10
-        "
-        " Same commands but different results.
-        "}}}
-        " Warning:{{{
-        "
-        " This is not the right fix:
-        "
-        "     $ nvim +'helpg foobar'
-        "     :$
-        "     " press `C-e` 5 times
-        "     :wincmd k
-        "
-        " The view is altered in the qf window.
-        "
-        " I don't think there is a perfect solution; you have to choose the less
-        " inconvenient of two pitfalls.
-        " This pitfall seems less inconvenient than the previous one.
-        "}}}
-        let x = line('.') + (winheight(0)-winline())
-        if x > line('$')
-            exe 'norm! '..(x-line('$')).."\<c-y>"
-        endif
         noa call win_gotoid(prevwinid)
         noa call win_gotoid(curwinid)
         " TODO: Should we remove the condition, and restore the layout unconditionally?
