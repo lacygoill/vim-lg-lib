@@ -61,7 +61,7 @@ endfu
 
 fu lg#reg#save(names) abort "{{{1
     for name in a:names
-        let prefix          = get(s:REG_TRANSLATIONS, name, name)
+        let prefix = get(s:REG_TRANSLATIONS, name, name)
         let s:{prefix}_save = [getreg(name), getregtype(name)]
     endfor
 endfu
