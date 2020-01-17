@@ -720,34 +720,14 @@ fu s:syn_list_item(ft, cml, commentGroup) abort "{{{2
     "   some text
     "
     " - some item 2
-    " The end pattern is long... What does it mean?{{{
-    "
-    " It contains 3 main branches.
-    "
-    " An empty  line (except for  the comment  leader), followed by  a non-empty
-    " line:
-    "
-    "     cml..'\%(\s*\n\s*'..cml..'\s\=\S\)\@='
-    "
-    " The end/beginning of a fold right after the end of the list (no empty line
-    " in-between):
-    "
-    "     '\n\%(\s*'..cml..'.*\%(}'..'}}\|{'..'{{\)\)\@='
-    "
-    " A non-commented line:
-    "
-    "     '^\%(\s*'..cml..'\)\@!'
-    "}}}
-    " The regexes include several lookafter with quantifiers.  Do they cause bad performance?{{{
-    "
-    " Weirdly enough, no.
-    " With and without limiting the backtracking of `\%(^\s*\)\@<=`.
-    "}}}
     let list_marker = '[-*+]'
     exe 'syn region '..a:ft..'CommentListItem'
     \ ..' start=/\%(^\s*\)\@<='..a:cml..' \{,4\}\%('..list_marker..'\|\d\+\.\)\s\+\S/'
-    \ ..' end=/'..a:cml..'\%(\s*\n\s*'..a:cml..' \{,4}\S\)\@='
-    \       ..'\|\n\%(\s*'..a:cml..'.*\%(}'..'}}\|{'..'{{\)\)\@='
+    "\ an empty line (except for the comment leader), followed by a non-empty line
+    \ ..' end=/'..a:cml..'\ze\s*\n\s*'..a:cml..' \{,4}\S'
+    "\ the end/beginning of a fold right after the end of the list (no empty line in-between)
+    \       ..'\|\n\ze\s*'..a:cml..'.*\%(}'..'}}\|{'..'{{\)'
+    "\ a non-commented line
     \       ..'\|^\%(\s*'..a:cml..'\)\@!/'
     \ ..' keepend'
     \ ..' contains='..a:ft..'FoldMarkers,'
@@ -1071,7 +1051,7 @@ fu s:syn_option(ft) abort "{{{2
     " some `'option'`
     " - some `'option'`
     exe 'syn match '..a:ft..'CommentOption'
-    \ ..' /`\@1<=''[a-z]\{2,}''`\@=/'
+    \ ..' /`\@1<=''[a-z]\{2,}''\ze`/'
     \ ..' contained'
     \ ..' containedin='..a:ft..'CommentCodeSpan,'..a:ft..'CommentListItemCodeSpan'
 endfu
@@ -1133,7 +1113,7 @@ fu s:syn_table(ft, cml, commentGroup) abort "{{{2
     "}}}
     exe 'syn region '..a:ft..'CommentTable'
     \ ..' matchgroup=Comment'
-    \ ..' start=/'..a:cml..'    \%([┌└]─\|│.*[^ \t│].*│\|├─.*┤\|│.*├\)\@=/'
+    \ ..' start=/'..a:cml..'    \ze\%([┌└]─\|│.*[^ \t│].*│\|├─.*┤\|│.*├\)/'
     \ ..' end=/$/'
     \ ..' keepend'
     \ ..' oneline'
