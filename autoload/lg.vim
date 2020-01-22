@@ -65,6 +65,8 @@ fu lg#set_stl(stl, ...) abort "{{{1
         return
     endif
 
+    let &l:stl = a:stl
+
     exe 'augroup '..&ft..'_set_stl'
         au! * <buffer>
         if a:0
@@ -88,6 +90,7 @@ fu lg#set_stl(stl, ...) abort "{{{1
             exe 'au BufWinEnter,WinEnter,WinLeave <buffer> let &l:stl = '..string(a:stl)
         endif
     augroup END
+
     " Why don't you include `set stl<` for dirvish?{{{
     "
     " Because the dirvish plugin does sth weird.

@@ -101,6 +101,18 @@ END
 
 " filetype plugin {{{1
 fu lg#styled_comment#fold() abort "{{{2
+    " Do *not* remove this function call.{{{
+    "
+    " Yes, it  seems redundant,  because it  will be called  a second  time when
+    " `BufWinEnter` will be fired right after `FileType`.
+    "
+    " But if you don't set the options now, it may lead to subtle issues; we had
+    " one in the past in `vim-fold` when we used a timer to delay `setl fdm=manual`.
+    " Anyway, if  these options  were in  a filetype plugin,  they would  be set
+    " *right now*,  not slightly later; so  let's be consistent; let's  set them
+    " right now.
+    "}}}
+    call s:fold_settings()
     let ft = expand('<amatch>')
     " Why naming the augroup `my_fold_x` instead of just `my_x`?{{{
     "
@@ -141,12 +153,15 @@ fu lg#styled_comment#fold() abort "{{{2
         "    - we write a file owned by root with `:W`
         "    - we stash some changes with `$ git stash`
         "}}}
-        au BufWinEnter,FileChangedShellPost <buffer>
-        \   setl fdm=marker
-        \ | setl fdt=fold#fdt#get()
-        \ | setl cocu=nc
-        \ | setl cole=3
+        au BufWinEnter,FileChangedShellPost <buffer> call s:fold_settings()
     augroup END
+endfu
+
+fu s:fold_settings() abort
+    setl fdm=marker
+    setl fdt=fold#fdt#get()
+    setl cocu=nc
+    setl cole=3
 endfu
 
 fu lg#styled_comment#undo_ftplugin() abort "{{{2
