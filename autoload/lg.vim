@@ -142,6 +142,11 @@ fu lg#win_execute(id, cmd, ...) abort "{{{1
     " This is wrong; it should be  the id of the script where `lg#win_execute()`
     " was invoked; we need to resolve `s:` manually.
     "}}}
+    " FIXME: For the translation to work, `lg#win_execute()` must be called by a script-local function.{{{
+    "
+    " Not  necessarily directly,  but a  script-local function  must be  present
+    " somewhere in the stack of function calls.
+    "}}}
     let snr = matchstr(expand('<sfile>'), '\m\C.*\zs<SNR>\d\+_')
     let cmd = substitute(a:cmd, '\m\C\<s:\ze\h\+(', snr, 'g')
     if !has('nvim')
