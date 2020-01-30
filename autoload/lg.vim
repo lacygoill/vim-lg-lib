@@ -29,6 +29,17 @@ fu lg#catch_error() abort "{{{1
     return ''
 endfu
 
+fu lg#vim_parent() abort "{{{1
+    "    ┌────────────────────────────┬─────────────────────────────────────┐
+    "    │ :echo getpid()             │ print the PID of Vim                │
+    "    ├────────────────────────────┼─────────────────────────────────────┤
+    "    │ $ ps -p <Vim PID> -o ppid= │ print the PID of the parent of Vim  │
+    "    ├────────────────────────────┼─────────────────────────────────────┤
+    "    │ $ ps -p $(..^..) -o comm=  │ print the name of the parent of Vim │
+    "    └────────────────────────────┴─────────────────────────────────────┘
+    return expand('`ps -p $(ps -p '..getpid()..' -o ppid=) -o comm=`')
+endfu
+
 fu lg#set_stl(stl, ...) abort "{{{1
     " TODO: Once 8.1.1372 has been ported to Nvim, delete this function, and perform these refactorings:{{{
     "
