@@ -145,7 +145,7 @@ fu lg#win_execute(id, cmd, ...) abort "{{{1
     " Note that  if you want  to maximize an  unfocused window (e.g.  the second
     " one), you can/should simply execute `:2resize`.
     "}}}
-    let silent = a:0 ? [a:1] : []
+
     " `a:cmd` could contain a call to a script-local function.{{{
     "
     " When that happens, `s:` will be replaced by `<SNR>123_` where `123` is the
@@ -158,10 +158,15 @@ fu lg#win_execute(id, cmd, ...) abort "{{{1
     " Not  necessarily directly,  but a  script-local function  must be  present
     " somewhere in the stack of function calls.
     "}}}
+    " FIXME: `lg#win_execute()` can't access a script-local variable, nor a function-local one.{{{
+    "
+    " But `win_execute()` can.
+    "}}}
+    let silent = a:0 ? [a:1] : ['silent']
     let snr = matchstr(expand('<sfile>'), '\m\C.*\zs<SNR>\d\+_')
     let cmd = substitute(a:cmd, '\m\C\<s:\ze\h\+(', snr, 'g')
     if !has('nvim')
-        call call('win_execute', [a:id, cmd] + silent)
+        return call('win_execute', [a:id, cmd] + silent)
     else
         " Make sure that the window layout is correct after running these commands:{{{
         "
@@ -196,7 +201,7 @@ fu lg#win_execute(id, cmd, ...) abort "{{{1
         " > When executing  {command} autocommands  will be triggered,  this may
         " > have unexpected side effects.  Use |:noautocmd| if needed.
         "}}}
-        exe cmd
+        let out = call('execute', [cmd] + silent)
         let after = winrestcmd()
         " Rationale:{{{
         "
@@ -228,6 +233,7 @@ fu lg#win_execute(id, cmd, ...) abort "{{{1
         \ || (&winminwidth == 0 && tarwidth != winwidth(a:id))
             noa exe winrestcmd
         endif
+        return out
     endif
 endfu
 

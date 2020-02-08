@@ -41,7 +41,7 @@ fu lg#motion#regex#go(kwd, is_fwd, mode) abort "{{{1
         let cnt -= 1
     endwhile
 
-    " the function  shouldn't do anything in operator-pending mode
+    " the function shouldn't do anything in operator-pending mode
     if a:mode =~# "[nvV\<c-v>]"
         norm! zv
     endif
