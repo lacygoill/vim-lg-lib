@@ -101,6 +101,7 @@ END
 
 " filetype plugin {{{1
 fu lg#styled_comment#fold() abort "{{{2
+    let ft = expand('<amatch>')
     " Do *not* remove this function call.{{{
     "
     " Yes, it  seems redundant,  because it  will be called  a second  time when
@@ -113,7 +114,6 @@ fu lg#styled_comment#fold() abort "{{{2
     " right now.
     "}}}
     call s:fold_settings()
-    let ft = expand('<amatch>')
     " Why naming the augroup `my_fold_x` instead of just `my_x`?{{{
     "
     " Suppose you install this autocmd in `after/ftplugin/x.vim`:
@@ -158,6 +158,68 @@ fu lg#styled_comment#fold() abort "{{{2
 endfu
 
 fu s:fold_settings() abort
+    " Why this guard?{{{
+    "
+    " Without, our fold settings may be unexpectedly applied in a qf buffer.
+    " Remember that, at the moment, we fold help buffers with the foldmethod "marker".
+    "
+    " MWE:
+    "
+    "     $ vim -es -Nu NONE \
+    "         +'au QuickFixCmdPost * au BufWinEnter * ++once lw' \
+    "         +'au FileType help au BufWinEnter <buffer> setl fdm=marker' \
+    "         +'lh foobar' \
+    "         +'call win_gotoid(getloclist(0, {"winid": 0}).winid)' \
+    "         +'set vbs=1|echo &l:fdm' \
+    "         +'qa!'
+    "     marker~
+    "     " it should be "manual"
+    "
+    " Obviously, if  `'fdm'` is wrongly set  to "marker", and the  text field of
+    " some entry contains a fold marker, the qf buffer gets folded.
+    " This  can  have another  unexpected  side-effect;  there  may be  a  weird
+    " interaction with `vim-window` which makes the current line in the location
+    " window wrong after `:llast`.
+    "
+    " ---
+    "
+    " The issue disappears if you remove the `BufWinEnter` autocmd:
+    "
+    "     au FileType help au BufWinEnter <buffer> setl fdm=marker
+    "     →
+    "     au FileType help setl fdm=marker
+    "
+    " ---
+    "
+    " I can't find anything wrong in our original code (without the guard).
+    " I think the issue is due to some special code related to `:lh`.
+    "
+    " ---
+    "
+    " If you have other similar issues in the future, try this refactoring:
+    "
+    "     call s:fold_settings()
+    "     →
+    "     call s:fold_settings(ft)
+    "                          ^^
+    "
+    "     au BufWinEnter,FileChangedShellPost <buffer> call s:fold_settings()
+    "     →
+    "     exe 'au BufWinEnter,FileChangedShellPost <buffer> call s:fold_settings('..string(ft)..')'
+    "     ^^^^^                                                                  ^^^^^^^^^^^^^^^^^^
+    "
+    "     fu s:fold_settings() abort
+    "     →
+    "     fu s:fold_settings(ft) abort
+    "                        ^^
+    "
+    "     if &ft is# 'qf' | return | endif
+    "     →
+    "     if &ft isnot# a:ft | return | endif
+    "            ^^^^^^^^^^^
+    "}}}
+    if &ft is# 'qf' | return | endif
+
     setl fdm=marker
     setl fdt=fold#fdt#get()
     setl cocu=nc

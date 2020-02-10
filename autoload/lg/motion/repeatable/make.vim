@@ -36,6 +36,12 @@ endif
 let g:autoloaded_lg#motion#repeatable#make = 1
 
 fu s:init() abort "{{{1
+    " Why not saving the last count to repeat it?{{{
+    "
+    " I rarely (never?) feel the need to repeat a count.
+    " Besides, the default `f` command does not repeat a count.
+    " Let's be consistent.
+    "}}}
     let s:last_motion = ''
 
     " database for global motions, which will be populated progressively
@@ -375,11 +381,11 @@ fu s:move_again(dir) abort "{{{2
     " the rhs, is obtained with `maparg()`.
     "}}}
     exe s:get_current_mode().(!motion[a:dir].noremap ? 'map' : 'noremap')
-    \   .(motion[a:dir].nowait ? '  <nowait>' : '')
-    \   .(motion[a:dir].expr   ? '  <expr>'   : '')
-    \   .(motion[a:dir].silent ? '  <silent>' : '')
-    \   .'  <plug>(repeat-motion-tmp)'
-    \   .'  '.substitute(motion[a:dir].rhs, '|', '<bar>', 'g')
+        \ ..(motion[a:dir].nowait ? '  <nowait>' : '')
+        \ ..(motion[a:dir].expr   ? '  <expr>'   : '')
+        \ ..(motion[a:dir].silent ? '  <silent>' : '')
+        \ ..'  <plug>(repeat-motion-tmp)'
+        \ ..'  '..substitute(motion[a:dir].rhs, '|', '<bar>', 'g')
 
     call feedkeys("\<plug>(repeat-motion-tmp)", 'i')
     "                                            │
