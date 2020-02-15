@@ -177,7 +177,7 @@ fu s:fold_settings() abort
     "
     " Obviously, if  `'fdm'` is wrongly set  to "marker", and the  text field of
     " some entry contains a fold marker, the qf buffer gets folded.
-    " This  can  have another  unexpected  side-effect;  there  may be  a  weird
+    " This  can  have another  unexpected  side effect;  there  may be  a  weird
     " interaction with `vim-window` which makes the current line in the location
     " window wrong after `:llast`.
     "

@@ -37,7 +37,21 @@ fu lg#vim_parent() abort "{{{1
     "    ├────────────────────────────┼─────────────────────────────────────┤
     "    │ $ ps -p $(..^..) -o comm=  │ print the name of the parent of Vim │
     "    └────────────────────────────┴─────────────────────────────────────┘
-    return expand('`ps -p $(ps -p '..getpid()..' -o ppid=) -o comm=`')
+    return system('ps -p $(ps -p '..getpid()..' -o ppid=) -o comm=')[:-2]
+    " What's the difference with `$_`?{{{
+    "
+    " `$ ps -p ...` outputs the name of the *parent* of the current Vim process.
+    " Generally, it's the name of your shell (`zsh`, `bash`, ...).
+    " But it could also be `vipe`, `git`, ...
+    "
+    " `$_` evaluates to  the *full* name of the *command*  which was executed to
+    " run the current Vim process.
+    " Generally, it's the path to the Vim binary (e.g. `/usr/local/bin/vim`).
+    " But it could also be `/usr/bin/vipe`, `/usr/bin/git`, ...
+    "
+    " Note that `$_` is  less costly, since you don't have  to spawn an external
+    " process to evaluate it.
+    "}}}
 endfu
 
 fu lg#set_stl(stl, ...) abort "{{{1
