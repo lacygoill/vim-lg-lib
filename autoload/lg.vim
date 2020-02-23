@@ -178,7 +178,11 @@ fu lg#win_execute(id, cmd, ...) abort "{{{1
     "}}}
     let silent = a:0 ? [a:1] : ['silent']
     let snr = matchstr(expand('<sfile>'), '\m\C.*\zs<SNR>\d\+_')
-    let cmd = substitute(a:cmd, '\m\C\<s:\ze\h\+(', snr, 'g')
+    let cmd = a:cmd
+    if type(cmd) == type([])
+        let cmd = join(cmd, '|')
+    endif
+    let cmd = substitute(cmd, '\m\C\<s:\ze\h\+(', snr, 'g')
     if !has('nvim')
         return call('win_execute', [a:id, cmd] + silent)
     else

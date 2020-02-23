@@ -1,9 +1,80 @@
+if exists('g:autoloaded_lg#textprop')
+    finish
+endif
+let g:autoloaded_lg#textprop = 1
+
+" Init {{{1
+
+" Should support commands like `tldr(1)` and `trans(1)`:{{{
+"
+"     $ tldr tldr | vipe
+"     $ trans word tldr | vipe
+"}}}
+" Why do you set the `gui`/`guifg` attributes?  We can only pipe the output of a shell command to Vim in the terminal...{{{
+"
+" Yes, but if `'tgc'` is set, (N)Vim uses `guifg` instead of `ctermfg`.
+" And Nvim uses `gui` instead of `cterm`.
+"}}}
+
+" TODO: Get those sequences programmatically via `tput(1)`.{{{
+"
+" Issue: I can't find some of them in `$ infocmp -1x`.
+"
+" I don't know their name:
+"
+"    - C-o
+"    - CSI 22m
+"
+" I think they are hard-coded in the program which produce them.
+" For example,  if you grep  the pattern `\[22`  in the codebase  of `trans(1)`,
+" you'll find this:
+"
+"     AnsiCode["no bold"] = "\33[22m" # SGR code 21 (bold off) not widely supported
+"}}}
+" CSI 1m = bold (bold)
+" CSI 3m = italicized (sitm)
+" CSI 4m = underlined (smul)
+" CSI 22m = normal (???)
+" CSI 23m = not italicized (ritm)
+" CSI 24m = not underlined (rmul)
+" CSI 32m = green (setaf 2)
+" C-o     = ??? (???)
+
+const s:ATTR = {
+    \ 'trans_bold': {
+    \     'start': '\e\[1m',
+    \     'end': '\e\[22m',
+    \     'hi': 'term=bold cterm=bold gui=bold',
+    \ },
+    \
+    \ 'trans_boldunderlined': {
+    \     'start': '\e\[4m\e\[1m',
+    \     'end': '\e\[22m\e\[24m',
+    \     'hi': 'term=bold,underline cterm=bold,underline gui=bold,underline',
+    \ },
+    \
+    \ 'tldr_boldgreen': {
+    \     'start': '\e\[32m\e\[1m',
+    \     'end': '\e\[m\%x0f',
+    \     'hi': 'term=bold cterm=bold gui=bold ctermfg=green guifg=#198844',
+    \ },
+    \
+    \ 'tldr_italic': {
+    \     'start': '\e\[3m',
+    \     'end': '\e\[m\%x0f',
+    \     'hi': 'term=italic cterm=italic gui=italic',
+    \ },
+    \
+    \ 'tldr_bold': {
+    \     'start': '\e\[1m',
+    \     'end': '\e\[m\%x0f',
+    \     'hi': 'term=bold cterm=bold gui=bold',
+    \ },
+    \ }
+
 fu lg#textprop#ansi() abort "{{{1
     if !search('\e', 'cn') | return | endif
     let view = winsaveview()
-
-    hi ansiBold term=bold cterm=bold gui=bold
-    hi ansiBoldUnderlined term=bold,underline cterm=bold,underline gui=bold,underline
 
     " Why do you use text properties and not regex-based syntax highlighting?{{{
     "
@@ -11,6 +82,8 @@ fu lg#textprop#ansi() abort "{{{1
     " This way, if we yank some line, we don't copy them.
     "}}}
     "   How would I get the same highlighting with syntax rules?{{{
+    "
+    " For the bold and bold+underlined attributes:
     "
     "     syn region ansiBold matchgroup=Normal start=/\e\[1m/ end=/\e\[22m/ concealends oneline
     "     syn region ansiBoldUnderlined matchgroup=Normal start=/\e\[4m\e\[1m/ end=/\e\[22m\e\[24m/ concealends oneline
@@ -29,38 +102,32 @@ fu lg#textprop#ansi() abort "{{{1
     " Besides, I think  that most of the time, programs  which output escape
     " sequences do it only for a short text on a single line...
     "}}}
-    if !has('nvim')
-        call prop_type_add('ansibold', {'highlight': 'ansiBold', 'bufnr': bufnr('%')})
-        call prop_type_add('ansiboldunderlined', {'highlight': 'ansiBoldUnderlined', 'bufnr': bufnr('%')})
+    let bufnr = bufnr('%')
+    if has('nvim') | let id = nvim_create_namespace('ansi') | endif
+    for [attr, v] in items(s:ATTR)
+        exe 'hi ansi_'..attr..' '..v.hi
         call cursor(1, 1)
-        while search('\e\[1m', 'W')
-            call prop_add(line('.'), col('.'), {
-                \ 'length': searchpos('\e\[22m\zs', 'cn')[1] - col('.'),
-                \ 'type': 'ansibold',
-                \ })
-        endwhile
-        call cursor(1, 1)
-        while search('\e\[4m\e\[1m', 'W')
-            call prop_add(line('.'), col('.'), {
-                \ 'length': searchpos('\e\[22m\e\[24m\zs', 'cn')[1] - col('.'),
-                \ 'type': 'ansiboldunderlined'
-                \ })
-        endwhile
-    else
-        let id = nvim_create_namespace('ansi')
-        call cursor(1, 1)
-        while search('\e\[1m', 'W')
-            call nvim_buf_add_highlight(0, id, 'ansiBold',
-                \ line('.')-1, col('.'), searchpos('\e\[22m\zs', 'cn')[1]-1)
-        endwhile
-        call cursor(1, 1)
-        while search('\e\[4m\e\[1m', 'W')
-            call nvim_buf_add_highlight(0, id, 'ansiBoldUnderlined',
-                \ line('.')-1, col('.'), searchpos('\e\[22m\e\[24m\zs', 'cn')[1]-1)
-        endwhile
-    endif
+        let flags = 'cW'
+        if !has('nvim')
+            call prop_type_add('ansi_'..attr, {'highlight': 'ansi_'..attr, 'bufnr': bufnr})
+            while search(v.start, flags) && search(v.end, 'n')
+                let flags = 'W'
+                call prop_add(line('.'), col('.'), {
+                    \ 'length': searchpos(v.end..'\zs', 'cn')[1] - col('.'),
+                    \ 'type': 'ansi_'..attr,
+                    \ })
+            endwhile
+        else
+            while search(v.start, flags) && search(v.end, 'n')
+                let flags = 'W'
+                call nvim_buf_add_highlight(0, id, 'ansi_'..attr,
+                    \ line('.')-1, col('.'), searchpos(v.end..'\zs', 'cn')[1]-1)
+            endwhile
+        endif
+    endfor
 
-    sil keepj keepp lockm %s/\e\[1m\|\e\[22m\|\e\[4m\e\[1m\|\e\[24m//ge
+    let clean_this = '\C\e\[\d*m\|[[:cntrl:]]'
+    sil exe 'keepj keepp lockm %s/'..clean_this..'//ge'
     setl nomod
     call winrestview(view)
 endfu
