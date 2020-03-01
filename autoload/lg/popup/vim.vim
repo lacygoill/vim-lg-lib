@@ -1,19 +1,20 @@
-fu lg#popup#vim#simple(what, opts) abort "{{{1
+" Interface {{{1
+fu lg#popup#vim#simple(what, opts) abort "{{{2
     let [what, opts] = [a:what, a:opts]
+    call extend(opts, #{line: remove(opts, 'row'), zindex: 50}, 'keep')
+    " Vim doesn't recognize the 'width' and 'height' keys.
     call extend(opts, #{
-        \ line: remove(opts, 'row'),
         \ minwidth: opts.width,
         \ maxwidth: opts.width,
         \ minheight: opts.height,
         \ maxheight: opts.height,
-        \ zindex: 50,
         \ }, 'keep')
-    " TODO: Why did we do that?
-    "     call extend(opts, #{borderhighlight: [get(opts, 'borderhighlight', '')]})
+    sil! call remove(opts, 'width') | sil! call remove(opts, 'height')
     let winid = popup_create(what, opts)
+    return [winbufnr(winid), winid]
 endfu
 
-fu lg#popup#vim#with_border(what, opts) abort "{{{1
+fu lg#popup#vim#with_border(what, opts) abort "{{{2
     let [what, opts] = [a:what, a:opts]
     let [width, height] = [opts.width, opts.height]
 
@@ -24,15 +25,27 @@ fu lg#popup#vim#with_border(what, opts) abort "{{{1
         \ 'row': opts.row + 1,
         \ 'col': opts.col + 2,
         \ })
+    " Vim expects the 'borderhighlight' key to be a list.  We want a string; do the conversion.
+    call extend(opts, #{borderhighlight: [get(opts, 'borderhighlight', '')]})
 
     " open final window
-    call s:set_borderchars(opts)
-    call lg#popup#vim#simple(what, opts)
+    call lg#popup#util#set_borderchars(opts)
+    return lg#popup#vim#simple(what, opts)
 endfu
 
-fu lg#popup#vim#terminal(what, opts) abort "{{{1
-    let bufnr = term_start(&shell, #{hidden: v:true})
-    call lg#popup#util#set_borderchars(a:opts)
+fu lg#popup#vim#terminal(what, opts) abort "{{{2
+    let [what, opts] = [a:what, a:opts]
+    " If `what` is the number of a terminal buffer, don't create yet another one.{{{
+    "
+    " Just use `what`.
+    " This is useful, in particular, when toggling a popup terminal.
+    "}}}
+    if lg#popup#util#is_terminal_buffer(what)
+        let bufnr = what
+    else
+        let bufnr = term_start(&shell, #{hidden: v:true})
+    endif
+    call lg#popup#util#set_borderchars(opts)
     " Make sure 'highlight' is 'Normal' no matter what.{{{
     "
     " Otherwise, the background may be colored with 2 different colors which is jarring.
@@ -43,18 +56,35 @@ fu lg#popup#vim#terminal(what, opts) abort "{{{1
     " Otherwise, I think Vim highlights the cells with the colors defined in its
     " terminal palette.
     "}}}
-    call extend(a:opts, #{highlight: 'Normal'})
-    " TODO: Is it necessary?  We do it with `C-g C-g`...{{{
+    call extend(opts, #{highlight: 'Normal'})
+    " make sure a border is drawn no matter what
+    call extend(opts, #{border: get(opts, 'border', [])})
+    " Currently necessary to get the exact same geometry for a Vim and Nvim popup terminal.
+    call extend(opts, #{padding: [0,1,0,1]}, 'keep')
+    " We really need both the `max...` keys and the `min...` keys.{{{
     "
-    " Once you've implemented the popup terminal for Nvim, compare the resulting windows.
-    " Make sure the space occupied by the shell commands is exactly the same.
+    " Otherwise, in  a popup terminal, when  we scroll back in  a long shell
+    " command output,  the terminal buffer  contents goes beyond the  end of
+    " the window.
     "}}}
-    call extend(#{padding: [0,1,0,1]}, a:opts)
-    call lg#popup#vim#simple(bufnr, a:opts)
+    call extend(opts, #{
+        \ minwidth: opts.width,
+        \ maxwidth: opts.width,
+        \ minheight: opts.height,
+        \ maxheight: opts.height,
+        \ }, 'keep')
+    let info = lg#popup#vim#with_border(bufnr, opts)
     call s:fire_terminal_events()
+    return info
 endfu
-
-fu s:fire_terminal_events() abort
+"}}}1
+" Util {{{1
+fu s:fire_terminal_events() abort "{{{2
+    " Install our custom terminal settings as soon as the terminal buffer is displayed in a window.{{{
+    "
+    " Useful, for example,  to get our `Esc Esc` key  binding, and for `M-p`
+    " to work (i.e. recall latest command starting with current prefix).
+    "}}}
     if exists('#TerminalWinOpen') | do <nomodeline> TerminalWinOpen | endif
     if exists('#User#TermEnter') | do <nomodeline> User TermEnter | endif
 endfu
