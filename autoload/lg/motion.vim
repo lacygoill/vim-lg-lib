@@ -1,7 +1,7 @@
-if exists('g:autoloaded_lg#motion#regex')
+if exists('g:autoloaded_lg#motion')
     finish
 endif
-let g:autoloaded_lg#motion#regex = 1
+let g:autoloaded_lg#motion = 1
 
 const s:PATTERNS = {
     \ 'fu':            '^\s*fu\%[nction]!\=\s\+',
@@ -15,7 +15,7 @@ const s:PATTERNS = {
     \ 'codespan':      '`.\{-1,}`',
     \ }
 
-fu lg#motion#regex#go(kwd, is_fwd, mode) abort "{{{1
+fu lg#motion#go(kwd, is_fwd, mode) abort "{{{1
     let cnt = v:count1
     let pat = get(s:PATTERNS, a:kwd, '')
 
@@ -47,7 +47,7 @@ fu lg#motion#regex#go(kwd, is_fwd, mode) abort "{{{1
     endif
 endfu
 
-fu lg#motion#regex#rhs(kwd, is_fwd) abort "{{{1
+fu lg#motion#rhs(kwd, is_fwd) abort "{{{1
     "               ┌ necessary to get the full  name of the mode, otherwise in
     "               │ operator-pending mode, we would get 'n' instead of 'no'
     "               │
@@ -64,6 +64,6 @@ fu lg#motion#regex#rhs(kwd, is_fwd) abort "{{{1
         let mode = "\<c-v>\<c-v>"
     endif
 
-    return printf(":\<c-u>call lg#motion#regex#go(%s,%d,%s)\<cr>",
+    return printf(":\<c-u>call lg#motion#go(%s,%d,%s)\<cr>",
         \ string(a:kwd), a:is_fwd, string(mode))
 endfu

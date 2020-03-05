@@ -8,8 +8,8 @@ fu lg#popup#vim#simple(what, opts) abort "{{{2
         \ maxwidth: opts.width,
         \ minheight: opts.height,
         \ maxheight: opts.height,
-        \ }, 'keep')
-    sil! call remove(opts, 'width') | sil! call remove(opts, 'height')
+        \ })
+    call remove(opts, 'width') | call remove(opts, 'height')
     let winid = popup_create(what, opts)
     return [winbufnr(winid), winid]
 endfu
@@ -19,11 +19,11 @@ fu lg#popup#vim#with_border(what, opts) abort "{{{2
     let [width, height] = [opts.width, opts.height]
 
     " reset geometry so that the inner text fits inside the border
-    call extend(opts, {
-        \ 'width': opts.width - 4,
-        \ 'height': opts.height - 2,
-        \ 'row': opts.row + 1,
-        \ 'col': opts.col + 2,
+    call extend(opts, #{padding: [0,1,0,1]}, 'keep')
+    let [t_pad, r_pad, b_pad, l_pad] = opts.padding
+    call extend(opts, #{
+        \ width: opts.width - 2 - (l_pad + r_pad),
+        \ height: opts.height - 2 - (t_pad + b_pad),
         \ })
     " Vim expects the 'borderhighlight' key to be a list.  We want a string; do the conversion.
     call extend(opts, #{borderhighlight: [get(opts, 'borderhighlight', '')]})
@@ -59,23 +59,35 @@ fu lg#popup#vim#terminal(what, opts) abort "{{{2
     call extend(opts, #{highlight: 'Normal'})
     " make sure a border is drawn no matter what
     call extend(opts, #{border: get(opts, 'border', [])})
-    " Currently necessary to get the exact same geometry for a Vim and Nvim popup terminal.
-    call extend(opts, #{padding: [0,1,0,1]}, 'keep')
     " We really need both the `max...` keys and the `min...` keys.{{{
     "
     " Otherwise, in  a popup terminal, when  we scroll back in  a long shell
     " command output,  the terminal buffer  contents goes beyond the  end of
     " the window.
     "}}}
+    " The padding key is currently necessary to get the exact same geometry for a Vim and Nvim popup terminal.{{{
+    "
+    " But more generally, I  like to add one space between  the start/end of the
+    " text and the left/right borders.  It's more aesthetically pleasing.
+    "}}}
     call extend(opts, #{
         \ minwidth: opts.width,
         \ maxwidth: opts.width,
         \ minheight: opts.height,
         \ maxheight: opts.height,
+        \ padding: [0,1,0,1],
         \ }, 'keep')
     let info = lg#popup#vim#with_border(bufnr, opts)
     call s:fire_terminal_events()
     return info
+endfu
+
+fu lg#popup#vim#notification(what, opts) abort "{{{2
+    let [what, opts] = [a:what, a:opts]
+    let lines = lg#popup#util#get_lines(what)
+    let n_opts = lg#popup#util#get_notification_opts(lines)
+    call extend(opts, n_opts)
+    call lg#popup#create(what, opts)
 endfu
 "}}}1
 " Util {{{1

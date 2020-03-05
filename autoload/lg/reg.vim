@@ -3,13 +3,13 @@ if exists('g:loaded_lg#lib#reg')
 endif
 let g:loaded_lg#lib#reg = 1
 
-let s:REG_TRANSLATIONS = {
-\                          '"': 'unnamed',
-\                          '+': 'plus',
-\                          '-': 'minus',
-\                          '*': 'star',
-\                          '/': 'slash',
-\                        }
+const s:REG_TRANSLATIONS = {
+    \   '"': 'unnamed',
+    \   '+': 'plus',
+    \   '-': 'minus',
+    \   '*': 'star',
+    \   '/': 'slash',
+    \ }
 
 fu lg#reg#restore(names) abort "{{{1
     for name in a:names

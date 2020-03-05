@@ -3,7 +3,11 @@ if exists('g:autoloaded_lg#popup')
 endif
 let g:autoloaded_lg#popup = 1
 
-fu lg#popup#create(what, opts) abort
+" TODO: Create a logfile  to get the name  of the exact function  which has been
+" invoked to create a popup/floating window, and the values of the options.
+" Toggle the logging via a variable set at the start of this file.
+
+fu lg#popup#create(what, opts) abort "{{{1
     " For testing the function, you can use these values:{{{
     "
     " In a maximized terminal:
@@ -55,6 +59,14 @@ fu lg#popup#create(what, opts) abort
         else
             return lg#popup#vim#terminal(what, opts)
         endif
+    endif
+endfu
+
+fu lg#popup#notification(what, ...) abort "{{{1
+    if has('nvim')
+        call lg#popup#nvim#notification(a:what, a:0 ? a:1 : {})
+    else
+        call lg#popup#vim#notification(a:what, a:0 ? a:1 : {})
     endif
 endfu
 
