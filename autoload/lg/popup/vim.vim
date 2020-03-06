@@ -14,7 +14,7 @@ fu lg#popup#vim#simple(what, opts, ...) abort "{{{2
         \ })
     call remove(opts, 'width') | call remove(opts, 'height')
     call lg#popup#util#log(printf('call popup_create(%s, %s)',
-        \ is_term ? 'bufnr' : string(what), string(opts)))
+        \ is_term ? 'bufnr' : string(what), string(opts)), expand('<sfile>'), expand('<slnum>'))
     let winid = popup_create(what, opts)
     return [winbufnr(winid), winid]
 endfu
@@ -48,7 +48,8 @@ fu lg#popup#vim#terminal(what, opts) abort "{{{2
     if lg#popup#util#is_terminal_buffer(what)
         let bufnr = what
     else
-        call lg#popup#util#log('let bufnr = term_start(&shell, #{hidden: v:true})')
+        call lg#popup#util#log('let bufnr = term_start(&shell, #{hidden: v:true})',
+            \ expand('<sfile>'), expand('<slnum>'))
         let bufnr = term_start(&shell, #{hidden: v:true})
     endif
     call lg#popup#util#set_borderchars(opts)

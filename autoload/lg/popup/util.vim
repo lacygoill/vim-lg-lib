@@ -3,6 +3,23 @@ if exists('g:autoloaded_lg#popup#util')
 endif
 let g:autoloaded_lg#popup#util = 1
 
+" TODO: When you'll need to log another feature (other than the popup window), move `#log()` in `autoload/lg.vim`.{{{
+"
+" You'll need to use a different expression for each feature; e.g.:
+"
+"     const s:DEBUG = {'popup': 0, 'other feature': 0}
+"     const s:LOGFILE = {'popup-nvim': '/tmp/...', 'popup-vim': '/tmp/...', 'other-feature': '/tmp/...'}
+"
+"     ...
+"                                  new argument
+"                                  vvvvvvv
+"     fu lg#log(msg, sfile, slnum, feature) abort
+"         if !s:DEBUG[a:feature] | return | endif
+"         ...
+"         call writefile([time, source, a:msg], s:LOGFILE[a:feature], 'a')
+"         ...
+"}}}
+
 " Init {{{1
 
 const s:DEBUG = 1
@@ -67,9 +84,13 @@ fu s:get_longest_width(lines) abort
     return max(map(copy(a:lines), {_,v -> strchars(v, 1)}))
 endfu
 
-fu lg#popup#util#log(msg) abort "{{{2
+fu lg#popup#util#log(msg, sfile, slnum) abort "{{{2
     if !s:DEBUG | return | endif
     let time = '" '..strftime('%H:%M:%S')
-    call writefile([time, a:msg], s:LOGFILE, 'a')
+    let funcname = matchstr(a:sfile, '.*\.\.\zs.*')
+    let sourcefile = split(execute('verb fu '..funcname), '\n')[1]
+    let [sourcefile, lnum] = matchlist(sourcefile, '^\s*Last set from \(.*\)\s\+line \(\d\+\)')[1:2]
+    let source = '" '..sourcefile..':'..(lnum + a:slnum)
+    call writefile([time, source, a:msg], s:LOGFILE, 'a')
 endfu
 

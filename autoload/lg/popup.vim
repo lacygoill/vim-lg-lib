@@ -3,6 +3,17 @@ if exists('g:autoloaded_lg#popup')
 endif
 let g:autoloaded_lg#popup = 1
 
+" I have an issue with one of these functions!{{{
+"
+" Switch `s:DEBUG` to 1 in `autoload/lg/popup/util.vim`.
+" Reproduce your issue, then read the logfile.
+"
+" Check whether the code in the logfile looks ok.
+" If it does, the issue may be due to a (N)Vim bug.
+" Otherwise, if  some line seems wrong,  check out your source  code; start your
+" search by pressing `C-w F` on the previous commented line.
+"}}}
+
 fu lg#popup#create(what, opts) abort "{{{1
     let [what, opts] = [a:what, a:opts]
     let has_border = has_key(opts, 'border')

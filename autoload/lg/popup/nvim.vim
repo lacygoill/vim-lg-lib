@@ -5,12 +5,14 @@ fu lg#popup#nvim#simple(what, opts) abort "{{{2
         let bufnr = what
     else
         " create buffer
-        call lg#popup#util#log('let bufnr = nvim_create_buf(v:false, v:true)')
+        call lg#popup#util#log('let bufnr = nvim_create_buf(v:false, v:true)',
+            \ expand('<sfile>'), expand('<slnum>'))
         let bufnr = nvim_create_buf(v:false, v:true)
         let lines = lg#popup#util#get_lines(what)
         if lines != []
             " write text in new buffer
-            call lg#popup#util#log('call nvim_buf_set_lines(bufnr, 0, -1, v:true, '..string(lines)..')')
+            call lg#popup#util#log('call nvim_buf_set_lines(bufnr, 0, -1, v:true, '..string(lines)..')',
+                \ expand('<sfile>'), expand('<slnum>'))
             call nvim_buf_set_lines(bufnr, 0, -1, v:true, lines)
         endif
     endif
@@ -21,11 +23,13 @@ fu lg#popup#nvim#simple(what, opts) abort "{{{2
     let highlight = has_key(opts, 'highlight') ? remove(opts, 'highlight') : ''
     let enter = has_key(opts, 'enter') ? remove(opts, 'enter') : v:false
     " open window
-    call lg#popup#util#log('let winid = nvim_open_win(bufnr, '..string(enter)..', '..string(opts)..')')
+    call lg#popup#util#log('let winid = nvim_open_win(bufnr, '..string(enter)..', '..string(opts)..')',
+        \ expand('<sfile>'), expand('<slnum>'))
     let winid = nvim_open_win(bufnr, enter, opts)
     " highlight background
     if highlight isnot# ''
-        call lg#popup#util#log("call nvim_win_set_option(winid, 'winhl', 'NormalFloat:"..highlight.."')")
+        call lg#popup#util#log("call nvim_win_set_option(winid, 'winhl', 'NormalFloat:"..highlight.."')",
+            \ expand('<sfile>'), expand('<slnum>'))
         call nvim_win_set_option(winid, 'winhl', 'NormalFloat:'..highlight)
     endif
     return [bufnr, winid]
@@ -109,7 +113,7 @@ fu lg#popup#nvim#terminal(what, opts) abort "{{{2
         "}}}
         setl nomod
         " `termopen()` does not create a new buffer; it converts the current buffer into a terminal buffer
-        call lg#popup#util#log('call termopen(&shell)')
+        call lg#popup#util#log('call termopen(&shell)', expand('<sfile>'), expand('<slnum>'))
         call termopen(&shell)
     endif
     return info
