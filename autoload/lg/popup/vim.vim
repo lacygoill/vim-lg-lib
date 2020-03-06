@@ -1,6 +1,9 @@
 " Interface {{{1
 fu lg#popup#vim#simple(what, opts) abort "{{{2
     let [what, opts] = [a:what, a:opts]
+    if type(what) == type('') && what =~# '\n'
+        let what = split(what, '\n')
+    endif
     call extend(opts, #{line: remove(opts, 'row'), zindex: 50}, 'keep')
     " Vim doesn't recognize the 'width' and 'height' keys.
     call extend(opts, #{
@@ -86,8 +89,8 @@ fu lg#popup#vim#notification(what, opts) abort "{{{2
     let [what, opts] = [a:what, a:opts]
     let lines = lg#popup#util#get_lines(what)
     let n_opts = lg#popup#util#get_notification_opts(lines)
-    call extend(opts, n_opts)
-    call lg#popup#create(what, opts)
+    call extend(opts, n_opts, 'keep')
+    call lg#popup#create(lines, opts)
 endfu
 "}}}1
 " Util {{{1

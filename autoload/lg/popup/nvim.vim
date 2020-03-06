@@ -118,8 +118,8 @@ fu lg#popup#nvim#notification(what, opts) abort "{{{2
     let lines = lg#popup#util#get_lines(what)
     let n_opts = lg#popup#util#get_notification_opts(lines)
     let time = remove(n_opts, 'time')
-    call extend(opts, n_opts)
-    let [_, winid, _, _] = lg#popup#create(what, opts)
+    call extend(opts, n_opts, 'keep')
+    let [_, winid, _, _] = lg#popup#create(lines, opts)
     call timer_start(time, {-> nvim_win_close(winid, 1)})
 endfu
 "}}}1

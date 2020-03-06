@@ -14,7 +14,7 @@ fu lg#popup#util#get_lines(what) abort "{{{1
     if type(a:what) == type([])
         let lines = a:what
     elseif type(a:what) == type('')
-        let lines = [a:what]
+        let lines = split(a:what, '\n')
     elseif type(a:what) == type(0)
         let lines = getbufline(a:what, 1, '$')
     endif
