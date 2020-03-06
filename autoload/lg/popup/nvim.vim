@@ -5,29 +5,12 @@ fu lg#popup#nvim#simple(what, opts) abort "{{{2
         let bufnr = what
     else
         " create buffer
+        call lg#popup#util#log('let bufnr = nvim_create_buf(v:false, v:true)')
         let bufnr = nvim_create_buf(v:false, v:true)
         let lines = lg#popup#util#get_lines(what)
-        " This guard is important.{{{
-        "
-        " Without, the buffer would be changed,  and if this function is invoked
-        " to create terminal popup, the next `termopen()` would fail:
-        "
-        "     let bufnr = nvim_create_buf(v:false, v:true)
-        "     call nvim_buf_set_lines(bufnr, 0, -1, v:true, [])
-        "     exe 'b '..bufnr
-        "     call termopen(&shell)
-        "
-        " Imo, this is a bug, because we're in a scratch buffer:
-        " https://github.com/neovim/neovim/issues/11962
-        "
-        " Without this  guard, you  would have to  execute `:setl  nomod` before
-        " invoking `termopen()`.
-        "
-        " Anyway,  if there  is nothing  to write,  then there  is no  reason to
-        " invoke `nvim_buf_set_lines()` and to change the buffer.
-        "}}}
-        if lines != ['']
+        if lines != []
             " write text in new buffer
+            call lg#popup#util#log('call nvim_buf_set_lines(bufnr, 0, -1, v:true, '..string(lines)..')')
             call nvim_buf_set_lines(bufnr, 0, -1, v:true, lines)
         endif
     endif
@@ -35,12 +18,16 @@ fu lg#popup#nvim#simple(what, opts) abort "{{{2
     call extend(opts, {'relative': 'editor', 'style': 'minimal'}, 'keep')
     " `nvim_open_win()` doesn't recognize a 'highlight' key in its `{config}` argument.
     " Nevertheless, we want our `#popup#create()` to support such a key.
-    let highlight = has_key(opts, 'highlight') ? remove(opts, 'highlight') : 'Normal'
+    let highlight = has_key(opts, 'highlight') ? remove(opts, 'highlight') : ''
     let enter = has_key(opts, 'enter') ? remove(opts, 'enter') : v:false
     " open window
+    call lg#popup#util#log('let winid = nvim_open_win(bufnr, '..string(enter)..', '..string(opts)..')')
     let winid = nvim_open_win(bufnr, enter, opts)
     " highlight background
-    call nvim_win_set_option(winid, 'winhl', 'NormalFloat:'..highlight)
+    if highlight isnot# ''
+        call lg#popup#util#log("call nvim_win_set_option(winid, 'winhl', 'NormalFloat:"..highlight.."')")
+        call nvim_win_set_option(winid, 'winhl', 'NormalFloat:'..highlight)
+    endif
     return [bufnr, winid]
 endfu
 
@@ -107,7 +94,22 @@ fu lg#popup#nvim#terminal(what, opts) abort "{{{2
     call extend(opts, {'highlight': 'Normal', 'enter': v:true})
     let info = lg#popup#nvim#with_border(what, opts)
     if !lg#popup#util#is_terminal_buffer(what)
+        " To avoid "Can only call this function in an unmodified buffer".{{{
+        "
+        " If the buffer  has been changed, and if function  is invoked to create
+        " terminal popup, the next `termopen()` would fail:
+        "
+        "     let bufnr = nvim_create_buf(v:false, v:true)
+        "     call nvim_buf_set_lines(bufnr, 0, -1, v:true, [])
+        "     exe 'b '..bufnr
+        "     call termopen(&shell)
+        "
+        " Imo, this is a bug, because we're in a scratch buffer:
+        " https://github.com/neovim/neovim/issues/11962
+        "}}}
+        setl nomod
         " `termopen()` does not create a new buffer; it converts the current buffer into a terminal buffer
+        call lg#popup#util#log('call termopen(&shell)')
         call termopen(&shell)
     endif
     return info

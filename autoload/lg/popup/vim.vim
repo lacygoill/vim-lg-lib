@@ -1,6 +1,6 @@
 " Interface {{{1
-fu lg#popup#vim#simple(what, opts) abort "{{{2
-    let [what, opts] = [a:what, a:opts]
+fu lg#popup#vim#simple(what, opts, ...) abort "{{{2
+    let [what, opts, is_term] = [a:what, a:opts, a:0]
     if type(what) == type('') && what =~# '\n'
         let what = split(what, '\n')
     endif
@@ -13,12 +13,14 @@ fu lg#popup#vim#simple(what, opts) abort "{{{2
         \ maxheight: opts.height,
         \ })
     call remove(opts, 'width') | call remove(opts, 'height')
+    call lg#popup#util#log(printf('call popup_create(%s, %s)',
+        \ is_term ? 'bufnr' : string(what), string(opts)))
     let winid = popup_create(what, opts)
     return [winbufnr(winid), winid]
 endfu
 
-fu lg#popup#vim#with_border(what, opts) abort "{{{2
-    let [what, opts] = [a:what, a:opts]
+fu lg#popup#vim#with_border(what, opts, ...) abort "{{{2
+    let [what, opts, is_term] = [a:what, a:opts, a:0]
     let [width, height] = [opts.width, opts.height]
 
     " reset geometry so that the inner text fits inside the border
@@ -33,7 +35,7 @@ fu lg#popup#vim#with_border(what, opts) abort "{{{2
 
     " open final window
     call lg#popup#util#set_borderchars(opts)
-    return lg#popup#vim#simple(what, opts)
+    return call('lg#popup#vim#simple', [what, opts] + (is_term ? [v:true] : []))
 endfu
 
 fu lg#popup#vim#terminal(what, opts) abort "{{{2
@@ -46,6 +48,7 @@ fu lg#popup#vim#terminal(what, opts) abort "{{{2
     if lg#popup#util#is_terminal_buffer(what)
         let bufnr = what
     else
+        call lg#popup#util#log('let bufnr = term_start(&shell, #{hidden: v:true})')
         let bufnr = term_start(&shell, #{hidden: v:true})
     endif
     call lg#popup#util#set_borderchars(opts)
@@ -80,7 +83,7 @@ fu lg#popup#vim#terminal(what, opts) abort "{{{2
         \ maxheight: opts.height,
         \ padding: [0,1,0,1],
         \ }, 'keep')
-    let info = lg#popup#vim#with_border(bufnr, opts)
+    let info = lg#popup#vim#with_border(bufnr, opts, 'is_term')
     call s:fire_terminal_events()
     return info
 endfu
