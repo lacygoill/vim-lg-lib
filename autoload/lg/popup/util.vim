@@ -22,7 +22,7 @@ let g:autoloaded_lg#popup#util = 1
 
 " Init {{{1
 
-const s:DEBUG = 1
+const s:DEBUG = 0
 
 if has('nvim')
     const s:LOGFILE = '/tmp/.nvim-floating-window.log.vim'
