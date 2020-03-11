@@ -4,7 +4,7 @@ fu lg#popup#vim#simple(what, opts, ...) abort "{{{2
     if type(what) == type('') && what =~# '\n'
         let what = split(what, '\n')
     endif
-    call extend(opts, #{line: remove(opts, 'row'), zindex: 50}, 'keep')
+    call extend(opts, #{line: remove(opts, 'row'), zindex: s:get_zindex()}, 'keep')
     " Vim doesn't recognize the 'width' and 'height' keys.
     call extend(opts, #{
         \ minwidth: opts.width,
@@ -106,5 +106,25 @@ fu s:fire_terminal_events() abort "{{{2
     "}}}
     if exists('#TerminalWinOpen') | do <nomodeline> TerminalWinOpen | endif
     if exists('#User#TermEnter') | do <nomodeline> User TermEnter | endif
+endfu
+
+fu s:get_zindex() abort "{{{2
+    " Issue:{{{
+    "
+    " When  we  open  a popup,  we  want  it  to  be visible  immediately  (i.e.
+    " not  hidden  by another  popup  with  a higher  `zindex`),  so  we need  a
+    " not-too-small `zindex` value.
+    "
+    " But when Vim or a third-party plugin opens  a popup, we also want it to be
+    " visible immediately, so we need a not-too-big `zindex` value.
+    "}}}
+    " Solution:{{{
+    "
+    " Get  the `zindex`  value of  the popup  at the  screen position  where the
+    " cursor is currently.  Add `1` to that, and return this value.
+    "}}}
+    let screenpos = screenpos(win_getid(), line('.'), col('.'))
+    let opts = popup_locate(screenpos.row, screenpos.col)->popup_getoptions()
+    return get(opts, 'zindex', 0) + 1
 endfu
 
