@@ -48,9 +48,13 @@ fu lg#popup#vim#terminal(what, opts) abort "{{{2
     if lg#popup#util#is_terminal_buffer(what)
         let bufnr = what
     else
-        call lg#popup#util#log('let bufnr = term_start(&shell, #{hidden: v:true})',
+        call lg#popup#util#log('let bufnr = term_start(&shell, #{hidden: v:true, term_kill: ''hup''})',
             \ expand('<sfile>'), expand('<slnum>'))
-        let bufnr = term_start(&shell, #{hidden: v:true})
+        " `term_kill: 'hup'` suppresses `E947` when you try to quit Vim with `:q` or `:qa`.{{{
+        "
+        "     E947: Job still running in buffer "!/usr/local/bin/zsh"
+        "}}}
+        let bufnr = term_start(&shell, #{hidden: v:true, term_kill: 'hup'})
     endif
     call lg#popup#util#set_borderchars(opts)
     " Make sure 'highlight' is 'Normal' no matter what.{{{

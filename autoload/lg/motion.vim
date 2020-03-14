@@ -6,13 +6,14 @@ let g:autoloaded_lg#motion = 1
 const s:PATTERNS = {
     \ 'fu':            '^\s*fu\%[nction]!\=\s\+',
     \ 'endfu':         '^\s*endf\%[unction]\%(\s\|"\|$\)',
-    \ 'sh_fu':         '^\s*\S\+\s*()\s*{\%(\s*#\s*{{'.'{\d*\s*\)\=$',
+    \ 'sh_fu':         '^\s*\S\+\s*()\s*{\%(\s*#\s*{{'..'{\d*\s*\)\=$',
     \ 'sh_endfu':      '^}$',
     \ 'ref':           '\[.\{-1,}\](\zs.\{-1,})',
     \ 'path':          '\f*/\&\%(\%(^\|\s\|`\)\)\@1<=[./~]\f\+',
     \ 'url':           '\%(https\=\|ftps\=\|www\)://\|!\=\[.\{-}\]\%((.\{-})\|\[.\{-}\]\)',
     \ 'concealed_url': '\[.\{-}\zs\](.\{-})',
     \ 'codespan':      '`.\{-1,}`',
+    \ 'shell_prompt':  '^٪',
     \ }
 
 fu lg#motion#go(kwd, is_fwd, mode) abort "{{{1
