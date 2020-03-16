@@ -1,4 +1,4 @@
-fu lg#catch_error() abort "{{{1
+fu lg#catch() abort "{{{1
     if get(g:, 'my_verbose_errors', 0)
         let func_name = matchstr(v:throwpoint, 'function \zs.\{-}\ze,')
         let line = matchstr(v:throwpoint, '\%(function \)\?.\{-}, \zsline \d\+')

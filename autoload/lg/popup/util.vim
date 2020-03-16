@@ -56,7 +56,7 @@ endfu
 
 fu lg#popup#util#get_notification_opts(lines) abort "{{{2
     let longest = s:get_longest_width(a:lines)
-    " TODO: `+4`, `-2`... is it reliable?  what if we use a different padding?
+    " TODO: `+4`, `+2`... is it reliable?  what if we use a different padding?
     let [width, height] = [longest + 4, len(a:lines) + 2]
     let [row, col] = [2, &columns]
     let opts = {
@@ -66,7 +66,7 @@ fu lg#popup#util#get_notification_opts(lines) abort "{{{2
         \ 'col': col,
         \ 'border': [],
         \ 'highlight': 'WarningMsg',
-        "\ only needed in Nvim (Vim highlight the border with 'highlight' if 'borderhighlight' is not specified)
+        "\ only needed in Nvim (Vim highlights the border with 'highlight' if 'borderhighlight' is not specified)
         \ 'borderhighlight': 'WarningMsg',
         \ 'pos': 'topright',
         \ 'time': 3000,

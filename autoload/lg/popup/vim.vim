@@ -6,6 +6,18 @@ fu lg#popup#vim#simple(what, opts, ...) abort "{{{2
     endif
     call extend(opts, #{line: remove(opts, 'row'), zindex: s:get_zindex()}, 'keep')
     " Vim doesn't recognize the 'width' and 'height' keys.
+    " We really need the `max` keys.{{{
+    "
+    " For  example,  without the  `maxheight`  key,  the window's  height  would
+    " increase when executing a shell command with a long output (e.g. `$ infocmp -1x`).
+    "
+    " Note that if the function uses `border: []`, then we don't need the `max` keys.
+    " However, there's  no guarantee that the  function will use a  border; e.g.
+    " `border` could have been set with the value `[0,0,0,0]`.
+    "
+    " Besides, we set  the `max` keys to be consistent  with popup windows where
+    " we don't use a border.
+    "}}}
     call extend(opts, #{
         \ minwidth: opts.width,
         \ maxwidth: opts.width,
@@ -21,14 +33,18 @@ endfu
 
 fu lg#popup#vim#with_border(what, opts, ...) abort "{{{2
     let [what, opts, is_term] = [a:what, a:opts, a:0]
-    let [width, height] = [opts.width, opts.height]
 
     " reset geometry so that the inner text fits inside the border
+    " The padding key is currently necessary to get the exact same geometry for a Vim and Nvim popup terminal.{{{
+    "
+    " But more generally, I  like to add one space between  the start/end of the
+    " text and the left/right borders.  It's more aesthetically pleasing.
+    "}}}
     call extend(opts, #{padding: [0,1,0,1]}, 'keep')
     let [t_pad, r_pad, b_pad, l_pad] = opts.padding
     call extend(opts, #{
-        \ width: opts.width - 2 - (l_pad + r_pad),
-        \ height: opts.height - 2 - (t_pad + b_pad),
+        \ width: max([1, opts.width - 2 - (l_pad + r_pad)]),
+        \ height: max([1, opts.height - 2 - (t_pad + b_pad)]),
         \ })
     " Vim expects the 'borderhighlight' key to be a list.  We want a string; do the conversion.
     call extend(opts, #{borderhighlight: [get(opts, 'borderhighlight', '')]})
@@ -56,38 +72,23 @@ fu lg#popup#vim#terminal(what, opts) abort "{{{2
         "}}}
         let bufnr = term_start(&shell, #{hidden: v:true, term_kill: 'hup'})
     endif
-    call lg#popup#util#set_borderchars(opts)
-    " Make sure 'highlight' is 'Normal' no matter what.{{{
+    " Make sure empty cells are highlighted just like non-empty cells in Terminal-Normal mode.{{{
     "
-    " Otherwise, the background may be colored with 2 different colors which is jarring.
+    " When  you're in  Terminal-Job  mode, everything  is highlighted  according
+    " to  Vim's  internal   terminal  palette  (which  can   be  configured  via
+    " `g:terminal_ansi_colors`).
     "
-    " Vim uses the  HG group set by  the 'highlight' key for  empty cells (don't
-    " contain any  character), and only  in Terminal-Normal mode; or  `Pmenu` if
-    " 'highlight' is not set.
-    " Otherwise, I think Vim highlights the cells with the colors defined in its
-    " terminal palette.
+    " When you're in Terminal-Normal mode:
+    "
+    "    - the non-empty cells are still highlighted according to Vim's internal terminal palette
+    "    - the empty cells are highlighted according the 'highlight' key, or `Pmenu` as a fallback
+    "
+    " We want all cells to be highlighted in the exact same way; so we make sure
+    " that empty cells are highlighted just like the non-empty ones.
     "}}}
     call extend(opts, #{highlight: 'Normal'})
-    " make sure a border is drawn no matter what
+    " make sure a border is drawn even if the `border` key was not set
     call extend(opts, #{border: get(opts, 'border', [])})
-    " We really need both the `max...` keys and the `min...` keys.{{{
-    "
-    " Otherwise, in  a popup terminal, when  we scroll back in  a long shell
-    " command output,  the terminal buffer  contents goes beyond the  end of
-    " the window.
-    "}}}
-    " The padding key is currently necessary to get the exact same geometry for a Vim and Nvim popup terminal.{{{
-    "
-    " But more generally, I  like to add one space between  the start/end of the
-    " text and the left/right borders.  It's more aesthetically pleasing.
-    "}}}
-    call extend(opts, #{
-        \ minwidth: opts.width,
-        \ maxwidth: opts.width,
-        \ minheight: opts.height,
-        \ maxheight: opts.height,
-        \ padding: [0,1,0,1],
-        \ }, 'keep')
     let info = lg#popup#vim#with_border(bufnr, opts, 'is_term')
     call s:fire_terminal_events()
     return info
