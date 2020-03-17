@@ -31,7 +31,7 @@ fu lg#popup#nvim#simple(what, opts) abort "{{{2
     " possible, thus not focused.
     "}}}
     let enter = has_key(opts, 'enter') ? remove(opts, 'enter') : v:false
-    " open window
+    " open float
     call lg#popup#util#log('let winid = nvim_open_win(bufnr, '..string(enter)..', '..string(opts)..')',
         \ expand('<sfile>'), expand('<slnum>'))
     let winid = nvim_open_win(bufnr, enter, opts)
@@ -99,7 +99,7 @@ fu lg#popup#nvim#with_border(what, opts) abort "{{{2
     let is_not_focused = !has_key(opts, 'enter') || opts.enter == v:false
     let [text_bufnr, text_winid] = lg#popup#nvim#simple(what, opts)
     if is_not_focused
-        call s:focus_briefly(text_winid)
+        call s:redraw_text_float(text_winid)
     endif
 
     call s:wipe_border_when_closing(border_bufnr, text_bufnr)
@@ -143,16 +143,17 @@ fu lg#popup#nvim#notification(what, opts) abort "{{{2
 endfu
 "}}}1
 " Core {{{1
-fu s:focus_briefly(text_winid) abort "{{{2
-    " Make sure the contents of the window is visible immediately.{{{
+fu s:redraw_text_float(text_winid) abort "{{{2
+    " Make sure the text float is visible immediately.{{{
     "
     " It won't be if you've used `'enter': v:false`.
-    " That's because in that case, the border window is displayed right on top.
-    " Solution: focus the text float, then get back to the original window.
+    " That's because in that case, the border float is displayed right on top.
+    "
+    " Solution: redraw the screen while the text float is focused.
     "}}}
     let curwin = win_getid()
-    call win_gotoid(a:text_winid)
-    call timer_start(0, {-> win_gotoid(curwin)})
+    call win_gotoid(a:text_winid) | redraw
+    call win_gotoid(curwin)
 endfu
 
 fu s:wipe_border_when_closing(border_bufnr, text_bufnr) abort "{{{2
