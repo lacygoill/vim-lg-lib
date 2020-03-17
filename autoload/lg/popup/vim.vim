@@ -35,10 +35,13 @@ fu lg#popup#vim#with_border(what, opts, ...) abort "{{{2
     let [what, opts, is_term] = [a:what, a:opts, a:0]
 
     " reset geometry so that the inner text fits inside the border
-    " The padding key is currently necessary to get the exact same geometry for a Vim and Nvim popup terminal.{{{
+    " Why these particular numbers in the padding list?{{{
     "
-    " But more generally, I  like to add one space between  the start/end of the
-    " text and the left/right borders.  It's more aesthetically pleasing.
+    " I like to add  one empty column between the start/end of  the text and the
+    " left/right borders.  It's more aesthetically pleasing.
+    "
+    " OTOH, I  don't like adding an  empty line above/below the  text.  It takes
+    " too much space, which is more precious vertically than horizontally.
     "}}}
     call extend(opts, #{padding: [0,1,0,1]}, 'keep')
     let [t_pad, r_pad, b_pad, l_pad] = opts.padding
@@ -85,6 +88,11 @@ fu lg#popup#vim#terminal(what, opts) abort "{{{2
     "
     " We want all cells to be highlighted in the exact same way; so we make sure
     " that empty cells are highlighted just like the non-empty ones.
+    "
+    " ---
+    "
+    " The same issue applies to empty  cells in the padding areas, regardless of
+    " the mode you're in.
     "}}}
     call extend(opts, #{highlight: 'Normal'})
     " make sure a border is drawn even if the `border` key was not set

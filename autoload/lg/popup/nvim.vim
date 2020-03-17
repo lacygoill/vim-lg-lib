@@ -19,9 +19,17 @@ fu lg#popup#nvim#simple(what, opts) abort "{{{2
     call s:set_anchor(opts)
     call extend(opts, {'row': opts.row - 1, 'col': opts.col - 1})
     call extend(opts, {'relative': 'editor', 'style': 'minimal'}, 'keep')
-    " `nvim_open_win()` doesn't recognize a 'highlight' key in its `{config}` argument.
+    " `nvim_open_win()` doesn't recognize a `highlight` key in its `{config}` argument.
     " Nevertheless, we want our `#popup#create()` to support such a key.
     let highlight = has_key(opts, 'highlight') ? remove(opts, 'highlight') : ''
+    " `v:false` because – by default – we don't want Nvim to focus a float.{{{
+    "
+    " Just like Vim doesn't focus a popup.
+    " Note that in  all examples from `:h api` where  `nvim_open_win()` is used,
+    " `{enter}` is always `0` or `v:false`.
+    " This confirms the intuition that a float  is meant to be as unobtrusive as
+    " possible, thus not focused.
+    "}}}
     let enter = has_key(opts, 'enter') ? remove(opts, 'enter') : v:false
     " open window
     call lg#popup#util#log('let winid = nvim_open_win(bufnr, '..string(enter)..', '..string(opts)..')',
@@ -38,7 +46,7 @@ endfu
 
 fu lg#popup#nvim#with_border(what, opts) abort "{{{2
     let [what, opts] = [a:what, a:opts]
-    " `sil!` to suppress an error in case we invoked `#terminal()` without a 'border' key
+    " `sil!` to suppress an error in case we invoked `#terminal()` without a `border` key
     sil! call remove(opts, 'border')
 
     " `nvim_open_win()` doesn't recognize the `pos` key, but the `anchor` key
@@ -49,13 +57,28 @@ fu lg#popup#nvim#with_border(what, opts) abort "{{{2
         let opts.col += 1
     endif
 
-    " create border
+    " create border float
     let border = s:get_border(opts.width, opts.height)
     let border_hl = has_key(opts, 'borderhighlight') ? remove(opts, 'borderhighlight') : 'Normal'
-    let _opts = extend(deepcopy(opts), {'highlight': border_hl, 'focusable': v:false})
+    " We don't really need `'enter': v:false` here.{{{
+    "
+    " Because `#simple()` considers the `enter` key to be set to `v:false` by default.
+    " But I prefer to set it explicitly here:
+    "
+    "    - in case one day we change the default value in `#simple()`
+    "
+    "    - to be more readable:
+    "      we *never* want Nvim to focus the border, including when it has just been created;
+    "      the code should reflect that
+    "}}}
+    let _opts = extend(deepcopy(opts), {
+        \ 'enter': v:false,
+        \ 'focusable': v:false,
+        \ 'highlight': border_hl,
+        \ })
     let [border_bufnr, border_winid] = lg#popup#nvim#simple(border, _opts)
 
-    " reset geometry so that the text of the "inner" float fits inside the border float
+    " reset geometry so that the text of the text float fits inside the border float
     let row_offset = opts.anchor[0] is# 'S' ? -1 : 1
     let col_offset = opts.anchor[1] is# 'E' ? -2 : 2
     " TODO: Here we write `-4` and `-2`.  For Vim, we write:{{{
@@ -72,21 +95,14 @@ fu lg#popup#nvim#with_border(what, opts) abort "{{{2
         \ 'col': opts.col + col_offset,
         \ })
 
-    " open final window
-    let window_not_entered = !has_key(opts, 'enter') || opts.enter == v:false
+    " create text float
+    let is_not_focused = !has_key(opts, 'enter') || opts.enter == v:false
     let [text_bufnr, text_winid] = lg#popup#nvim#simple(what, opts)
-    call s:wipe_border_when_closing_float(border_bufnr, text_bufnr)
-    if window_not_entered
-        " Make sure the contents of the window is visible immediately.{{{
-        "
-        " It won't be if you've used `'enter': v:false`.
-        " That's because in that case, the border window is displayed right on top.
-        " Solution: focus the "inner" window, then get back to the original window.
-        "}}}
-        let curwin = win_getid()
-        call win_gotoid(text_winid)
-        call timer_start(0, {-> win_gotoid(curwin)})
+    if is_not_focused
+        call s:focus_briefly(text_winid)
     endif
+
+    call s:wipe_border_when_closing(border_bufnr, text_bufnr)
     return [text_bufnr, text_winid, border_bufnr, border_winid]
 endfu
 
@@ -127,7 +143,19 @@ fu lg#popup#nvim#notification(what, opts) abort "{{{2
 endfu
 "}}}1
 " Core {{{1
-fu s:wipe_border_when_closing_float(border_bufnr, text_bufnr) abort "{{{2
+fu s:focus_briefly(text_winid) abort "{{{2
+    " Make sure the contents of the window is visible immediately.{{{
+    "
+    " It won't be if you've used `'enter': v:false`.
+    " That's because in that case, the border window is displayed right on top.
+    " Solution: focus the text float, then get back to the original window.
+    "}}}
+    let curwin = win_getid()
+    call win_gotoid(a:text_winid)
+    call timer_start(0, {-> win_gotoid(curwin)})
+endfu
+
+fu s:wipe_border_when_closing(border_bufnr, text_bufnr) abort "{{{2
     augroup wipe_border
         exe 'au! * <buffer='..a:text_bufnr..'>'
         exe 'au BufHidden,BufWipeout <buffer='..a:text_bufnr..'> '
