@@ -26,9 +26,9 @@ fu lg#popup#create(what, opts) abort "{{{1
         endif
     elseif has_border && !is_term
         if has('nvim')
-            return lg#popup#nvim#with_border(what, opts)
+            return lg#popup#nvim#border(what, opts)
         else
-            return lg#popup#vim#with_border(what, opts)
+            return lg#popup#vim#border(what, opts)
         endif
     elseif is_term
         if has('nvim')

@@ -31,7 +31,7 @@ fu lg#popup#vim#basic(what, opts, ...) abort "{{{2
     return [winbufnr(winid), winid]
 endfu
 
-fu lg#popup#vim#with_border(what, opts, ...) abort "{{{2
+fu lg#popup#vim#border(what, opts, ...) abort "{{{2
     let [what, opts, is_term] = [a:what, a:opts, a:0]
 
     " reset geometry so that the inner text fits inside the border
@@ -97,7 +97,7 @@ fu lg#popup#vim#terminal(what, opts) abort "{{{2
     call extend(opts, #{highlight: 'Normal'})
     " make sure a border is drawn even if the `border` key was not set
     call extend(opts, #{border: get(opts, 'border', [])})
-    let info = lg#popup#vim#with_border(bufnr, opts, 'is_term')
+    let info = lg#popup#vim#border(bufnr, opts, 'is_term')
     call s:fire_terminal_events()
     return info
 endfu

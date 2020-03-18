@@ -48,7 +48,7 @@ fu lg#popup#nvim#basic(what, opts) abort "{{{2
     return [bufnr, winid]
 endfu
 
-fu lg#popup#nvim#with_border(what, opts) abort "{{{2
+fu lg#popup#nvim#border(what, opts) abort "{{{2
     let [what, opts] = [a:what, a:opts]
     " `sil!` to suppress an error in case we invoked `#terminal()` without a `border` key
     sil! call remove(opts, 'border')
@@ -116,8 +116,9 @@ endfu
 fu lg#popup#nvim#terminal(what, opts) abort "{{{2
     let [what, opts] = [a:what, a:opts]
     call extend(opts, {'highlight': 'Normal', 'enter': v:true})
-    let info = lg#popup#nvim#with_border(what, opts)
+    let info = lg#popup#nvim#border(what, opts)
     if !lg#popup#util#is_terminal_buffer(what)
+        call lg#popup#util#log('setl nomod bh=hide | call termopen(&shell)', expand('<sfile>'), expand('<slnum>'))
         " To avoid "Can only call this function in an unmodified buffer".{{{
         "
         " If the buffer  has been changed, and if function  is invoked to create
@@ -141,7 +142,6 @@ fu lg#popup#nvim#terminal(what, opts) abort "{{{2
         "}}}
         setl bh=hide
         " `termopen()` does not create a new buffer; it converts the current buffer into a terminal buffer
-        call lg#popup#util#log('setl nomod bh= | call termopen(&shell)', expand('<sfile>'), expand('<slnum>'))
         call termopen(&shell)
     endif
     return info
@@ -174,20 +174,9 @@ fu s:redraw_text_float(text_winid) abort "{{{2
     call win_gotoid(curwin)
 endfu
 
-fu s:close_border_automatically(border, text, ...) abort
-    if !a:0
-        exe 'augroup close_border_'..a:border
-            au!
-            " when the text float is closed, close the border too
-            exe 'au WinClosed * call s:close_border_automatically('..a:border..', '..a:text..', 1)'
-        augroup END
-    else
-        if win_getid() == a:text
-            call nvim_win_close(a:border, 1)
-            exe 'au! close_border_'..a:border
-            exe 'aug! close_border_'..a:border
-        endif
-    endif
+fu s:close_border_automatically(border, text) abort
+    " when the text float is closed, close the border too
+    exe 'au WinClosed '..a:text..' ++once call nvim_win_close('..a:border..', 1)'
 endfu
 "}}}1
 " Util {{{1
