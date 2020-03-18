@@ -45,9 +45,7 @@ fu lg#popup#vim#border(what, opts, ...) abort "{{{2
     "}}}
     call extend(opts, #{padding: [0,1,0,1]}, 'keep')
     call extend(opts, #{
-        "\ TODO: to get the same position as in Nvim?
-        "\ TODO: check out how we wrote `s:get_geometry()` in `vim-terminal`;
-        "\ we wrote `-4` and `-2`; will it work if we use different paddings?
+        "\ to get the same position as in Nvim
         \ col: opts.col - 1,
         \ width: opts.width,
         \ height: opts.height,

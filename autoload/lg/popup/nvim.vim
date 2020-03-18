@@ -21,8 +21,16 @@ fu lg#popup#nvim#basic(what, opts) abort "{{{2
         endif
     endif
     call s:set_anchor(opts)
-    call extend(opts, {'row': opts.row - 1, 'col': opts.col - 1})
-    call extend(opts, {'relative': 'editor', 'style': 'minimal'}, 'keep')
+    " these offsets are there to get the same position as in Vim
+    call extend(opts, {
+        \ 'row': opts.row - 1 + (opts.anchor is# 'SE') + (opts.anchor is# 'SW'),
+        \ 'col': opts.col - 1 + (opts.anchor is# 'NE') + (opts.anchor is# 'SE'),
+        \ })
+    call extend(opts, {
+        \ 'focusable': v:false,
+        \ 'relative': 'editor',
+        \ 'style': 'minimal'
+        \ }, 'keep')
     " `nvim_open_win()` doesn't recognize a `highlight` key in its `{config}` argument.
     " Nevertheless, we want our `#popup#create()` to support such a key.
     let highlight = has_key(opts, 'highlight') ? remove(opts, 'highlight') : ''
@@ -52,27 +60,20 @@ fu lg#popup#nvim#border(what, opts) abort "{{{2
     let [what, opts] = [a:what, a:opts]
     " `sil!` to suppress an error in case we invoked `#terminal()` without a `border` key
     sil! call remove(opts, 'border')
-    let border_hl = has_key(opts, 'borderhighlight') ? remove(opts, 'borderhighlight') : 'Normal'
+    " Vim uses `Pmenu` by default; let's do the same in Nvim
+    let border_hl = has_key(opts, 'borderhighlight') ? remove(opts, 'borderhighlight') : 'Pmenu'
 
     " `nvim_open_win()` doesn't recognize the `pos` key, but the `anchor` key
     call s:set_anchor(opts)
 
-    " to get the same position as in Vim (test with `#notification()`)
-    " TODO: Is it still right?
-    if opts.anchor[1] is# 'E'
-        let opts.col += 1
-    endif
-
     " reset geometry so that the text float fits inside the border float
-    " TODO: Is `-1` and `-2` still right?
-    let row_offset = opts.anchor[0] is# 'S' ? -1 : 1
-    let col_offset = opts.anchor[1] is# 'E' ? -2 : 1
+    " (the offsets are there to get the same position as in Vim)
     call extend(opts, {
-        \ 'row': opts.row + row_offset,
-        \ 'col': opts.col + col_offset,
+        \ 'row': opts.row + 1 + (opts.anchor[0] is# 'S' ? 2 : 0),
+        \ 'col': opts.col + 1 - (opts.anchor[1] is# 'E' ? opts.width + 3 : 0),
         \ })
     " create text float
-    let is_not_focused = !has_key(opts, 'enter') || opts.enter == v:false
+    let is_focused = get(opts, 'enter', v:false)
     let [text_bufnr, text_winid] = lg#popup#nvim#basic(what, opts)
 
     " create border float
@@ -98,7 +99,10 @@ fu lg#popup#nvim#border(what, opts) abort "{{{2
     let border = s:get_border(opts.width, opts.height)
     let [border_bufnr, border_winid] = lg#popup#nvim#basic(border, opts)
 
-    call win_gotoid(text_winid)
+    if is_focused
+        call win_gotoid(text_winid)
+    endif
+
     call s:close_border_automatically(border_winid, text_winid)
     return [text_bufnr, text_winid, border_bufnr, border_winid]
 endfu
