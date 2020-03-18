@@ -132,8 +132,14 @@ fu lg#popup#nvim#terminal(what, opts) abort "{{{2
         " https://github.com/neovim/neovim/issues/11962
         "}}}
         setl nomod
-        " `#basic()` has set `'bh'` to wipe; we need to clear it for a toggling terminal to work as expected
-        setl bh=
+        " `#basic()` has set `'bh'` to wipe.{{{
+        "
+        " We need to reset it for a toggling terminal to work as expected.
+        " We could  just clear the option,  but it would not  prevent a toggling
+        " floating terminal buffer  from being wiped out when  being toggled off
+        " if `'hidden'` is off.
+        "}}}
+        setl bh=hide
         " `termopen()` does not create a new buffer; it converts the current buffer into a terminal buffer
         call lg#popup#util#log('setl nomod bh= | call termopen(&shell)', expand('<sfile>'), expand('<slnum>'))
         call termopen(&shell)
