@@ -44,10 +44,13 @@ fu lg#popup#vim#border(what, opts, ...) abort "{{{2
     " too much space, which is more precious vertically than horizontally.
     "}}}
     call extend(opts, #{padding: [0,1,0,1]}, 'keep')
-    let [t_pad, r_pad, b_pad, l_pad] = opts.padding
     call extend(opts, #{
-        \ width: max([1, opts.width - 2 - (l_pad + r_pad)]),
-        \ height: max([1, opts.height - 2 - (t_pad + b_pad)]),
+        "\ TODO: to get the same position as in Nvim?
+        "\ TODO: check out how we wrote `s:get_geometry()` in `vim-terminal`;
+        "\ we wrote `-4` and `-2`; will it work if we use different paddings?
+        \ col: opts.col - 1,
+        \ width: opts.width,
+        \ height: opts.height,
         \ })
     " Vim expects the 'borderhighlight' key to be a list.  We want a string; do the conversion.
     call extend(opts, #{borderhighlight: [get(opts, 'borderhighlight', '')]})
