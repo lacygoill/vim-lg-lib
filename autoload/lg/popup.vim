@@ -20,9 +20,9 @@ fu lg#popup#create(what, opts) abort "{{{1
     let is_term = has_key(opts, 'term') ? remove(opts, 'term') : v:false
     if !has_border && !is_term
         if has('nvim')
-            return lg#popup#nvim#simple(what, opts)
+            return lg#popup#nvim#basic(what, opts)
         else
-            return lg#popup#vim#simple(what, opts)
+            return lg#popup#vim#basic(what, opts)
         endif
     elseif has_border && !is_term
         if has('nvim')

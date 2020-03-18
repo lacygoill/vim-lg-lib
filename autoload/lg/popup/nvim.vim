@@ -1,13 +1,17 @@
 " Interface {{{1
-fu lg#popup#nvim#simple(what, opts) abort "{{{2
+fu lg#popup#nvim#basic(what, opts) abort "{{{2
     let [what, opts] = [a:what, a:opts]
     if type(what) == type(0) && bufexists(what)
         let bufnr = what
     else
         " create buffer
-        call lg#popup#util#log('let bufnr = nvim_create_buf(v:false, v:true)',
-            \ expand('<sfile>'), expand('<slnum>'))
+        call lg#popup#util#log('let bufnr = nvim_create_buf(v:false, v:true)', expand('<sfile>'), expand('<slnum>'))
         let bufnr = nvim_create_buf(v:false, v:true)
+
+        " make Nvim wipe it automatically when it gets hidden
+        call lg#popup#util#log('call nvim_buf_set_option(bufnr, "bh", "wipe")', expand('<sfile>'), expand('<slnum>'))
+        call nvim_buf_set_option(bufnr, 'bh', 'wipe')
+
         let lines = lg#popup#util#get_lines(what)
         if lines != []
             " write text in new buffer
@@ -62,10 +66,10 @@ fu lg#popup#nvim#with_border(what, opts) abort "{{{2
     let border_hl = has_key(opts, 'borderhighlight') ? remove(opts, 'borderhighlight') : 'Normal'
     " We don't really need `'enter': v:false` here.{{{
     "
-    " Because `#simple()` considers the `enter` key to be set to `v:false` by default.
+    " Because `#basic()` considers the `enter` key to be set to `v:false` by default.
     " But I prefer to set it explicitly here:
     "
-    "    - in case one day we change the default value in `#simple()`
+    "    - in case one day we change the default value in `#basic()`
     "
     "    - to be more readable:
     "      we *never* want Nvim to focus the border, including when it has just been created;
@@ -76,7 +80,7 @@ fu lg#popup#nvim#with_border(what, opts) abort "{{{2
         \ 'focusable': v:false,
         \ 'highlight': border_hl,
         \ })
-    let [border_bufnr, border_winid] = lg#popup#nvim#simple(border, _opts)
+    let [border_bufnr, border_winid] = lg#popup#nvim#basic(border, _opts)
 
     " reset geometry so that the text of the text float fits inside the border float
     let row_offset = opts.anchor[0] is# 'S' ? -1 : 1
@@ -97,12 +101,15 @@ fu lg#popup#nvim#with_border(what, opts) abort "{{{2
 
     " create text float
     let is_not_focused = !has_key(opts, 'enter') || opts.enter == v:false
-    let [text_bufnr, text_winid] = lg#popup#nvim#simple(what, opts)
+    let [text_bufnr, text_winid] = lg#popup#nvim#basic(what, opts)
+
+    " make sure its contents is visible
     if is_not_focused
         call s:redraw_text_float(text_winid)
     endif
 
-    call s:wipe_border_when_closing(border_bufnr, text_bufnr)
+    call s:close_border_automatically(border_winid, text_winid)
+
     return [text_bufnr, text_winid, border_bufnr, border_winid]
 endfu
 
@@ -125,8 +132,10 @@ fu lg#popup#nvim#terminal(what, opts) abort "{{{2
         " https://github.com/neovim/neovim/issues/11962
         "}}}
         setl nomod
+        " `#basic()` has set `'bh'` to wipe; we need to clear it for a toggling terminal to work as expected
+        setl bh=
         " `termopen()` does not create a new buffer; it converts the current buffer into a terminal buffer
-        call lg#popup#util#log('call termopen(&shell)', expand('<sfile>'), expand('<slnum>'))
+        call lg#popup#util#log('setl nomod bh= | call termopen(&shell)', expand('<sfile>'), expand('<slnum>'))
         call termopen(&shell)
     endif
     return info
@@ -139,6 +148,7 @@ fu lg#popup#nvim#notification(what, opts) abort "{{{2
     let time = remove(n_opts, 'time')
     call extend(opts, n_opts, 'keep')
     let [_, winid, _, _] = lg#popup#create(lines, opts)
+    call lg#popup#util#log('call timer_start('..time..', {-> nvim_win_close(g:winid, 1)})', expand('<sfile>'), expand('<slnum>'))
     call timer_start(time, {-> nvim_win_close(winid, 1)})
 endfu
 "}}}1
@@ -151,17 +161,27 @@ fu s:redraw_text_float(text_winid) abort "{{{2
     "
     " Solution: redraw the screen while the text float is focused.
     "}}}
+    call lg#popup#util#log('let curwin = win_getid()', expand('<sfile>'), expand('<slnum>'))
     let curwin = win_getid()
+    call lg#popup#util#log('call win_gotoid(winid) | redraw | call win_gotoid(curwin)', expand('<sfile>'), expand('<slnum>'))
     call win_gotoid(a:text_winid) | redraw
     call win_gotoid(curwin)
 endfu
 
-fu s:wipe_border_when_closing(border_bufnr, text_bufnr) abort "{{{2
-    augroup wipe_border
-        exe 'au! * <buffer='..a:text_bufnr..'>'
-        exe 'au BufHidden,BufWipeout <buffer='..a:text_bufnr..'> '
-            \ ..'exe "au! wipe_border * <buffer>" | bw '..a:border_bufnr
-    augroup END
+fu s:close_border_automatically(border, text, ...) abort
+    if !a:0
+        exe 'augroup close_border_'..a:border
+            au!
+            " when the text float is closed, close the border too
+            exe 'au WinClosed * call s:close_border_automatically('..a:border..', '..a:text..', 1)'
+        augroup END
+    else
+        if win_getid() == a:text
+            call nvim_win_close(a:border, 1)
+            exe 'au! close_border_'..a:border
+            exe 'aug! close_border_'..a:border
+        endif
+    endif
 endfu
 "}}}1
 " Util {{{1

@@ -1,5 +1,5 @@
 " Interface {{{1
-fu lg#popup#vim#simple(what, opts, ...) abort "{{{2
+fu lg#popup#vim#basic(what, opts, ...) abort "{{{2
     let [what, opts, is_term] = [a:what, a:opts, a:0]
     if type(what) == type('') && what =~# '\n'
         let what = split(what, '\n')
@@ -54,7 +54,7 @@ fu lg#popup#vim#with_border(what, opts, ...) abort "{{{2
 
     " open final window
     call lg#popup#util#set_borderchars(opts)
-    return call('lg#popup#vim#simple', [what, opts] + (is_term ? [v:true] : []))
+    return call('lg#popup#vim#basic', [what, opts] + (is_term ? [v:true] : []))
 endfu
 
 fu lg#popup#vim#terminal(what, opts) abort "{{{2

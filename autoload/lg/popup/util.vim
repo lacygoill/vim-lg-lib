@@ -60,14 +60,15 @@ fu lg#popup#util#get_notification_opts(lines) abort "{{{2
     let [width, height] = [longest + 4, len(a:lines) + 2]
     let [row, col] = [2, &columns]
     let opts = {
-        \ 'width': width,
-        \ 'height': height,
         \ 'row': row,
         \ 'col': col,
+        \ 'width': width,
+        \ 'height': height,
         \ 'border': [],
-        \ 'highlight': 'WarningMsg',
         "\ only needed in Nvim (Vim highlights the border with 'highlight' if 'borderhighlight' is not specified)
         \ 'borderhighlight': 'WarningMsg',
+        \ 'highlight': 'WarningMsg',
+        \ 'focusable': v:false,
         \ 'pos': 'topright',
         \ 'time': 3000,
         \ }
