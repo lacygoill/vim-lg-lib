@@ -3,7 +3,15 @@ if exists('g:autoloaded_lg#popup')
 endif
 let g:autoloaded_lg#popup = 1
 
-" I have an issue with one of these functions!{{{
+" `#create()` raises errors!{{{
+"
+" Make sure  you've used  the `row` key,  and not `line`,  to describe  the line
+" address of the anchor.
+"
+" Also, don't use `minwidth`, `maxwidth`, `minheight`, `maxheight`.
+" Just use `width` and `height`.
+"}}}
+" I have another issue with one of these functions!{{{
 "
 " Switch `s:DEBUG` to 1 in `autoload/lg/popup/util.vim`.
 " Reproduce your issue, then read the logfile.

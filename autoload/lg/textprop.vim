@@ -109,12 +109,12 @@ fu lg#textprop#ansi() abort "{{{1
         call cursor(1, 1)
         let flags = 'cW'
         if !has('nvim')
-            call prop_type_add('ansi_'..attr, {'highlight': 'ansi_'..attr, 'bufnr': bufnr})
+            call prop_type_add('ansi_'..attr, #{highlight: 'ansi_'..attr, bufnr: bufnr})
             while search(v.start, flags) && search(v.end, 'n')
                 let flags = 'W'
-                call prop_add(line('.'), col('.'), {
-                    \ 'length': searchpos(v.end..'\zs', 'cn')[1] - col('.'),
-                    \ 'type': 'ansi_'..attr,
+                call prop_add(line('.'), col('.'), #{
+                    \ length: searchpos(v.end..'\zs', 'cn')[1] - col('.'),
+                    \ type: 'ansi_'..attr,
                     \ })
             endwhile
         else

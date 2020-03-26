@@ -1,10 +1,11 @@
 " Interface {{{1
-fu lg#popup#vim#basic(what, opts, ...) abort "{{{2
-    let [what, opts, is_term] = [a:what, a:opts, a:0]
+fu lg#popup#vim#basic(what, opts) abort "{{{2
+    let [what, opts, sfile] = [a:what, a:opts, expand('<sfile>')]
     if type(what) == type('') && what =~# '\n'
         let what = split(what, '\n')
     endif
     call extend(opts, #{line: remove(opts, 'row'), zindex: s:get_zindex()}, 'keep')
+
     " Vim doesn't recognize the 'width' and 'height' keys.
     " We really need the `max` keys.{{{
     "
@@ -25,14 +26,28 @@ fu lg#popup#vim#basic(what, opts, ...) abort "{{{2
         \ maxheight: opts.height,
         \ })
     call remove(opts, 'width') | call remove(opts, 'height')
-    call lg#popup#util#log(printf('call popup_create(%s, %s)',
-        \ is_term ? 'bufnr' : string(what), string(opts)), expand('<sfile>'), expand('<slnum>'))
-    let winid = popup_create(what, opts)
+    let cmd = printf('let winid = popup_create(%s, %s)', what, opts)
+    call lg#popup#util#log(cmd, sfile, expand('<slnum>'))
+    exe cmd
+
+    " Don't reset the topline of the popup on the next screen redraw.{{{
+    "
+    " Useful when you've installed key bindings to scroll in the popup and don't
+    " want Vim to cancel your scrolling on the next redraw.
+    "
+    " The value `0` is documented at `:h popup_create-arguments /firstline`:
+    "
+    " >     firstline       ...
+    " >                     Set to zero to leave the position as set by commands.
+    "}}}
+    let cmd = printf('call popup_setoptions(%d, #{firstline: 0})', winid)
+    call lg#popup#util#log(cmd, sfile, expand('<slnum>'))
+    exe cmd
     return [winbufnr(winid), winid]
 endfu
 
-fu lg#popup#vim#border(what, opts, ...) abort "{{{2
-    let [what, opts, is_term] = [a:what, a:opts, a:0]
+fu lg#popup#vim#border(what, opts) abort "{{{2
+    let [what, opts] = [a:what, a:opts]
 
     " reset geometry so that the inner text fits inside the border
     " Why these particular numbers in the padding list?{{{
@@ -55,11 +70,11 @@ fu lg#popup#vim#border(what, opts, ...) abort "{{{2
 
     " open final window
     call lg#popup#util#set_borderchars(opts)
-    return call('lg#popup#vim#basic', [what, opts] + (is_term ? [v:true] : []))
+    return lg#popup#vim#basic(what, opts)
 endfu
 
 fu lg#popup#vim#terminal(what, opts) abort "{{{2
-    let [what, opts] = [a:what, a:opts]
+    let [what, opts, sfile] = [a:what, a:opts, expand('<sfile>')]
     " If `what` is the number of a terminal buffer, don't create yet another one.{{{
     "
     " Just use `what`.
@@ -68,37 +83,15 @@ fu lg#popup#vim#terminal(what, opts) abort "{{{2
     if lg#popup#util#is_terminal_buffer(what)
         let bufnr = what
     else
-        call lg#popup#util#log('let bufnr = term_start(&shell, #{hidden: v:true, term_kill: ''hup''})',
-            \ expand('<sfile>'), expand('<slnum>'))
-        " `term_kill: 'hup'` suppresses `E947` when you try to quit Vim with `:q` or `:qa`.{{{
-        "
-        "     E947: Job still running in buffer "!/usr/local/bin/zsh"
-        "}}}
-        let bufnr = term_start(&shell, #{hidden: v:true, term_kill: 'hup'})
+        let cmd = 'let bufnr = term_start(&shell, #{hidden: v:true, term_finish: ''close'', term_kill: ''hup''})'
+        call lg#popup#util#log(cmd, sfile, expand('<slnum>'))
+        exe cmd
     endif
-    " Make sure empty cells are highlighted just like non-empty cells in Terminal-Normal mode.{{{
-    "
-    " When  you're in  Terminal-Job  mode, everything  is highlighted  according
-    " to  Vim's  internal   terminal  palette  (which  can   be  configured  via
-    " `g:terminal_ansi_colors`).
-    "
-    " When you're in Terminal-Normal mode:
-    "
-    "    - the non-empty cells are still highlighted according to Vim's internal terminal palette
-    "    - the empty cells are highlighted according the 'highlight' key, or `Pmenu` as a fallback
-    "
-    " We want all cells to be highlighted in the exact same way; so we make sure
-    " that empty cells are highlighted just like the non-empty ones.
-    "
-    " ---
-    "
-    " The same issue applies to empty  cells in the padding areas, regardless of
-    " the mode you're in.
-    "}}}
+    " in Terminal-Normal mode, don't highlight empty cells with `Pmenu` (same thing for padding cells)
     call extend(opts, #{highlight: 'Normal'})
     " make sure a border is drawn even if the `border` key was not set
     call extend(opts, #{border: get(opts, 'border', [])})
-    let info = lg#popup#vim#border(bufnr, opts, 'is_term')
+    let info = lg#popup#vim#border(bufnr, opts)
     call s:fire_terminal_events()
     return info
 endfu

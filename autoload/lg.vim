@@ -82,7 +82,7 @@ fu lg#set_stl(stl, ...) abort "{{{1
     "}}}
     if !has('nvim')
         if a:0
-            let &l:stl = '%!'..s:snr..'set_stl('..string(a:stl)..', '..string(a:1)..')'
+            let &l:stl = printf('%%!%sset_stl(%s, %s)', s:snr, string(a:stl), string(a:1))
         else
             let &l:stl = a:stl
         endif

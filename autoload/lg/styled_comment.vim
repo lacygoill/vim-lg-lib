@@ -1059,7 +1059,7 @@ fu s:syn_blockquote(ft, cml, commentGroup) abort "{{{2
     " other filetypes.
     "}}}
     exe 'syn match '..a:ft..'CommentBlockquote'
-    \ ..' /'..a:cml..' \{,4}>.*/'
+    \ ..' /'..a:cml..'\\\= \{,4}>.*/'
     \ ..' contained'
     \ ..' containedin='..a:commentGroup
     \ ..' contains='..a:ft..'CommentLeader,'
@@ -1069,7 +1069,7 @@ fu s:syn_blockquote(ft, cml, commentGroup) abort "{{{2
     \ ..' oneline'
 
     exe 'syn match '..a:ft..'CommentBlockquoteConceal'
-    \ ..' /\%('..a:cml..' \{,4}\)\@<=>\s\=/'
+    \ ..' /\%('..a:cml..'\\\= \{,4}\)\@<=>\s\=/'
     \ ..' contained'
     \ ..' conceal'
 
