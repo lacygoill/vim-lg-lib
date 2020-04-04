@@ -90,3 +90,22 @@ fu lg#window#qf_open_or_focus(type) abort "{{{1
     call win_gotoid(winid)
 endfu
 
+fu lg#window#scratch(lines) abort "{{{1
+    " TODO: Improve the whole function after reading `~/wiki/vim/todo/scratch.md`.
+    let tempfile = tempname()
+    try
+        exe 'sp '..tempfile
+    " `:pedit` is forbidden from a Vim popup terminal window
+    catch /^Vim\%((\a\+)\)\=:E994:/
+        return lg#catch()
+    endtry
+    call setline(1, a:lines)
+    sil update
+    " in case some line is too long for our vertical split
+    setl wrap
+    " for vim-window to not maximize the window when we focus it
+    setl pvw
+    nno <silent> q :q<cr>
+    wincmd p
+endfu
+

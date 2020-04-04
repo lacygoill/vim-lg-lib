@@ -69,7 +69,7 @@ fu lg#popup#nvim#basic(what, opts) abort "{{{2
         let cmd = "call setwinvar(winid, '&so', 0)"
         call lg#popup#util#log(cmd, sfile, expand('<slnum>'))
         exe cmd
-        let cmd = printf("call lg#win_execute(winid, '%d | norm! zt')", firstline)
+        let cmd = printf("call lg#win_execute(winid, ['%d', 'norm! zt'])", firstline)
         call lg#popup#util#log(cmd, sfile, expand('<slnum>'))
         exe cmd
     endif
