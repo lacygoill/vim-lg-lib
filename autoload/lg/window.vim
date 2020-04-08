@@ -105,7 +105,7 @@ fu lg#window#scratch(lines) abort "{{{1
     setl wrap
     " for vim-window to not maximize the window when we focus it
     setl pvw
-    nno <silent> q :q<cr>
+    nmap <buffer><nowait><silent> q <plug>(my_quit)
     wincmd p
 endfu
 
