@@ -1,91 +1,51 @@
 " Interface {{{1
 fu lg#map#save(keys, ...) abort "{{{2
-    " The function accepts a list of keys, or just a single key (in a string).
+    " `#save()` accepts a list of keys, or just a single key (in a string).
     if type(a:keys) != type([]) && type(a:keys) != type('') | return | endif
 
-    let mode = get(a:, '1', 'n')
-    let islocal = get(a:, '2', v:false)
-
-    " If we pass the mode `''`, we want the function to interpret it as `'nvo'`,
-    " to be consistent with `maparg()`.
-    if mode is# ''
-        " TODO: Wait.  Is it correct?{{{
-        "
-        " Shouldn't we just pass `''` and let `maparg()` do its job normally?
-        " What if we pass  `''`, don't have any mapping in  `nvo` mode, but have
-        " one in  `x` mode?  How does  `maparg()` react?  How does  our function
-        " react?  How should it react?
-        "
-        " ---
-        "
-        " Vimgrep `lg#map#save()` and check whether we've used `''` often.
-        " Btw, one  of the match is  in `vim-draw`; there is  long comment there
-        " which you need to re-read/fix/update.
-        "
-        "     ~/.vim/plugged/vim-draw/autoload/draw.vim:378
-        "}}}
-        let n_map_save = lg#map#save(a:keys, 'n', islocal)
-        let x_map_save = lg#map#save(a:keys, 'x', islocal)
-        let o_map_save = lg#map#save(a:keys, 'o', islocal)
-        " And so, instead of returning a dictionary, it will return a list of up
-        " to three dictionaries; one for each mode.
-        return filter([n_map_save, x_map_save, o_map_save], {_,v -> !empty(v)})
-    endif
-
+    " Which pitfall may I encounter when the pseudo-mode `''` is involved?{{{
+    "
+    " There could be a mismatch between the mode you've asked, and the one you get.
+    "
+    " Suppose you ask to save a mapping in `nvo` mode (via `''`).
+    " But there is no such mapping.
+    " However, there *is* a mapping in normal mode.
+    " `maparg()` and `#save()` will save it, and `#restore()` will restore it.
+    "
+    " But if you  asked to save a  mapping in `nvo` mode,  it's probably because
+    " you  intend to  install a  new mapping  in `nvo`  mode, which  will affect
+    " several modes.
+    " `#restore()`  will  restore the  normal  mode  mapping,  but it  will  not
+    " "restore" the mappings in the other modes (i.e. it won't remove the mappings
+    " you've installed in the other modes).
+    "
+    "     nno <c-q> <esc>
+    "     let save = lg#map#save('<c-q>', '')
+    "     noremap <c-q> <esc><esc>
+    "     call lg#map#restore(save)
+    "     map <c-q>
+    "     n  <C-Q>       * <Esc>~
+    "     ov <C-Q>       * <Esc><Esc>~
+    "     ^^
+    "     the C-q mappings in these modes should have been removed
+    "
+    " We don't deal with  this pitfall here because it would  make the code more
+    " complex, and it can be easily fixed in your code:
+    "
+    "     nnoremap <c-q> <esc><esc>
+    "     ^
+    "     be more specific
+    "}}}
+    let mode = get(a:, '1', '')
+    let wantlocal = get(a:, '2', v:false)
     let keys = type(a:keys) == type([]) ? a:keys : [a:keys]
 
-    let map_save = {}
-    " get info about local mappings
-    if islocal
-        for a_key in keys
-            " save info about the local mapping
-            let maparg = s:maparg(a_key, mode)
-
-            " If there is no local mapping, but there *is* a global mapping, ignore the latter.{{{
-            "
-            " By making `maparg` empty, we make sure that we will save some info
-            " about the non-existing local mapping.
-            " In particular, we  need the `unmapped` key to know  that the local
-            " mapping does not exist.
-            "}}}
-            if has_key(maparg, 'buffer') && !maparg.buffer
-                let maparg = {}
-            endif
-
-            let map_save[a_key] = s:mapsave(maparg, a_key, mode, v:true)
-
-            " Save the  buffer number, so that  we can check we're  in the right
-            " buffer when we want to restore a buffer-local mapping.
-            call extend(map_save[a_key], {'bufnr': bufnr('%')})
-        endfor
-
-    " get info about global mappings
-    else
-        for a_key in keys
-            " save info about the local mapping
-            let local_maparg = s:maparg(a_key, mode)
-
-            " If a key is used in a global mapping and a local one, by default,
-            " `maparg()` only returns information about the local one.
-            " We want to be able to get info about a global mapping even if a local
-            " one shadows it.
-            " To do that, we will temporarily remove the local mapping.
-            sil! exe mode..'unmap <buffer> '..a_key
-
-            " save info about the global one
-            let maparg = s:maparg(a_key, mode)
-
-            " make sure it's global
-            if get(maparg, 'buffer', 0) | continue | endif
-
-            let map_save[a_key] = s:mapsave(maparg, a_key, mode, v:false)
-
-            " restore the local one
-            call lg#map#restore({a_key : local_maparg})
-        endfor
-    endif
-
-    return map_save
+    let save = []
+    for key in keys
+        let maparg = s:maparg(key, mode, wantlocal)
+        let save += [maparg]
+    endfor
+    return save
 endfu
 
 " Usage:{{{
@@ -94,114 +54,210 @@ endfu
 "     let my_local_mappings  = lg#map#save(['key1', 'key2', ...], 'n', v:true)
 "}}}
 
-fu lg#map#restore(map_save) abort "{{{2
+fu lg#map#restore(save) abort "{{{2
     " Why?{{{
     "
     " Sometimes, we may need to restore mappings stored in a variable which we
     " can't be sure will always exist.
-    " In such cases, it's convenient to use `get()` and default to an empty
-    " dictionary:
+    " In such  cases, it's  convenient to  use `get()` and  default to  an empty
+    " list:
     "
-    "     call lg#map#restore(get(g:, 'unsure_variable', {}))
+    "     call lg#map#restore(get(g:, 'unsure_variable', []))
     "
-    " To support this use case, we need to immediately return when we receive
-    " an empty dictionary, since there's nothing to restore.
+    " To support this use case, we need to immediately return when we receive an
+    " empty list, since there's nothing to restore.
     "}}}
-    if empty(a:map_save) | return | endif
+    if empty(a:save) | return | endif
 
-    " Why?{{{
-    "
-    " If we've saved a mapping for:
-    "
-    "    - a mode different than `''`, `lg#map#save()` will have returned a dictionary
-    "    - the mode `''`             , `lg#map#save()` will have returned a list of up to 3 dictionaries
-    "}}}
-    if type(a:map_save) == type({})
-        call s:restore(a:map_save)
-    elseif type(a:map_save) == type([])
-        for a_map_save in a:map_save
-            call s:restore(a_map_save)
-        endfor
-    endif
+    for maparg in a:save
+        " if the mapping was local to a buffer, check we're in the right one
+        " If we are in the wrong buffer, why don't you temporarily load it?{{{
+        "
+        " Too many side-effects.
+        "
+        " You  need `:noa`  to suppress  autocmds, but  it doesn't  suppress
+        " `CursorMoved`, probably because the latter is fired too late.
+        " From `:h :noa`:
+        "
+        " >     Note that some autocommands are not triggered right away, but only later.
+        " >     This specifically applies to |CursorMoved| and |TextChanged|.
+        "
+        " You also need to save and restore the alternate file.
+        "
+        " And you  need to save  and restore  some properties of  the buffer
+        " where you re-install the mapping; like "was it unlisted?", "was it
+        " unloaded?".
+        "
+        " And for  some reason,  some options  may be  reset in  the current
+        " buffer (like `'cole'`).
+        "
+        " ---
+        "
+        " Besides, it adds a lot of complexity, for a dubious gain:
+        "
+        "     let [curbuf, origbuf] = [bufnr('%'), get(maparg, 'bufnr', 0)]
+        "     if get(maparg, 'buffer', 0) && curbuf != origbuf
+        "         if bufexists(origbuf)
+        "             let altbuf = @#
+        "             exe 'noa b '..origbuf
+        "         endif
+        "     endif
+        "     " ...
+        "     " restore local mapping
+        "     " ...
+        "     if exists('altbuf')
+        "         noa exe 'b '..origbuf
+        "         let @# = altbuf
+        "     endif
+        "}}}
+        if s:not_in_right_buffer(maparg) | continue | endif
+
+        let cmd = s:get_mapping_cmd(maparg)
+        " if there was no mapping when `#save()` was invoked, there should be no
+        " mapping after `#restore()` is invoked
+        if has_key(maparg, 'unmapped')
+            " `sil!` because there's no guarantee that the unmapped key has been
+            " mapped to sth after being saved
+            sil! exe cmd..' '..(maparg.buffer ? ' <buffer> ' : '')..maparg.lhs
+        else
+            " restore a saved mapping
+            exe cmd
+                \ ..(maparg.buffer  ? ' <buffer> ' : '')
+                \ ..(maparg.expr    ? ' <expr>   ' : '')
+                \ ..(maparg.nowait  ? ' <nowait> ' : '')
+                \ ..(maparg.silent  ? ' <silent> ' : '')
+                \ ..(!has('nvim') && maparg.script  ? ' <script> ' : '')
+                \ ..maparg.lhs
+                \ ..' '
+                \ ..maparg.rhs
+        endif
+    endfor
 endfu
 
 " Usage:{{{
 "
-"     call lg#map#restore(map_save)
+"     call lg#map#restore(save)
 "
-" `map_save` is a dictionary obtained earlier by calling `lg#map#save()`.
-" Its keys are the keys used in the mappings.
-" Its values are the info about those mappings stored in sub-dictionaries.
+" `save` is a list obtained earlier by calling `lg#map#save()`.
+" Its items are dictionaries describing saved mappings.
 "}}}
-
-fu s:restore(map_save) abort
-    for maparg in values(a:map_save)
-        " If the mapping is local to a buffer, check we're in the right one.
-        " Also make sure we have at least the `lhs` key; just to be sure we have
-        " received relevant information.
-        if get(maparg, 'buffer', 0) && bufnr('%') != get(maparg, 'bufnr', 0)
-        \ || !has_key(maparg, 'lhs')
-            " TODO: If we are in the wrong buffer, maybe we could temporarily load it?{{{
-            "
-            " If you  do make sure  to not trigger  events (`:noa`), and  to not
-            " alter the previous  file (`@#`). Also, check  its existence before
-            " trying to load it.
-            "}}}
-            continue
-        endif
-
-        " remove a possible mapping if it didn't exist when we tried to save it
-        if has_key(maparg, 'unmapped')
-            " `maparg.mode` could contain several modes (`nox` for example);  we must iterate over them
-            for c in split(maparg.mode, '\zs')
-                sil! exe c..'unmap '..(maparg.buffer ? ' <buffer> ' : '')..maparg.lhs
-            endfor
-        else
-            for c in split(maparg.mode, '\zs')
-                " restore a saved mapping
-                exe c
-                    \ ..(maparg.noremap ? 'noremap   ' : 'map ')
-                    \ ..(maparg.buffer  ? ' <buffer> ' : '')
-                    \ ..(maparg.expr    ? ' <expr>   ' : '')
-                    \ ..(maparg.nowait  ? ' <nowait> ' : '')
-                    \ ..(maparg.silent  ? ' <silent> ' : '')
-                    \ ..maparg.lhs
-                    \ ..' '
-                    \ ..maparg.rhs
-            endfor
-        endif
-    endfor
-endfu
 "}}}1
 " Core {{{1
-fu s:maparg(name, mode) abort "{{{2
+fu s:maparg(name, mode, wantlocal) abort "{{{2
     let maparg = maparg(a:name, a:mode, 0, 1)
-    call extend(maparg, {'rhs': escape(maparg(a:name, a:mode), '|')})
-    return maparg
-endfu
 
-fu s:mapsave(maparg, key, mode, islocal) abort "{{{2
-    if empty(a:maparg)
-        " If there's no mapping, why do we still save this dictionary? {{{
+    " There are 6 cases to consider.{{{
+    "
+    " Parameter 1: we want a local mapping or a global one; 2 possibilities.
+    "
+    " Parameter 2: `maparg()` returns:
+    "
+    "    - an empty dictionary
+    "    - the info about a global mapping
+    "    - the info about a local mapping
+    "
+    " 3 possibilities.
+    "
+    " 2 x 3 = 6.
+    "
+    " Note that the 2 parameters are orthogonal.
+    " We can ask for  a local mapping and get info about a  global one, and vice
+    " versa.  That's  because there  is no  way to  specify to  `maparg()` which
+    " scope we're interested in.
+    "
+    " ---
+    "
+    " 3 of those cases can be handled with the same code.
+    " They all  have in common  that `maparg()`  doesn't give any  relevant info
+    " (because the key is not mapped).
+    "
+    " 2 other cases can – again – be handled with the same code.
+    " They both have in common that `maparg()` gives us the desired info.
+    "
+    " In the 1 remaining case, `maparg()` doesn't give any relevant info, but we
+    " don't know whether the key is mapped.
+    "
+    " This is why,  in the end, we  only have to write 3  `if`, `elseif` blocks,
+    " and not 6.
+    "}}}
+    " there is no relevant mapping
+    if empty(maparg) || a:wantlocal && !s:islocal(maparg)
+        " If there's no mapping, why do you still save this dictionary? {{{
         "
-        " Suppose we have a key which is mapped to nothing.
-        " We save it (with an empty dictionary).
-        " It's possible that after the saving, the key is mapped to something.
-        " Restoring this key means deleting whatever mapping may now exist.
-        " But to be able to unmap the key, we need 3 information:
+        " Suppose we have a key which is not mapped.
+        " We save it with an empty dictionary.
+        " Then, we map the key to something.
+        " Finally,  we want  to restore  the key;  that means  deleting whatever
+        " mapping may  now exist.  But to  be able to  unmap the key, we  need 3
+        " information:
         "
         "    - is the mapping global or buffer-local (`<buffer>` argument)?
         "    - the lhs
         "    - the mode (normal, visual, ...)
+        "
+        " An empty dictionary doesn't contain any of this info.
         "}}}
-        return {
+        let maparg = {
             \ 'unmapped': v:true,
-            \ 'buffer': a:islocal,
-            \ 'lhs': a:key,
-            \ 'mode': a:mode,
+            \ 'lhs': a:name,
+            "\ we want to be consistent with `maparg()` which would return a space for `nvo`
+            \ 'mode': a:mode is# '' ? ' ' : a:mode,
+            \ 'buffer': a:wantlocal,
             \ }
+
+    " a local mapping is shadowing the global mapping we're interested in,
+    " so we don't know whether there's a relevant mapping
+    elseif !a:wantlocal && s:islocal(maparg)
+        " remove the shadowing local mapping
+        exe a:mode..'unmap <buffer> '..a:name
+        let local_maparg = extend(deepcopy(maparg), {'bufnr': bufnr('%')})
+        let maparg = s:maparg(a:name, a:mode, v:false)
+        " restore the shadowing local mapping
+        call lg#map#restore([local_maparg])
+
+    " there is a relevant mapping
     else
-        return a:maparg
+        call extend(maparg, {
+            "\ we don't want Vim to translate meta keys (e.g. `<M-b> → â`)
+            \ 'lhs': a:name,
+            "\ we want Vim to translate `<sid>`
+            \ 'rhs': escape(maparg(a:name, a:mode), '|'),
+            \ })
     endif
+
+    if s:islocal(maparg)
+        " Save the buffer number, so that we can check we're in the right buffer
+        " when we want to restore the buffer-local mapping.
+        call extend(maparg, {'bufnr': bufnr('%')})
+    endif
+
+    return maparg
+endfu
+"}}}1
+" Util {{{1
+fu s:islocal(maparg) abort "{{{2
+    return get(a:maparg, 'buffer', 0)
+endfu
+
+fu s:not_in_right_buffer(maparg) abort "{{{2
+    return s:islocal(a:maparg) && bufnr('%') != get(a:maparg, 'bufnr', 0)
+endfu
+
+fu s:get_mapping_cmd(maparg) abort "{{{2
+    if has_key(a:maparg, 'unmapped')
+        if a:maparg.mode is# '!'
+            let cmd = 'unmap!'
+        else
+            let cmd = a:maparg.mode..'unmap'
+        endif
+    else
+        if a:maparg.mode is# '!'
+            let cmd = a:maparg.noremap ? 'noremap!' : 'map!'
+        else
+            let cmd = a:maparg.mode
+            let cmd ..= a:maparg.noremap ? 'noremap' : 'map'
+        endif
+    endif
+    return cmd
 endfu
 
