@@ -3,7 +3,7 @@ fu lg#map#save(keys, ...) abort "{{{2
     " `#save()` accepts a list of keys, or just a single key (in a string).
     if type(a:keys) != type([]) && type(a:keys) != type('') | return | endif
 
-    " Which pitfall may I encounter when the pseudo-mode `''` is involved?{{{
+    " Which pitfall(s) may I encounter when the pseudo-mode `''` is involved?{{{
     "
     " There could be a mismatch between the mode you've asked, and the one you get.
     "
@@ -35,6 +35,42 @@ fu lg#map#save(keys, ...) abort "{{{2
     "     nnoremap <c-q> <esc><esc>
     "     ^
     "     be more specific
+    "
+    " ---
+    "
+    " There could be another type of mismatch.
+    "
+    " Suppose you ask to save a mapping in `n` mode.
+    " But `maparg(...).mode` is `no`, and not `n`.
+    "
+    " `maparg()` and `#save()` save your mapping in `no` mode.
+    " You change the mapping in `n` mode.
+    " Later, you try to `#restore()` it; the latter function will reinstall your
+    " mapping in `n` mode *and* in `o` mode.
+    " You may find  the re-installation in `o` mode  unexpected and unnecessary;
+    " but I don't think it's an issue.
+    " There should  be no side-effect;  except for one: according  to `maparg()`
+    " and `:map`, *before* you had 1 mapping  in `no` mode, but *now* you have 2
+    " mappings, one in `n` mode, and another in `o` mode.
+    "
+    "     noremap <c-q> <esc>
+    "     vunmap <c-q>
+    "     map <c-q>
+    "     no <C-Q>       * <Esc>~
+    "
+    "     let save = lg#map#save('<c-q>', 'n')
+    "     call lg#map#restore(save)
+    "     map <c-q>
+    "     n  <C-Q>       * <Esc>~
+    "     o  <C-Q>       * <Esc>~
+    "
+    " I don't consider that as an issue.
+    " On the contrary, I prefer the second output, because `no` is not a real mode.
+    "
+    " ---
+    "
+    " I  think the  same pitfalls  could  apply to  `v` which  is a  pseudo-mode
+    " matching the real modes `x` and `s`.
     "}}}
     let mode = get(a:, '1', '')
     let wantlocal = get(a:, '2', v:false)
@@ -42,8 +78,15 @@ fu lg#map#save(keys, ...) abort "{{{2
 
     let save = []
     for key in keys
-        let maparg = s:maparg(key, mode, wantlocal)
-        let save += [maparg]
+        " This `for` loop is only necessary if you intend `#save()` to support multiple modes:{{{
+        "
+        "     let save = lg#map#save('<c-q>', 'nxo')
+        "                                      ^^^
+        "}}}
+        for m in mode == '' ? [''] : split(mode, '\zs')
+            let maparg = s:maparg(key, m, wantlocal)
+            let save += [maparg]
+        endfor
     endfor
     return save
 endfu
@@ -112,24 +155,27 @@ fu lg#map#restore(save) abort "{{{2
         "}}}
         if s:not_in_right_buffer(maparg) | continue | endif
 
-        let cmd = s:get_mapping_cmd(maparg)
         " if there was no mapping when `#save()` was invoked, there should be no
         " mapping after `#restore()` is invoked
         if has_key(maparg, 'unmapped')
+            let cmd = s:get_mapping_cmd(maparg)
             " `sil!` because there's no guarantee that the unmapped key has been
             " mapped to sth after being saved
             sil! exe cmd..' '..(maparg.buffer ? ' <buffer> ' : '')..maparg.lhs
         else
-            " restore a saved mapping
-            exe cmd
-                \ ..(maparg.buffer  ? ' <buffer> ' : '')
-                \ ..(maparg.expr    ? ' <expr>   ' : '')
-                \ ..(maparg.nowait  ? ' <nowait> ' : '')
-                \ ..(maparg.silent  ? ' <silent> ' : '')
-                \ ..(!has('nvim') && maparg.script  ? ' <script> ' : '')
-                \ ..maparg.lhs
-                \ ..' '
-                \ ..maparg.rhs
+            " Even if you refactor `#save()` so that it only supports 1 mode, `#restore()` can still receive several.{{{
+            "
+            "     noremap <c-q> <esc>
+            "     nunmap <c-q>
+            "     echo maparg('<c-q>', '', 0, 1).mode
+            "     ov~
+            "     ^^
+            "     2 modes
+            "}}}
+            for mode in split(maparg.mode, '\zs')
+                " reinstall a saved mapping
+                call s:reinstall(extend(maparg, {'mode': mode}))
+            endfor
         endif
     endfor
 endfu
@@ -232,6 +278,19 @@ fu s:maparg(name, mode, wantlocal) abort "{{{2
     endif
 
     return maparg
+endfu
+
+fu s:reinstall(maparg) abort "{{{2
+    let cmd = s:get_mapping_cmd(a:maparg)
+    exe cmd
+        \ ..(a:maparg.buffer  ? ' <buffer> ' : '')
+        \ ..(a:maparg.expr    ? ' <expr>   ' : '')
+        \ ..(a:maparg.nowait  ? ' <nowait> ' : '')
+        \ ..(a:maparg.silent  ? ' <silent> ' : '')
+        \ ..(!has('nvim') && a:maparg.script  ? ' <script> ' : '')
+        \ ..a:maparg.lhs
+        \ ..' '
+        \ ..a:maparg.rhs
 endfu
 "}}}1
 " Util {{{1
