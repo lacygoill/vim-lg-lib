@@ -6,11 +6,13 @@
 " Usage Examples:{{{
 "
 "     " create `CommentUnderlined` from `Comment`; override the `term`, `cterm`, and `gui` attributes
-"     call lg#syntax#derive('CommentUnderlined', 'Comment', 'term=underline cterm=underline gui=underline')
+"
+"         call lg#syntax#derive('CommentUnderlined', 'Comment', 'term=underline cterm=underline gui=underline')
 "
 "     " create `PopupSign` from `WarningMsg`; override the `guibg` or `ctermbg` attribute,
 "     " using the colors of the `Normal` HG
-"     call lg#syntax#derive('PopupSign', 'WarningMsg', {'bg': 'Normal'})
+"
+"         call lg#syntax#derive('PopupSign', 'WarningMsg', {'bg': 'Normal'})
 "}}}
 fu lg#syntax#derive(to, from, newAttributes) abort
     let originalDefinition = s:getdef(a:from)
