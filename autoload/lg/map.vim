@@ -68,10 +68,7 @@ if s:USE_FUNCTION_KEYS
             exe 'set '..funckey.."=\e"..key
         endfor
     endfu
-    augroup set_keysyms
-        au!
-        au VimEnter,TermChanged * call s:set_keysyms()
-    augroup END
+    call s:set_keysyms()
 endif
 
 const s:FLAG2ARG = {
