@@ -1,4 +1,104 @@
+if exists('g:autoloaded_lg#map')
+    finish
+endif
+let g:autoloaded_lg#map = 1
+
+" Init {{{1
+
+let s:USE_FUNCTION_KEYS = !has('nvim') && !has('gui_running') && &t_TI !~# "\e[>4;2m"
+
+if s:USE_FUNCTION_KEYS
+    let s:KEY2FUNC = {
+        \ 'a': '<f12>',
+        \ 'b': '<f13>',
+        \ 'c': '<f14>',
+        \ 'd': '<f15>',
+        \ 'e': '<f16>',
+        \ 'f': '<f17>',
+        \ 'g': '<f18>',
+        \ 'h': '<f19>',
+        \ 'i': '<f20>',
+        \ 'j': '<f21>',
+        \ 'k': '<f22>',
+        \ 'l': '<f23>',
+        \ 'm': '<f24>',
+        \ 'n': '<f25>',
+        \ 'o': '<f26>',
+        \ 'p': '<f27>',
+        \ 'q': '<f28>',
+        \ 'r': '<f29>',
+        \ 's': '<f30>',
+        \ 't': '<f31>',
+        \ 'u': '<f32>',
+        \ 'v': '<f33>',
+        \ 'w': '<f34>',
+        \ 'x': '<f35>',
+        \ 'y': '<f36>',
+        \ 'z': '<f37>',
+        \ 'A': '<s-f12>',
+        \ 'B': '<s-f13>',
+        \ 'C': '<s-f14>',
+        \ 'D': '<s-f15>',
+        \ 'E': '<s-f16>',
+        \ 'F': '<s-f17>',
+        \ 'G': '<s-f18>',
+        \ 'H': '<s-f19>',
+        \ 'I': '<s-f20>',
+        \ 'J': '<s-f21>',
+        \ 'K': '<s-f22>',
+        \ 'L': '<s-f23>',
+        \ 'M': '<s-f24>',
+        \ 'N': '<s-f25>',
+        \ 'O': '<s-f26>',
+        \ 'P': '<s-f27>',
+        \ 'Q': '<s-f28>',
+        \ 'R': '<s-f29>',
+        \ 'S': '<s-f30>',
+        \ 'T': '<s-f31>',
+        \ 'U': '<s-f32>',
+        \ 'V': '<s-f33>',
+        \ 'W': '<s-f34>',
+        \ 'X': '<s-f35>',
+        \ 'Y': '<s-f36>',
+        \ 'Z': '<s-f37>',
+        \ }
+
+    fu s:set_keysyms() abort
+        for [key, funckey] in items(s:KEY2FUNC)
+            exe 'set '..funckey.."=\e"..key
+        endfor
+    endfu
+    augroup set_keysyms
+        au!
+        au VimEnter,TermChanged * call s:set_keysyms()
+    augroup END
+endif
+
+const s:FLAG2ARG = {
+    \ 'S': '<script>',
+    \ 'b': '<buffer>',
+    \ 'e': '<expr>',
+    \ 'n': '<nowait>',
+    \ 's': '<silent>',
+    \ 'u': '<unique>',
+    \ }
+
 " Interface {{{1
+fu lg#map#meta(key, rhs, mode, flags) abort "{{{2
+    exe a:mode..(a:flags =~# 'r' ? 'map' : 'noremap')
+        \ ..' '..s:map_arguments(a:flags)
+        \ ..' '..(s:USE_FUNCTION_KEYS ? s:KEY2FUNC[a:key] : '<m-'..a:key..'>')
+        \ ..' '..a:rhs
+endfu
+
+fu lg#map#meta_notation(key) abort "{{{2
+    if s:USE_FUNCTION_KEYS
+        return eval('"\'..s:KEY2FUNC[a:key]..'"')
+    else
+        return eval('"\<m-'..a:key..'>"')
+    endif
+endfu
+
 fu lg#map#save(keys, ...) abort "{{{2
     " `#save()` accepts a list of keys, or just a single key (in a string).
     if type(a:keys) != type([]) && type(a:keys) != type('') | return | endif
@@ -294,6 +394,10 @@ fu s:reinstall(maparg) abort "{{{2
 endfu
 "}}}1
 " Util {{{1
+fu s:map_arguments(flags) abort "{{{2
+    return join(map(split(a:flags, '\zs'), 'get(s:FLAG2ARG, v:val, "")'))
+endfu
+
 fu s:islocal(maparg) abort "{{{2
     return get(a:maparg, 'buffer', 0)
 endfu
