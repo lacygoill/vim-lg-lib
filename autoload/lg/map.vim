@@ -85,7 +85,7 @@ const s:FLAG2ARG = {
 
 " Interface {{{1
 fu lg#map#meta(key, rhs, mode, flags) abort "{{{2
-    exe a:mode..(a:flags =~# 'r' ? 'map' : 'noremap')
+    exe (a:mode != '!' ? a:mode : '')..(a:flags =~# 'r' ? 'map' : 'noremap')..(a:mode == '!' ? '!' : '')
         \ ..' '..s:map_arguments(a:flags)
         \ ..' '..(s:USE_FUNCTION_KEYS ? s:KEY2FUNC[a:key] : '<m-'..a:key..'>')
         \ ..' '..a:rhs
