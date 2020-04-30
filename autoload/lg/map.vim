@@ -5,10 +5,22 @@ let g:autoloaded_lg#map = 1
 
 " Init {{{1
 
-let s:USE_FUNCTION_KEYS = !has('nvim') && !has('gui_running') && &t_TI !~# "\e[>4;2m"
+const s:IN_MODIFYOTHERKEYSMODE = &t_TI =~# "\e[>4;2m"
+" We need to run `:exe "set <f13>=\eb"` instead of `:exe "set <m-b>=\eb"` because:{{{
+"
+"    - we want to be able to insert some accented characters
+"    - if we hit one of them by accident, we don't want to trigger some custom meta mapping
+"}}}
+"   But we need to do it, iff:{{{
+"
+"    - we're not in Nvim (no need to, everything works fine there)
+"    - we're not in a terminal in modifyOtherKeys mode (no need to, everything works fine there)
+"    - we're not in gVim (no need to, everything is fucked up there)
+"}}}
+const s:USE_FUNCTION_KEYS = !has('nvim') && !has('gui_running') && !s:IN_MODIFYOTHERKEYSMODE
 
 if s:USE_FUNCTION_KEYS
-    let s:KEY2FUNC = {
+    const s:KEY2FUNC = {
         \ 'a': '<f12>',
         \ 'b': '<f13>',
         \ 'c': '<f14>',
@@ -69,6 +81,109 @@ if s:USE_FUNCTION_KEYS
         endfor
     endfu
     call s:set_keysyms()
+
+    " Fix readline commands in a terminal buffer.{{{
+    "
+    " When you press `M-b`, the terminal writes `Esc` + `b` in the typeahead buffer.
+    " And  since  we're going  to  run  `:set  <f13>=^[b`, Vim  translates  this
+    " sequence into `<f13>` which – internally – is encoded as `<80>F3` (`:echo "\<f13>"`).
+    "
+    " So, Vim sends `<80>F3` to the shell running in the terminal buffer instead
+    " of `Esc` + `b`.
+    " This breaks all  readline commands; to fix this, we  use Terminal-Job mappings
+    " to make  Vim relay the  correct sequences to the  shell (the ones  it received
+    " from the terminal, unchanged).
+    "
+    " https://github.com/vim/vim/issues/2397
+    "
+    " ---
+    "
+    " The issue doesn't affect Nvim.
+    " The issue affects gVim.
+    " The issue affects Vim iff one of these statements is true:
+    "
+    "    - you run `:set <xxx>=^[b` (`xxx` being anything: `<M-b>`, `<f13>`, ...)
+    "    - you use `:h modifyOtherKeys`
+    "}}}
+    fu s:fix_meta_readline() abort
+        for [key, funckey] in items(s:KEY2FUNC)
+            exe 'tno '..funckey..' <esc>'..key
+        endfor
+    endfu
+    call s:fix_meta_readline()
+
+    fu s:nop_unused_meta_chords() abort
+        for funckey in values(s:KEY2FUNC)
+            " we don't  want `<f37>` to  be inserted into  the buffer or  on the
+            " command-line, if we press `<M-z>` and nothing is bound to it
+            if empty(maparg(funckey, 'i'))
+                exe 'ino '..funckey..' <nop>'
+            endif
+            if empty(maparg(funckey, 'c'))
+                exe 'cno '..funckey..' <nop>'
+            endif
+        endfor
+    endfu
+    " delay until `VimEnter` so that we can  check which meta keys have not been
+    " mapped to anything in the end
+    au VimEnter * call s:nop_unused_meta_chords()
+
+elseif s:IN_MODIFYOTHERKEYSMODE || has('gui_running')
+    " Same issue as previously.{{{
+    "
+    " When  you press  `M-b`,  the terminal  sends some  special  sequence in  a
+    " terminal in modifyOtherKeys mode, or `Esc` + `b` in gVim.
+    "
+    " In any case, Vim encodes the sequence  into `â`, which is then sent to the
+    " shell.  Again, this  breaks all readline commands, and  again the solution
+    " is to install a bunch of Terminal-Job  mode mappings so that Vim sends the
+    " right sequences to the shell.
+    "}}}
+    fu s:fix_meta_readline() abort
+        for key in map(range(char2nr('a'), char2nr('z')) + range(char2nr('A'), char2nr('Z')), 'nr2char(v:val)')
+            exe 'tno <m-'..key..'> <esc>'..key
+        endfor
+    endfu
+    call s:fix_meta_readline()
+
+    " FIXME: In gVim, can't insert some accented characters (e.g. `â`). {{{
+    "
+    " Read  our  notes about  mappings  to  better  understand  the issue  and  find
+    " workarounds.  Bear in mind that no workaround is perfect.
+    "
+    " ---
+    "
+    " The issue is not limited to regular buffers; it also affects terminal buffers.
+    "
+    " ---
+    "
+    " You could avoid calling `s:nop_unused_meta()` with an `if !has('gui_running')` guard.
+    " It would probably allow you to insert a few more accented characters.
+    " But the issue  would persist for any accented character  which Vim uses to
+    " encode a meta chord used in the lhs of a mapping.
+    " For example, if you want a `<m-b>` mapping,  then – as of today – you have
+    " to accept that you can't insert `â`.
+    "
+    " I prefer to not bother, and "nop" all unused meta chords.
+    " I think  it makes the user  experience more consistent, and  fixes another
+    " issue: if we hit a meta chord by accident, and the latter is not mapped to
+    " anything, it  doesn't make sense for  a character to be  inserted; nothing
+    " should happen.
+    " }}}
+    fu s:nop_unused_meta_chords() abort
+        for key in map(range(char2nr('a'), char2nr('z')) + range(char2nr('A'), char2nr('Z')), 'nr2char(v:val)')
+            let lhs = '<M-'..key..'>'
+            " we don't want  `ú` (!= `ù`) to  be inserted into the  buffer or on
+            " the command-line, if we press `<M-z>` and nothing is bound to it
+            if empty(maparg(lhs, 'i'))
+                exe 'ino '..lhs..' <nop>'
+            endif
+            if empty(maparg(lhs, 'c'))
+                exe 'cno '..lhs..' <nop>'
+            endif
+        endfor
+    endfu
+    au VimEnter * call s:nop_unused_meta_chords()
 endif
 
 const s:FLAG2ARG = {
@@ -82,10 +197,16 @@ const s:FLAG2ARG = {
 
 " Interface {{{1
 fu lg#map#meta(key, rhs, mode, flags) abort "{{{2
-    exe (a:mode != '!' ? a:mode : '')..(a:flags =~# 'r' ? 'map' : 'noremap')..(a:mode == '!' ? '!' : '')
-        \ ..' '..s:map_arguments(a:flags)
-        \ ..' '..(s:USE_FUNCTION_KEYS ? s:KEY2FUNC[a:key] : '<m-'..a:key..'>')
-        \ ..' '..a:rhs
+    try
+        exe (a:mode != '!' ? a:mode : '')..(a:flags =~# 'r' ? 'map' : 'noremap')..(a:mode == '!' ? '!' : '')
+            \ ..' '..s:map_arguments(a:flags)
+            \ ..' '..(s:USE_FUNCTION_KEYS ? s:KEY2FUNC[a:key] : '<m-'..a:key..'>')
+            \ ..' '..a:rhs
+    catch /^Vim\%((\a\+)\)\=:E227:/
+        echohl ErrorMsg
+        unsilent echom v:exception
+        echohl NONE
+    endtry
 endfu
 
 fu lg#map#meta_notation(key) abort "{{{2
