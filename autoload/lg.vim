@@ -209,15 +209,15 @@ fu lg#win_execute(id, cmd, ...) abort "{{{1
         "
         " From `:h win_execute()`:
         "
-        " > The  window will  temporarily be  made the  current window,  without
-        " > triggering autocommands.
+        " >     The  window will  temporarily be  made the  current window,  without
+        " >     triggering autocommands.
         "}}}
         noa call win_gotoid(a:id)
         let before = winrestcmd()
         " Why not `:noa`?{{{
         "
-        " > When executing  {command} autocommands  will be triggered,  this may
-        " > have unexpected side effects.  Use |:noautocmd| if needed.
+        " >     When executing  {command} autocommands  will be triggered,  this may
+        " >     have unexpected side effects.  Use |:noautocmd| if needed.
         "}}}
         let out = call('execute', [cmd] + silent)
         let after = winrestcmd()

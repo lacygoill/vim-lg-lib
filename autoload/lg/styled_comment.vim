@@ -42,11 +42,11 @@
 " Besides, it doesn't seem to add enough benefits.
 " Also, from page 17 of “C Programming A Modern Approach”:
 "
-" > The  newer comment  style  has  a couple  of  important advantages.   First,
-" > because  a comment  automatically ends  at  the end  of a  line, there's  no
-" > chance  that an  unterminated comment  will accidentally  consume part  of a
-" > program. Second,  multiline comments  stand  out better,  thanks  to the  //
-" > that's required at the beginning of each line.
+" >     The  newer comment  style  has  a couple  of  important advantages.   First,
+" >     because  a comment  automatically ends  at  the end  of a  line, there's  no
+" >     chance  that an  unterminated comment  will accidentally  consume part  of a
+" >     program. Second,  multiline comments  stand  out better,  thanks  to the  //
+" >     that's required at the beginning of each line.
 "
 " There are 2 notable exceptions: html and css.
 " They only provide a syntax for multi-line comments.
@@ -733,6 +733,7 @@ fu s:highlight_groups_links(ft) abort "{{{2
     exe 'hi link '..a:ft..'CommentListItemCodeBlock     CommentCodeSpan'
     exe 'hi link '..a:ft..'CommentListItemCodeSpan      CommentListItemCodeSpan'
     exe 'hi link '..a:ft..'CommentListItemItalic        markdownListItemItalic'
+    exe 'hi link '..a:ft..'CommentListItemOutput        CommentPreProc'
     exe 'hi link '..a:ft..'CommentOption                markdownOption'
     exe 'hi link '..a:ft..'CommentOutput                CommentPreProc'
     exe 'hi link '..a:ft..'CommentPointer               markdownPointer'
@@ -791,6 +792,7 @@ fu s:syn_list_item(ft, cml, commentGroup) abort "{{{2
     \               ..a:ft..'CommentListItemBoldItalic,'
     \               ..a:ft..'CommentListItemCodeSpan,'
     \               ..a:ft..'CommentListItemCodeBlock,'
+    \               ..a:ft..'CommentListItemOutput,'
     \               ..'@Spell'
 
     " - some item 1
@@ -1120,8 +1122,16 @@ fu s:syn_output(ft, cml) abort "{{{2
     exe 'syn match '..a:ft..'CommentIgnore'
     \ ..' /\%(^\s*'..a:cml..'.*\)\@<=.$/'
     \ ..' contained'
-    \ ..' containedin='..a:ft..'CommentOutput'
+    \ ..' containedin='..a:ft..'CommentOutput,'..a:ft..'CommentListItemOutput'
     \ ..' conceal'
+
+    " - some item
+    "         some output~
+    exe 'syn match '..a:ft..'CommentListItemOutput'
+    \ ..' /\%(^\s*'..a:cml..' \{9,}\)\@<=.*\~$/'
+    \ ..' contained'
+    \ ..' containedin='..a:ft..'CommentListItemCodeBlock'
+    \ ..' nextgroup='..a:ft..'CommentIgnore'
 endfu
 
 fu s:syn_option(ft) abort "{{{2
