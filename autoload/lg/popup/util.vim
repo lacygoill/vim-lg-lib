@@ -40,15 +40,15 @@ fu lg#popup#util#set_borderchars(opts) abort "{{{2
 endfu
 
 fu lg#popup#util#is_terminal_buffer(n) abort "{{{2
-    return type(a:n) == type(0) && a:n > 0 && getbufvar(a:n, '&bt', '') is# 'terminal'
+    return type(a:n) == v:t_number && a:n > 0 && getbufvar(a:n, '&bt', '') is# 'terminal'
 endfu
 
 fu lg#popup#util#get_lines(what) abort "{{{2
-    if type(a:what) == type([])
+    if type(a:what) == v:t_list
         let lines = a:what
-    elseif type(a:what) == type('')
+    elseif type(a:what) == v:t_string
         let lines = split(a:what, '\n')
-    elseif type(a:what) == type(0)
+    elseif type(a:what) == v:t_number
         let lines = getbufline(a:what, 1, '$')
     endif
     return lines

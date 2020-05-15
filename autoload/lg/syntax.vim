@@ -50,9 +50,9 @@ fu s:getdef(hg) abort
 endfu
 
 fu s:getattr(attr, hg) abort
-    if type(a:attr) == type('')
+    if type(a:attr) == v:t_string
         return a:attr
-    elseif type(a:attr) == type({})
+    elseif type(a:attr) == v:t_dict
         let gui = has('gui_running') || &tgc
         let mode = gui ? 'gui' : 'cterm'
         let [attr, hg] = items(a:attr)[0]

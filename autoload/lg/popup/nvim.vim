@@ -30,7 +30,7 @@ fu lg#popup#nvim#basic(what, opts) abort "{{{2
         \ 'style': 'minimal'
         \ }, 'keep')
 
-    if type(what) == type(0) && bufexists(what)
+    if type(what) == v:t_number && bufexists(what)
         let bufnr = what
     else
         " create buffer

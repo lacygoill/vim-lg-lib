@@ -1,7 +1,7 @@
 " Interface {{{1
 fu lg#popup#vim#basic(what, opts) abort "{{{2
     let [what, opts, sfile] = [a:what, a:opts, expand('<sfile>')]
-    if type(what) == type('') && what =~# '\n'
+    if type(what) == v:t_string && what =~# '\n'
         let what = split(what, '\n')
     endif
     call extend(opts, #{line: remove(opts, 'row'), zindex: s:get_zindex()}, 'keep')
@@ -83,7 +83,14 @@ fu lg#popup#vim#terminal(what, opts) abort "{{{2
     if lg#popup#util#is_terminal_buffer(what)
         let bufnr = what
     else
-        let cmd = 'let bufnr = term_start(&shell, #{hidden: v:true, term_finish: ''close'', term_kill: ''hup''})'
+        " Why `VIM_POPUP_TERMINAL`?{{{
+        "
+        " Some shell script/function may need to  know whether it's running in a
+        " Vim popup, because it may want to make Vim to do sth which is forbidden.
+        " Right now, we inspect this variable in `~/bin/drop`.
+        "}}}
+        let cmd = 'let bufnr = term_start(&shell, #{hidden: v:true, term_finish: ''close'','
+            \ ..' term_kill: ''hup'', env: #{VIM_POPUP_TERMINAL: 1}})'
         call lg#popup#util#log(cmd, sfile, expand('<slnum>'))
         exe cmd
     endif

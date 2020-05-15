@@ -179,7 +179,7 @@ fu lg#win_execute(id, cmd, ...) abort "{{{1
     let silent = a:0 ? [a:1] : ['silent']
     let snr = matchstr(expand('<sfile>'), '\m\C.*\zs<SNR>\d\+_')
     let cmd = a:cmd
-    if type(cmd) == type([])
+    if type(cmd) == v:t_list
         let cmd = join(cmd, '|')
     endif
     let cmd = substitute(cmd, '\m\C\<s:\ze\h\+(', snr, 'g')
