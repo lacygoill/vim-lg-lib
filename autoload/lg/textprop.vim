@@ -128,6 +128,11 @@ fu lg#textprop#ansi() abort "{{{1
 
     let clean_this = '\C\e\[\d*m\|[[:cntrl:]]'
     sil exe 'keepj keepp lockm %s/'..clean_this..'//ge'
+    " Don't save the buffer.{{{
+    "
+    " It's useful to keep the file as it is, in case we want to send it to a Vim
+    " server, and re-highlight the ansi escape codes in this other Vim instance.
+    "}}}
     setl nomod
     call winrestview(view)
 endfu
