@@ -5,7 +5,18 @@ let g:autoloaded_lg#map = 1
 
 " Init {{{1
 
-const s:IN_MODIFYOTHERKEYSMODE = &t_TI =~# "\e[>4;2m"
+" TODO: Remove this line once you find a fix for these issues:{{{
+"
+" https://github.com/vim/vim/issues/6030
+" https://github.com/vim/vim/issues/5951
+"
+" Especially the first one.
+" Without a fix, we can't use  `vim-submode` in a terminal where modifyOtherKeys
+" is enabled (which is the case by default for xterm).
+"}}}
+let [&t_TI, &t_TE] = ['', '']
+
+const s:IS_MODIFYOTHERKEYS_ENABLED = &t_TI =~# "\e[>4;2m"
 " We need to run `:exe "set <f13>=\eb"` instead of `:exe "set <m-b>=\eb"` because:{{{
 "
 "    - we want to be able to insert some accented characters
@@ -14,10 +25,10 @@ const s:IN_MODIFYOTHERKEYSMODE = &t_TI =~# "\e[>4;2m"
 "   But we need to do it, iff:{{{
 "
 "    - we're not in Nvim (no need to, everything works fine there)
-"    - we're not in a terminal in modifyOtherKeys mode (no need to, everything works fine there)
+"    - we're not in a terminal where modifyOtherKeys is enabled (no need to, everything works fine there)
 "    - we're not in gVim (no need to, everything is fucked up there)
 "}}}
-const s:USE_FUNCTION_KEYS = !has('nvim') && !has('gui_running') && !s:IN_MODIFYOTHERKEYSMODE
+const s:USE_FUNCTION_KEYS = !has('nvim') && !has('gui_running') && !s:IS_MODIFYOTHERKEYS_ENABLED
 
 if s:USE_FUNCTION_KEYS
     const s:KEY2FUNC = {
@@ -80,7 +91,13 @@ if s:USE_FUNCTION_KEYS
             exe 'set '..funckey.."=\e"..key
         endfor
     endfu
-    call s:set_keysyms()
+    " We don't really need to delay until `VimEnter` for the moment.{{{
+    "
+    " But it could be necessary in the future if you want to run this code for gVim.
+    " Indeed, in gVim,  if you set the keysyms during  the startup process, they
+    " are somehow cleared at the end.
+    "}}}
+    au VimEnter * call s:set_keysyms()
 
     " Fix readline commands in a terminal buffer.{{{
     "
@@ -128,11 +145,11 @@ if s:USE_FUNCTION_KEYS
     " mapped to anything in the end
     au VimEnter * call s:nop_unused_meta_chords()
 
-elseif s:IN_MODIFYOTHERKEYSMODE || has('gui_running')
+elseif s:IS_MODIFYOTHERKEYS_ENABLED || has('gui_running')
     " Same issue as previously.{{{
     "
     " When  you press  `M-b`,  the terminal  sends some  special  sequence in  a
-    " terminal in modifyOtherKeys mode, or `Esc` + `b` in gVim.
+    " terminal where modifyOtherKeys is enabled, or `Esc` + `b` in gVim.
     "
     " In any case, Vim encodes the sequence  into `â`, which is then sent to the
     " shell.  Again, this  breaks all readline commands, and  again the solution
@@ -146,33 +163,13 @@ elseif s:IN_MODIFYOTHERKEYSMODE || has('gui_running')
     endfu
     call s:fix_meta_readline()
 
-    " FIXME: In gVim, can't insert some accented characters (e.g. `â`). {{{
-    "
-    " Read  our  notes about  mappings  to  better  understand  the issue  and  find
-    " workarounds.  Bear in mind that no workaround is perfect.
-    "
-    " ---
-    "
-    " The issue is not limited to regular buffers; it also affects terminal buffers.
-    "
-    " ---
-    "
-    " You could avoid calling `s:nop_unused_meta()` with an `if !has('gui_running')` guard.
-    " It would probably allow you to insert a few more accented characters.
-    " But the issue  would persist for any accented character  which Vim uses to
-    " encode a meta chord used in the lhs of a mapping.
-    " For example, if you want a `<m-b>` mapping,  then – as of today – you have
-    " to accept that you can't insert `â`.
-    "
-    " I prefer to not bother, and "nop" all unused meta chords.
-    " I think  it makes the user  experience more consistent, and  fixes another
-    " issue: if we hit a meta chord by accident, and the latter is not mapped to
-    " anything, it  doesn't make sense for  a character to be  inserted; nothing
-    " should happen.
-    " }}}
     fu s:nop_unused_meta_chords() abort
         for key in map(range(char2nr('a'), char2nr('z')) + range(char2nr('A'), char2nr('Z')), 'nr2char(v:val)')
-            let lhs = '<M-'..key..'>'
+            if toupper(key) is# key
+                let lhs = '<M-S-'..key..'>'
+            else
+                let lhs = '<M-'..key..'>'
+            endif
             " we don't want  `ú` (!= `ù`) to  be inserted into the  buffer or on
             " the command-line, if we press `<M-z>` and nothing is bound to it
             if empty(maparg(lhs, 'i'))
