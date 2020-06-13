@@ -5,30 +5,19 @@ let g:autoloaded_lg#map = 1
 
 " Init {{{1
 
-" TODO: Remove this line once you find a fix for these issues:{{{
-"
-" https://github.com/vim/vim/issues/6030
+" TODO: Remove this line once you find a fix for this issue:
 " https://github.com/vim/vim/issues/5951
-"
-" Especially the first one.
-" Without a fix, we can't use  `vim-submode` in a terminal where modifyOtherKeys
-" is enabled (which is the case by default for xterm).
-"}}}
 let [&t_TI, &t_TE] = ['', '']
 
-const s:IS_MODIFYOTHERKEYS_ENABLED = &t_TI =~# "\e[>4;2m"
+const s:IS_MODIFYOTHERKEYS_ENABLED = &t_TI =~# "\e\\[>4;[12]m"
 " We need to run `:exe "set <f13>=\eb"` instead of `:exe "set <m-b>=\eb"` because:{{{
 "
 "    - we want to be able to insert some accented characters
 "    - if we hit one of them by accident, we don't want to trigger some custom meta mapping
 "}}}
-"   But we need to do it, iff:{{{
-"
-"    - we're not in Nvim (no need to, everything works fine there)
-"    - we're not in a terminal where modifyOtherKeys is enabled (no need to, everything works fine there)
-"    - we're not in gVim (no need to, everything is fucked up there)
-"}}}
-const s:USE_FUNCTION_KEYS = !has('nvim') && !has('gui_running') && !s:IS_MODIFYOTHERKEYS_ENABLED
+" But not in a terminal where `modifyOtherKeys` is enabled, nor in the GUI.
+" No need to, everything works fine there.
+const s:USE_FUNCTION_KEYS = !has('gui_running') && !s:IS_MODIFYOTHERKEYS_ENABLED
 
 if s:USE_FUNCTION_KEYS
     const s:KEY2FUNC = {
@@ -115,7 +104,6 @@ if s:USE_FUNCTION_KEYS
     "
     " ---
     "
-    " The issue doesn't affect Nvim.
     " The issue affects gVim.
     " The issue affects Vim iff one of these statements is true:
     "
@@ -210,7 +198,18 @@ fu lg#map#meta_notation(key) abort "{{{2
     if s:USE_FUNCTION_KEYS
         return eval('"\'..s:KEY2FUNC[a:key]..'"')
     else
-        return eval('"\<m-'..a:key..'>"')
+        if a:key is# toupper(a:key)
+            " TODO: why do we need to handle `M-S-g` specially, but not `M-g`?
+            if has('gui_running') || &t_TI =~# "\e\\[>4;[12]m"
+                return "\x80\xfc\<c-b>"..nr2char(char2nr(a:key)+128)
+                "       ^^^^^^^^^^^^^^
+                "       TODO: would be better if we could get that programmatically
+            else
+                return eval('"\<m-s-'..a:key..'>"')
+            endif
+        else
+            return eval('"\<m-'..a:key..'>"')
+        endif
     endif
 endfu
 
@@ -502,7 +501,7 @@ fu s:reinstall(maparg) abort "{{{2
         \ ..(a:maparg.expr    ? ' <expr>   ' : '')
         \ ..(a:maparg.nowait  ? ' <nowait> ' : '')
         \ ..(a:maparg.silent  ? ' <silent> ' : '')
-        \ ..(!has('nvim') && a:maparg.script  ? ' <script> ' : '')
+        \ ..(a:maparg.script  ? ' <script> ' : '')
         \ ..a:maparg.lhs
         \ ..' '
         \ ..a:maparg.rhs

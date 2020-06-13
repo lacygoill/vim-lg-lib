@@ -12,8 +12,7 @@ let g:autoloaded_lg#textprop = 1
 "}}}
 " Why do you set the `gui`/`guifg` attributes?  We can only pipe the output of a shell command to Vim in the terminal...{{{
 "
-" Yes, but if `'tgc'` is set, (N)Vim uses `guifg` instead of `ctermfg`.
-" And Nvim uses `gui` instead of `cterm`.
+" Yes, but if `'tgc'` is set, Vim uses `guifg` instead of `ctermfg`.
 "}}}
 
 " TODO: Get those sequences programmatically via `tput(1)`.{{{
@@ -103,27 +102,18 @@ fu lg#textprop#ansi() abort "{{{1
     " sequences do it only for a short text on a single line...
     "}}}
     let bufnr = bufnr('%')
-    if has('nvim') | let id = nvim_create_namespace('ansi') | endif
     for [attr, v] in items(s:ATTR)
         exe 'hi ansi_'..attr..' '..v.hi
         call cursor(1, 1)
         let flags = 'cW'
-        if !has('nvim')
-            call prop_type_add('ansi_'..attr, #{highlight: 'ansi_'..attr, bufnr: bufnr})
-            while search(v.start, flags) && search(v.end, 'n')
-                let flags = 'W'
-                call prop_add(line('.'), col('.'), #{
-                    \ length: searchpos(v.end..'\zs', 'cn')[1] - col('.'),
-                    \ type: 'ansi_'..attr,
-                    \ })
-            endwhile
-        else
-            while search(v.start, flags) && search(v.end, 'n')
-                let flags = 'W'
-                call nvim_buf_add_highlight(0, id, 'ansi_'..attr,
-                    \ line('.')-1, col('.'), searchpos(v.end..'\zs', 'cn')[1]-1)
-            endwhile
-        endif
+        call prop_type_add('ansi_'..attr, #{highlight: 'ansi_'..attr, bufnr: bufnr})
+        while search(v.start, flags) && search(v.end, 'n')
+            let flags = 'W'
+            call prop_add(line('.'), col('.'), #{
+                \ length: searchpos(v.end..'\zs', 'cn')[1] - col('.'),
+                \ type: 'ansi_'..attr,
+                \ })
+        endwhile
     endfor
 
     let clean_this = '\C\e\[\d*m\|[[:cntrl:]]'
