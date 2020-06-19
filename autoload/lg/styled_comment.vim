@@ -860,6 +860,18 @@ fu s:syn_code_block(ft, cml, commentGroup) abort "{{{2
 endfu
 
 fu s:syn_code_span(ft, commentGroup) abort "{{{2
+    " TODO: We sometimes have comments with a different syntax for codespans:{{{
+    "
+    "     `some text'
+    "
+    " Example:
+    "
+    "     ~/Vcs/zsh/Misc/vcs_info-examples
+    "
+    " Try to support them.  Also in markdown  notes when we copy paste some text
+    " from a man page.
+    "}}}
+
     " What does `matchroup` do?{{{
     "
     " From `:h :syn-matchgroup`:

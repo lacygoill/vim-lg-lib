@@ -195,20 +195,19 @@ fu lg#map#meta(key, rhs, mode, flags) abort "{{{2
 endfu
 
 fu lg#map#meta_notation(key) abort "{{{2
+    " regular terminal
     if s:USE_FUNCTION_KEYS
         return eval('"\'..s:KEY2FUNC[a:key]..'"')
     else
+        let seq = eval('"\<m-'..a:key..'>"')
+        " uppercase key in GUI or in terminal supporting modifyOtherKeys
         if a:key is# toupper(a:key)
-            " TODO: why do we need to handle `M-S-g` specially, but not `M-g`?
-            if has('gui_running') || &t_TI =~# "\e\\[>4;[12]m"
-                return "\x80\xfc\<c-b>"..nr2char(char2nr(a:key)+128)
-                "       ^^^^^^^^^^^^^^
-                "       TODO: would be better if we could get that programmatically
-            else
-                return eval('"\<m-s-'..a:key..'>"')
-            endif
+            " https://github.com/vim/vim/issues/6298
+            return "\x80\xfc\x02"..seq
+            "       ^^^^^^^^^^^^
+        " lowercase key in ...
         else
-            return eval('"\<m-'..a:key..'>"')
+            return seq
         endif
     endif
 endfu
