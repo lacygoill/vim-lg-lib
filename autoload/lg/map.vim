@@ -198,16 +198,12 @@ fu lg#map#meta_notation(key) abort "{{{2
     " regular terminal
     if s:USE_FUNCTION_KEYS
         return eval('"\'..s:KEY2FUNC[a:key]..'"')
+    " GUI or terminal supporting modifyOtherKeys
     else
-        let seq = eval('"\<m-'..a:key..'>"')
-        " uppercase key in GUI or in terminal supporting modifyOtherKeys
-        if a:key is# toupper(a:key)
-            " https://github.com/vim/vim/issues/6298
-            return "\x80\xfc\x02"..seq
-            "       ^^^^^^^^^^^^
-        " lowercase key in ...
+        if a:key is# tolower(a:key)
+            return eval('"\<m-'..a:key..'>"')
         else
-            return seq
+            return eval('"\<m-s-'..a:key..'>"')
         endif
     endif
 endfu
@@ -294,7 +290,7 @@ fu lg#map#save(keys, ...) abort "{{{2
         " This `for` loop is only necessary if you intend `#save()` to support multiple modes:{{{
         "
         "     let save = lg#map#save('<c-q>', 'nxo')
-        "                                      ^^^
+        "                                      ^-^
         "}}}
         for m in mode == '' ? [''] : split(mode, '\zs')
             let maparg = s:maparg(key, m, wantlocal)

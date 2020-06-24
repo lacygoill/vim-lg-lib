@@ -206,7 +206,7 @@ fu s:fold_settings() abort
     "     au BufWinEnter,FileChangedShellPost <buffer> call s:fold_settings()
     "     →
     "     exe 'au BufWinEnter,FileChangedShellPost <buffer> call s:fold_settings('..string(ft)..')'
-    "     ^^^^^                                                                  ^^^^^^^^^^^^^^^^^^
+    "     ^---^                                                                  ^----------------^
     "
     "     fu s:fold_settings() abort
     "     →
@@ -216,7 +216,7 @@ fu s:fold_settings() abort
     "     if &ft is# 'qf' | return | endif
     "     →
     "     if &ft isnot# a:ft | return | endif
-    "            ^^^^^^^^^^^
+    "            ^---------^
     "}}}
     if &ft is# 'qf' | return | endif
 
@@ -318,7 +318,7 @@ fu lg#styled_comment#syntax() abort "{{{2
     " Example in a lua file:
     "
     "     -- some comment -- - wrongly highlighted as list item
-    "                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    "                        ^--------------------------------^
     "}}}
 
     " TODO: integrate most of the comments from this function into our notes
@@ -1159,8 +1159,10 @@ fu s:syn_pointer(ft, cml, commentGroup) abort "{{{2
     " not a pointer v
     " v
     "       ^
+    " ^---^
+    " v---v
     exe 'syn match '..a:ft..'CommentPointer'
-    \ ..' /'..a:cml..'\s*\%([v^✘✔]\+\s*\)\+$/'
+    \ ..' /'..a:cml..'\s*\%([v^✘✔-]\+\s*\)\+$/'
     \ ..' contains='..a:ft..'CommentLeader'
     \ ..' contained'
     \ ..' containedin='..a:commentGroup

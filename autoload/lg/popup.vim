@@ -28,7 +28,7 @@ let g:autoloaded_lg#popup = 1
 "
 "     ...
 "                                  new argument
-"                                  vvvvvvv
+"                                  v-----v
 "     fu lg#log(msg, sfile, slnum, feature) abort
 "         if !s:DEBUG[a:feature] | return | endif
 "         ...
