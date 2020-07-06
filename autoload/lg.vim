@@ -29,6 +29,78 @@ fu lg#catch() abort "{{{1
     return ''
 endfu
 
+fu lg#opfunc(type) abort "{{{1
+    if !exists('g:opfunc_core')
+        return
+    endif
+    let reg_save = getreginfo('"')
+    let [cb_save, sel_save] = [&cb, &sel]
+    let visual_marks_save = [getpos("'<"), getpos("'>")]
+    try
+        set cb= sel=inclusive
+        " Why do you use visual mode to yank the text?{{{
+        "
+        "     norm! `[y`]    ✘
+        "     norm! `[v`]y   ✔
+        "
+        " Because a  motion towards a mark  is exclusive, thus the  `y` operator
+        " won't yank  the character  which is  the nearest from  the end  of the
+        " buffer.
+        "
+        " OTOH,  ``v`]``  makes  this  same  motion  inclusive,  thus  `y`  will
+        " correctly yank all the characters in the text-object.
+        " On the condition that `'selection'` includes `inclusive`.
+        "}}}
+        " Why `:noa`?{{{
+        "
+        " To minimize unexpected side effects.
+        " E.g., it prevents our visual ring from saving a possible selection, as
+        " well as the auto highlighting when we've pressed `coy`.
+        "}}}
+        if a:type is# 'char'
+            sil noa norm! `[v`]y
+        elseif a:type is# 'line'
+            sil noa norm! '[V']y
+        elseif a:type is# 'block'
+            sil noa exe "norm! `[\<c-v>`]y"
+        endif
+        call call(g:opfunc_core, [a:type])
+        " Do *not* remove `g:opfunc_core`.  It would break the dot command.
+    catch
+        return lg#catch()
+    finally
+        call setreg('"', reg_save)
+        let [&cb, &sel] = [cb_save, sel_save]
+        " Shouldn't we check the validity of the saved positions?{{{
+        "
+        " Indeed, the operator may have  removed the characters where the visual
+        " marks were originally set, and the positions of the saved marks may be
+        " invalid.  But in practice, it doesn't seem to raise any error:
+        "
+        "     $ vim -Nu NONE -i NONE +'echom setpos("'\''<", [0, 999, 999, 0])'
+        "     0~
+        "}}}
+        call setpos("'<", visual_marks_save[0])
+        call setpos("'>", visual_marks_save[1])
+    endtry
+endfu
+
+fu lg#getselection() abort "{{{1
+    let reg_save = getreginfo('"')
+    let [cb_save, sel_save] = [&cb, &sel]
+    try
+        set cb= sel=inclusive
+        sil noa norm! gvy
+        return getreg('"', 1, 1)
+    catch
+        echohl ErrorMsg | echom v:exception | echohl NONE
+        return []
+    finally
+        call setreg('"', reg_save)
+        let [&cb, &sel] = [cb_save, sel_save]
+    endtry
+endfu
+
 fu lg#vim_parent() abort "{{{1
     "    ┌────────────────────────────┬─────────────────────────────────────┐
     "    │ :echo getpid()             │ print the PID of Vim                │
