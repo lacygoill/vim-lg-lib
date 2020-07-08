@@ -327,7 +327,12 @@ fu lg#styled_comment#syntax() abort "{{{2
     " and stick to it (here and in the markdown syntax plugin)
 
     let ft = s:get_filetype()
-    let cml = matchstr(&l:cms, '\S*\ze\s*%s')
+    " for Vim, we need to handle 2 possible comment leaders (`#` is for Vim9 script)
+    if &ft is# 'vim'
+        let cml = '["#]'
+    else
+        let cml = matchstr(&l:cms, '\S*\ze\s*%s')
+    endif
     " What do you need this `nr` for?{{{
     "
     " For offsets when defining the syntax groups:
@@ -687,7 +692,7 @@ fu s:get_commentgroup(ft) abort "{{{2
         " `htmlCommentPart` is required; not sure about `htmlComment`...
         return 'htmlComment,htmlCommentPart'
     elseif a:ft is# 'vim'
-        return 'vimComment,vimLineComment'
+        return 'vimComment,vim9Comment,vimLineComment,vim9LineComment'
     elseif a:ft is# 'sh'
         return 'shComment,shQuickComment'
     else
