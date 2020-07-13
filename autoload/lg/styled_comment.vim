@@ -330,33 +330,35 @@ fu lg#styled_comment#syntax() abort "{{{2
     " for Vim, we need to handle 2 possible comment leaders (`#` is for Vim9 script)
     if &ft is# 'vim'
         let cml = '["#]'
+        let cml_0_1 = '["#]\='
+        let nr = 1
     else
         let cml = matchstr(&l:cms, '\S*\ze\s*%s')
+        " What do you need this `nr` for?{{{
+        "
+        " For offsets when defining the syntax groups:
+        "
+        "    - xxxCommentTitle
+        "    - xxxCommentTitleLeader
+        "}}}
+        " Why capturing it now?{{{
+        "
+        " The next statement  invokes `escape()` which may  add backslashes, and
+        " alter the real number of characters inside the comment leader.
+        "}}}
+        let nr = strchars(cml, 1)
+        " Why do you escape the slashes?{{{
+        "
+        " We use a slash as a delimiter around the patterns of our syntax elements.
+        " As a result, if the comment  leader of the current filetype contains a
+        " slash, we need to escape the  slashes to prevent Vim from interpreting
+        " them as the end of the pattern.
+        " This is needed for `xkb` where the comment leader is `//`.
+        "}}}
+        let cml = escape(cml, '\/')
+        let cml_0_1 = '\V\%('..cml..'\)\=\m'
+        let cml = '\V'..cml..'\m'
     endif
-    " What do you need this `nr` for?{{{
-    "
-    " For offsets when defining the syntax groups:
-    "
-    "    - xxxCommentTitle
-    "    - xxxCommentTitleLeader
-    "}}}
-    " Why capturing it now?{{{
-    "
-    " The next statement invokes `escape()` which may add backslashes, and alter
-    " the real number of characters inside the comment leader.
-    "}}}
-    let nr = strchars(cml, 1)
-    " Why do you escape the slashes?{{{
-    "
-    " We use a slash as a delimiter around the patterns of our syntax elements.
-    " As a  result, if  the comment  leader of the  current filetype  contains a
-    " slash, we need to escape the slashes to prevent Vim from interpreting them
-    " as the end of the pattern.
-    " This is needed for `xkb` where the comment leader is `//`.
-    "}}}
-    let cml = escape(cml, '\/')
-    let cml_0_1 = '\V\%('..cml..'\)\=\m'
-    let cml = '\V'..cml..'\m'
     let commentGroup = s:get_commentgroup(ft)
 
     call s:syn_commentleader(ft, cml)
