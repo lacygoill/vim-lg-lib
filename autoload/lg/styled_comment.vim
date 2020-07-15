@@ -1168,8 +1168,9 @@ fu s:syn_pointer(ft, cml, commentGroup) abort "{{{2
     "       ^
     " ^---^
     " v---v
+    "     "   ^---^
     exe 'syn match '..a:ft..'CommentPointer'
-    \ ..' /'..a:cml..'\s*\%([v^✘✔-]\+\s*\)\+$/'
+    \ ..' /'..a:cml..'\s*\%('..a:cml..'\)\=\s*\%([v^✘✔-]\+\s*\)\+$/'
     \ ..' contains='..a:ft..'CommentLeader'
     \ ..' contained'
     \ ..' containedin='..a:commentGroup
