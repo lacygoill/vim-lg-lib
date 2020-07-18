@@ -30,7 +30,7 @@ fu lg#catch() abort "{{{1
 endfu
 
 fu lg#opfunc(type) abort "{{{1
-    if !exists('g:opfunc_core')
+    if !exists('g:opfunc') || !has_key(g:opfunc, 'core')
         return
     endif
     let reg_save = getreginfo('"')
@@ -38,34 +38,47 @@ fu lg#opfunc(type) abort "{{{1
     let visual_marks_save = [getpos("'<"), getpos("'>")]
     try
         set cb= sel=inclusive
-        " Why do you use visual mode to yank the text?{{{
+        " Yanking may be useless for our opfunc.{{{
         "
-        "     norm! `[y`]    ✘
-        "     norm! `[v`]y   ✔
+        " Worse, it could have undesirable side effects:
         "
-        " Because a  motion towards a mark  is exclusive, thus the  `y` operator
-        " won't yank  the character  which is  the nearest from  the end  of the
-        " buffer.
+        "    - reset `v:register`
+        "    - reset `v:count`
+        "    - mutate unnamed register
         "
-        " OTOH,  ``v`]``  makes  this  same  motion  inclusive,  thus  `y`  will
-        " correctly yank all the characters in the text-object.
-        " On the condition that `'selection'` includes `inclusive`.
+        " See our `dr` operator for an example.
         "}}}
-        " Why `:noa`?{{{
-        "
-        " To minimize unexpected side effects.
-        " E.g., it prevents our visual ring from saving a possible selection, as
-        " well as the auto highlighting when we've pressed `coy`.
-        "}}}
-        if a:type is# 'char'
-            sil noa norm! `[v`]y
-        elseif a:type is# 'line'
-            sil noa norm! '[V']y
-        elseif a:type is# 'block'
-            sil noa exe "norm! `[\<c-v>`]y"
+        if get(g:opfunc, 'yank', v:true)
+            " Why do you use visual mode to yank the text?{{{
+            "
+            "     norm! `[y`]    ✘
+            "     norm! `[v`]y   ✔
+            "
+            " Because  a  motion towards  a  mark  is  exclusive, thus  the  `y`
+            " operator won't  yank the character  which is the nearest  from the
+            " end of the buffer.
+            "
+            " OTOH,  ``v`]`` makes  this same  motion inclusive,  thus `y`  will
+            " correctly yank all the characters in the text-object.
+            " On the condition that `'selection'` includes `inclusive`.
+            "}}}
+            " Why `:noa`?{{{
+            "
+            " To minimize unexpected side effects.
+            " E.g.,  it  prevents  our  visual   ring  from  saving  a  possible
+            " selection, as  well as  the auto  highlighting when  we've pressed
+            " `coy`.
+            "}}}
+            if a:type is# 'char'
+                sil noa norm! `[v`]y
+            elseif a:type is# 'line'
+                sil noa norm! '[V']y
+            elseif a:type is# 'block'
+                sil noa exe "norm! `[\<c-v>`]y"
+            endif
         endif
-        call call(g:opfunc_core, [a:type])
-        " Do *not* remove `g:opfunc_core`.  It would break the dot command.
+        call call(g:opfunc.core, [a:type])
+        " Do *not* remove `g:opfunc.core`.  It would break the dot command.
     catch
         return lg#catch()
     finally
