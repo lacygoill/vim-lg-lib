@@ -451,6 +451,10 @@ fu s:fix_allbut(ft) abort "{{{2
     "
     " We need  an easy  way to tell  Vim that these  default groups  must *also*
     " exclude our custom groups.
+    "
+    " ---
+    "
+    " Relevant issue: https://github.com/vim/vim/issues/1265
     "}}}
 
     " What does this do?{{{

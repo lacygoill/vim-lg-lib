@@ -208,7 +208,7 @@ fu lg#map#meta_notation(key) abort "{{{2
     endif
 endfu
 
-fu lg#map#save(keys, ...) abort "{{{2
+fu lg#map#save(keys, mode = '', wantlocal = v:false) abort "{{{2
     " `#save()` accepts a list of keys, or just a single key (in a string).
     if type(a:keys) != v:t_list && type(a:keys) != v:t_string | return | endif
 
@@ -250,7 +250,7 @@ fu lg#map#save(keys, ...) abort "{{{2
     " There could be another type of mismatch.
     "
     " Suppose you ask to save a mapping in `n` mode.
-    " But `maparg(...).mode` is `no`, and not `n`.
+    " But `maparg(...)[a:mode]` is `no`, and not `n`.
     "
     " `maparg()` and `#save()` save your mapping in `no` mode.
     " You change the mapping in `n` mode.
@@ -281,8 +281,6 @@ fu lg#map#save(keys, ...) abort "{{{2
     " I  think the  same pitfalls  could  apply to  `v` which  is a  pseudo-mode
     " matching the real modes `x` and `s`.
     "}}}
-    let mode = get(a:, '1', '')
-    let wantlocal = get(a:, '2', v:false)
     let keys = type(a:keys) == v:t_list ? a:keys : [a:keys]
 
     let save = []
@@ -292,8 +290,8 @@ fu lg#map#save(keys, ...) abort "{{{2
         "     let save = lg#map#save('<c-q>', 'nxo')
         "                                      ^-^
         "}}}
-        for m in mode == '' ? [''] : split(mode, '\zs')
-            let maparg = s:maparg(key, m, wantlocal)
+        for m in a:mode == '' ? [''] : split(a:mode, '\zs')
+            let maparg = s:maparg(key, m, a:wantlocal)
             let save += [maparg]
         endfor
     endfor
