@@ -1202,13 +1202,23 @@ endfu
 
 fu s:syn_table(ft, cml, commentGroup) abort "{{{2
     " some table:
+    "
     "    ┌───────┬──────┐
     "    │  one  │ two  │
     "    ├───────┼──────┤
     "    │ three │ four │
     "    └───────┴──────┘
-    " Note that the table must begin 4 spaces after the comment leader
-    " (instead of 5 for a code block).
+
+    " Note that the table must begin 4 spaces after the comment leader (instead of 5 for a code block).
+    " If you tweak the regex here, try to do the same in our markdown syntax plugin.{{{
+    "
+    " More specifically, check out the definition of the syntax group `markdownTable`.
+    "
+    " ---
+    "
+    " Also, check out all the examples of tables given in the example right above.
+    " Make sure they're still correctly highlighted in a Vim comment.
+    "}}}
     " Why not using a tab character to distinguish between a code block and a table?{{{
     "
     " A tab character means that the distance between the comment leader and the
@@ -1226,7 +1236,7 @@ fu s:syn_table(ft, cml, commentGroup) abort "{{{2
     "}}}
     exe 'syn region '..a:ft..'CommentTable'
     \ ..' matchgroup=Comment'
-    \ ..' start=/'..a:cml..'    \ze\%([┌└]─\|│.*[^ \t│].*│\|├─.*┤\|│.*├\)/'
+    \ ..' start=/'..a:cml..' \{4,}\ze\%([┌└]─\|│.*[^ \t│].*│\|├─.*┤\|│.*├\)/'
     \ ..' end=/$/'
     \ ..' keepend'
     \ ..' oneline'

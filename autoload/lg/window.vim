@@ -58,7 +58,7 @@ fu lg#window#qf_open_or_focus(type) abort "{{{1
             " the  qf window  unconditionally (:[cl]open),  or on  the condition
             " that the qfl contains at least 1 valid entry (`:[cl]window`).
             "
-            " It allows us to do this in any plugin populating the qfl:
+            " It lets us do this in any plugin populating the qfl:
             "
             "     do <nomodeline> QuickFixCmdPost cwindow
             "     open  the qf window  on the condition  it contains at  least 1 valid entry~

@@ -77,7 +77,7 @@ fu lg#textprop#ansi() abort "{{{1
 
     " Why do you use text properties and not regex-based syntax highlighting?{{{
     "
-    " Using text properties allows us to remove the ansi codes.
+    " Using text properties lets us remove the ansi codes.
     " This way, if we yank some line, we don't copy them.
     "}}}
     "   How would I get the same highlighting with syntax rules?{{{
