@@ -103,21 +103,21 @@ fu lg#textprop#ansi() abort "{{{1
     "}}}
     let bufnr = bufnr('%')
     for [attr, v] in items(s:ATTR)
-        exe 'hi ansi_'..attr..' '..v.hi
+        exe 'hi ansi_' .. attr .. ' ' .. v.hi
         call cursor(1, 1)
         let flags = 'cW'
-        call prop_type_add('ansi_'..attr, #{highlight: 'ansi_'..attr, bufnr: bufnr})
+        call prop_type_add('ansi_' .. attr, #{highlight: 'ansi_' .. attr, bufnr: bufnr})
         while search(v.start, flags) && search(v.end, 'n')
             let flags = 'W'
             call prop_add(line('.'), col('.'), #{
-                \ length: searchpos(v.end..'\zs', 'cn')[1] - col('.'),
-                \ type: 'ansi_'..attr,
+                \ length: searchpos(v.end .. '\zs', 'cn')[1] - col('.'),
+                \ type: 'ansi_' .. attr,
                 \ })
         endwhile
     endfor
 
     let clean_this = '\C\e\[\d*m\|[[:cntrl:]]'
-    sil exe 'keepj keepp lockm %s/'..clean_this..'//ge'
+    sil exe 'keepj keepp lockm %s/' .. clean_this .. '//ge'
     " Don't save the buffer.{{{
     "
     " It's useful to keep the file as it is, in case we want to send it to a Vim

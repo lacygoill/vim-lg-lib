@@ -79,7 +79,7 @@ fu s:basic(what, opts) abort "{{{2
     "
     " Note that if the function uses `border: []`, then we don't need the `max` keys.
     " However, there's  no guarantee that the  function will use a  border; e.g.
-    " `border` could have been set with the value `[0,0,0,0]`.
+    " `border` could have been set with the value `[0, 0, 0, 0]`.
     "
     " Besides, we set  the `max` keys to be consistent  with popup windows where
     " we don't use a border.
@@ -123,7 +123,7 @@ fu s:border(what, opts) abort "{{{2
     " OTOH, I  don't like adding an  empty line above/below the  text.  It takes
     " too much space, which is more precious vertically than horizontally.
     "}}}
-    call extend(opts, #{padding: [0,1,0,1]}, 'keep')
+    call extend(opts, #{padding: [0, 1, 0, 1]}, 'keep')
     call extend(opts, #{
         "\ to get the same position as in Nvim
         \ col: opts.col - 1,
@@ -155,7 +155,7 @@ fu s:terminal(what, opts) abort "{{{2
         " Right now, we inspect this variable in `~/bin/drop`.
         "}}}
         let cmd = 'let bufnr = term_start(&shell, #{hidden: v:true, term_finish: ''close'','
-            \ ..' term_kill: ''hup'', env: #{VIM_POPUP_TERMINAL: 1}})'
+            \ .. ' term_kill: ''hup'', env: #{VIM_POPUP_TERMINAL: 1}})'
         call s:log(cmd, sfile, expand('<slnum>'))
         exe cmd
     endif
@@ -194,7 +194,7 @@ fu s:get_zindex() abort "{{{2
     " Get  the `zindex`  value of  the popup  at the  screen position  where the
     " cursor is currently.  Add `1` to that, and return this value.
     "}}}
-    let screenpos = screenpos(win_getid(), line('.'), col('.'))
+    let screenpos = win_getid()->screenpos(line('.'), col('.'))
     let opts = popup_locate(screenpos.row, screenpos.col)->popup_getoptions()
     return get(opts, 'zindex', 0) + 1
 endfu
@@ -238,7 +238,7 @@ fu s:get_notification_opts(lines) abort "{{{2
 endfu
 
 fu s:get_longest_width(lines) abort
-    return max(map(copy(a:lines), {_,v -> strchars(v, 1)}))
+    return copy(a:lines)->map({_, v -> strchars(v, 1)})->max()
 endfu
 
 fu s:is_terminal_buffer(n) abort "{{{2
@@ -247,11 +247,11 @@ endfu
 
 fu s:log(msg, sfile, slnum) abort "{{{2
     if !s:DEBUG | return | endif
-    let time = '" '..strftime('%H:%M:%S')
+    let time = '" ' .. strftime('%H:%M:%S')
     let funcname = matchstr(a:sfile, '.*\.\.\zs.*')
-    let sourcefile = split(execute('verb fu '..funcname), '\n')[1]
+    let sourcefile = execute('verb fu ' .. funcname)->split('\n')[1]
     let [sourcefile, lnum] = matchlist(sourcefile, '^\s*Last set from \(.*\)\s\+line \(\d\+\)')[1:2]
-    let source = '" '..sourcefile..':'..(lnum + a:slnum)
+    let source = '" ' .. sourcefile .. ':' .. (lnum + a:slnum)
     call writefile([time, source, a:msg], s:LOGFILE, 'a')
 endfu
 

@@ -1,3 +1,5 @@
+import Catch from 'lg.vim'
+
 fu lg#window#get_modifier(...) abort "{{{1
 "  ├┘                     ├┘
 "  │                      └ optional flag meaning we're going to open a loc window
@@ -70,11 +72,11 @@ fu lg#window#qf_open_or_focus(type) abort "{{{1
             "
             " Yes:
             "
-            "     exe (a:type is# 'loc' ? 'l' : 'c').'open'
+            "     exe (a:type is# 'loc' ? 'l' : 'c') .. 'open'
             "
             " But, it wouldn't open the qf window like our autocmd in `vim-qf` does.
             "}}}
-            exe 'do <nomodeline> QuickFixCmdPost '..(a:type is# 'loc' ? 'l' : 'c')..'open'
+            exe 'do <nomodeline> QuickFixCmdPost ' .. (a:type is# 'loc' ? 'l' : 'c') .. 'open'
             return
         endif
 
@@ -84,7 +86,7 @@ fu lg#window#qf_open_or_focus(type) abort "{{{1
 
     " if we are already in the ll window, focus the associated window
     elseif we_are_in_qf && a:type is# 'loc'
-        let winid = get(getloclist(0, {'filewinid': 0}), 'filewinid', 0)
+        let winid = getloclist(0, {'filewinid': 0})->get('filewinid', 0)
     endif
 
     call win_gotoid(winid)
@@ -94,10 +96,10 @@ fu lg#window#scratch(lines) abort "{{{1
     " TODO: Improve the whole function after reading `~/wiki/vim/todo/scratch.md`.
     let tempfile = tempname()
     try
-        exe 'sp '..tempfile
+        exe 'sp ' .. tempfile
     " `:pedit` is forbidden from a Vim popup terminal window
     catch /^Vim\%((\a\+)\)\=:E994:/
-        return lg#catch()
+        return s:Catch()
     endtry
     call setline(1, a:lines)
     sil update
