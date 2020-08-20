@@ -71,10 +71,10 @@ if USE_FUNCTION_KEYS
         'X': '<s-f35>',
         'Y': '<s-f36>',
         'Z': '<s-f37>',
-        }
+    }
 
     def Set_keysyms()
-        # TODO: Once Vim9 compiles `for [key, value] in items(map)`, refactor this `:for` loop.{{{
+        # TODO(Vim9): Once Vim9 compiles `for [key, value] in items(map)`, refactor this `:for` loop.{{{
         #
         #     for item in items(KEY2FUNC)
         #         let key: string
@@ -200,7 +200,7 @@ const FLAG2ARG = {
     'n': '<nowait>',
     's': '<silent>',
     'u': '<unique>',
-    }
+}
 
 # Interface {{{1
 export def MapMeta(key: string, rhs: string, mode: string, flags: string) #{{{2
@@ -246,7 +246,7 @@ export def MapMetaChord(key: string, symbolic = v:false): string #{{{2
 enddef
 
 export def MapSave(keys: any, mode = '', wantlocal = v:false): list<dict<any>> #{{{2
-    # TODO: `keys: any` → `keys: list<string>|string`
+# TODO(Vim9): `keys: any` → `keys: list<string>|string`
     if type(keys) != v:t_list && type(keys) != v:t_string | return [] | endif
     # `#save()` accepts a list of keys, or just a single key (in a string).
 
@@ -367,8 +367,8 @@ export def MapRestore(save: list<dict<any>>) #{{{2
         # `CursorMoved`, probably because the latter is fired too late.
         # From `:h :noa`:
         #
-        # >     Note that some autocommands are not triggered right away, but only later.
-        # >     This specifically applies to |CursorMoved| and |TextChanged|.
+        #    > Note that some autocommands are not triggered right away, but only later.
+        #    > This specifically applies to |CursorMoved| and |TextChanged|.
         #
         # You also need to save and restore the alternate file.
         #
@@ -405,8 +405,10 @@ export def MapRestore(save: list<dict<any>>) #{{{2
         if has_key(maparg, 'unmapped')
             let cmd = Get_mapping_cmd(maparg)
             # `sil!` because there's no guarantee that the unmapped key has been
-            # mapped to sth after being saved
-            sil! exe cmd .. ' ' .. (maparg.buffer ? ' <buffer> ' : '') .. maparg.lhs
+            # mapped  to sth  after  being  saved.  We  move  `sil!` inside  the
+            # string, otherwise  it doesn't work  in Vim9 script  (modifiers are
+            # not all properly implemented yet).
+            exe 'sil! ' .. cmd .. ' ' .. (maparg.buffer ? ' <buffer> ' : '') .. maparg.lhs
         else
             # Even if you refactor `#save()` so that it only supports 1 mode, `#restore()` can still receive several.{{{
             #
@@ -494,7 +496,7 @@ def Maparg(name: string, mode: string, wantlocal: bool): dict<any> #{{{2
             # we want to be consistent with `maparg()` which would return a space for `nvo`
             'mode': mode == '' ? ' ' : mode,
             'buffer': wantlocal,
-            }
+        }
 
     # a local mapping is shadowing the global mapping we're interested in,
     # so we don't know whether there's a relevant mapping
@@ -513,7 +515,7 @@ def Maparg(name: string, mode: string, wantlocal: bool): dict<any> #{{{2
             'lhs': name,
             # we want Vim to translate `<sid>`
             'rhs': maparg(name, mode)->escape('|'),
-            })
+        })
     endif
 
     if Islocal(maparg)
@@ -543,11 +545,31 @@ def Map_arguments(flags: string): string #{{{2
     return split(flags, '\zs')->map('get(FLAG2ARG, v:val, "")')->join()
 enddef
 
-def Islocal(maparg: dict<any>): number #{{{2
-    return get(maparg, 'buffer', 0)
+def Islocal(maparg: dict<any>): bool #{{{2
+    # Why not just returning `get(...)`?{{{
+    #
+    # `maparg.buffer` can be a boolean *or* a number.
+    # It is  a boolean  when it was  set from `Maparg()`  and contains  the info
+    # about a key which is not mapped:
+    #
+    #     maparg = {
+    #         ...
+    #         'buffer': wantlocal,
+    #                   ^-------^
+    #     }
+    #
+    # But it is a number when it was set by the builtin `maparg()`.
+    #
+    # ---
+    #
+    # We could refactor  `Maparg()` so that `wantlocal` is a  number (would need
+    # to make sure  that you pass a  number as the last  argument to `MapSave()`
+    # too).  But I prefer using a boolean; it makes the code more readable.
+    #}}}
+    return get(maparg, 'buffer', 0) ? true : false
 enddef
 
-def Not_in_right_buffer(maparg: dict<any>): number #{{{2
+def Not_in_right_buffer(maparg: dict<any>): bool #{{{2
     return Islocal(maparg) && bufnr('%') != get(maparg, 'bufnr', 0)
 enddef
 

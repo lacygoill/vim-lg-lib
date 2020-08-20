@@ -2,7 +2,7 @@ vim9script
 
 import Catch from 'lg.vim'
 
-export def GetModifier(OpenLoc = v:false): string #{{{1
+export def GetWinMod(OpenLoc = v:false): string #{{{1
     let winnr = winnr()
 
     let mod: string
@@ -34,13 +34,14 @@ export def GetModifier(OpenLoc = v:false): string #{{{1
     endif
 
     return mod
-endfu
+enddef
 
-def QfOpenOrFocus(type: string): number #{{{1
-    let we_are_in_qf = &bt == 'quickfix'
+export def QfOpenOrFocus(qftype: string) #{{{1
     let winid: number
+    let we_are_in_qf = &bt == 'quickfix'
+
     if !we_are_in_qf
-        let winid = type == 'loc'
+        winid = qftype == 'loc'
             ? getloclist(0, {'winid': 0}).winid
             : getqflist({'winid': 0}).winid
         if !winid
@@ -66,37 +67,38 @@ def QfOpenOrFocus(type: string): number #{{{1
             #
             # Yes:
             #
-            #     exe (type == 'loc' ? 'l' : 'c') .. 'open'
+            #     exe (qftype == 'loc' ? 'l' : 'c') .. 'open'
             #
             # But, it wouldn't open the qf window like our autocmd in `vim-qf` does.
             #}}}
-            exe 'do <nomodeline> QuickFixCmdPost ' .. (type == 'loc' ? 'l' : 'c') .. 'open'
-            return
+            exe 'do <nomodeline> QuickFixCmdPost ' .. (qftype == 'loc' ? 'l' : 'c') .. 'open'
+        else
+            win_gotoid(winid)
         endif
 
     # if we are already in the qf window, focus the previous one
-    elseif we_are_in_qf && type == 'qf'
+    elseif we_are_in_qf && qftype == 'qf'
         wincmd p
-        return
 
     # if we are already in the ll window, focus the associated window
-    elseif we_are_in_qf && type == 'loc'
-        let winid = getloclist(0, {'filewinid': 0})->get('filewinid', 0)
+    elseif we_are_in_qf && qftype == 'loc'
+        getloclist(0, {'filewinid': 0})
+            ->get('filewinid', 0)
+            ->win_gotoid()
     endif
-
-    win_gotoid(winid)
 enddef
 
-def Scratch(lines: list<string>) #{{{1
-    # TODO: Improve the whole function after reading `~/wiki/vim/todo/scratch.md`.
+export def WinScratch(lines: list<string>) #{{{1
+# TODO: Improve the whole function after reading `~/wiki/vim/todo/scratch.md`.
     let tempfile = tempname()
     try
         exe 'sp ' .. tempfile
     # `:pedit` is forbidden from a Vim popup terminal window
     catch /^Vim\%((\a\+)\)\=:E994:/
-        return s:Catch()
+        Catch()
+        return
     endtry
-    setline(0, lines)
+    setline(1, lines)
     sil update
     # in case some line is too long for our vertical split
     setl wrap

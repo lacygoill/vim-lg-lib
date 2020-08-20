@@ -1,13 +1,17 @@
 vim9script
 
 export def Max(numbers: any): any #{{{1
-    # TODO:
-    # `numbers: any` → `numbers: list<number|float>`
-    # `): any`       → `): float`
+# TODO(Vim9):
+# `numbers: any` → `numbers: list<number|float>`
+# `): any`       → `): number|float`
 
-    # reimplement `max()` and `min()` because the builtins don't handle floats
+# we reimplement `max()` and `min()` because the builtins don't handle floats
 
-    if empty(numbers) | return 0 | endif
+    if empty(numbers)
+        return 0
+    elseif copy(numbers)->map({_, v -> type(v)})->index(v:t_float) == -1
+        return max(numbers)
+    endif
     # TODO: Once Vim9 supports list slicing, refactor the next lines:{{{
     #
     #     let max = remove(numbers, 0)
@@ -27,8 +31,15 @@ export def Max(numbers: any): any #{{{1
     return max
 enddef
 
-export def Min(numbers: float): float #{{{1
-    if empty(numbers) | return 0.0 | endif
+export def Min(numbers: any): any #{{{1
+# TODO(Vim9):
+# `numbers: any` → `numbers: list<number|float>`
+# `): any`       → `): number|float`
+    if empty(numbers)
+        return 0
+    elseif copy(numbers)->map({_, v -> type(v)})->index(v:t_float) == -1
+        return min(numbers)
+    endif
     let min = remove(numbers, 0)
     for n in numbers
         if n < min
@@ -39,7 +50,7 @@ export def Min(numbers: float): float #{{{1
 enddef
 
 export def MatrixTransposition(lists: list<list<any>>): any #{{{1
-    # TODO: Once Vim9 supports `{type}|{type}` change the return type of the function to `list<list<any>>|number`
+# TODO(Vim9): `): any` → `): list<list<any>>|number`
     # This function expects a list of lists; each list with with the same size.{{{
     #
     # You could imagine the lists piled up, forming a matrix.
@@ -104,10 +115,9 @@ export def MatrixTransposition(lists: list<list<any>>): any #{{{1
     #}}}
     for i in range(n_lines)
         for j in range(n_columns)
-            call add(transposed[j], lists[i][j])
+            add(transposed[j], lists[i][j])
         endfor
     endfor
 
     return transposed
 enddef
-

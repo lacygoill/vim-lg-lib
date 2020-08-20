@@ -11,16 +11,16 @@ vim9script
 #
 #     # create `CommentUnderlined` from `Comment`; override the `term`, `cterm`, and `gui` attributes
 #
-#         call Derive('CommentUnderlined', 'Comment', 'term=underline cterm=underline gui=underline')
+#         Derive('CommentUnderlined', 'Comment', 'term=underline cterm=underline gui=underline')
 #
 #     # create `PopupSign` from `WarningMsg`; override the `guibg` or `ctermbg` attribute,
 #     # using the colors of the `Normal` HG
 #
-#         call Derive('PopupSign', 'WarningMsg', {'bg': 'Normal'})
+#         Derive('PopupSign', 'WarningMsg', {'bg': 'Normal'})
 #}}}
 
 export def Derive(to: string, from: string, newAttributes: any) #{{{2
-# TODO: `newAttributes: any` → `newAttributes: string|dict<string>`
+# TODO(Vim9): `newAttributes: any` → `newAttributes: string|dict<string>`
     let originalDefinition = Getdef(from)
     let originalGroup: string
     # if the `from` syntax group is linked to another group, we need to resolve the link
@@ -60,7 +60,7 @@ def Getdef(hg: string): string #{{{2
 enddef
 
 def Getattr(attr: any): string #{{{2
-# TODO: `attr: any` → `attr: string|dict<string>`
+# TODO(Vim9): `attr: any` → `attr: string|dict<string>`
     if type(attr) == v:t_string
         return attr
     elseif type(attr) == v:t_dict

@@ -1,5 +1,54 @@
 vim9script
 
+export def FuncComplete(argLead: string, _l: string, _p: number): list<string> #{{{1
+    # Problem: `:breakadd`, `:def`, and `profile` don't complete function names.{{{
+    #
+    # This is especially annoying for names of script-local functions.
+    #}}}
+    # Solution: Implement a custom completion function which can be called from wrapper commands.{{{
+    #
+    # Example:
+    #
+    #     import FuncComplete from 'lg.vim'
+    #     com -bar -complete=customlist,s:FuncComplete -nargs=? Def exe s:def(<q-args>)
+    #              ^---------------------------------^
+    #}}}
+
+    # We really need to return a list, and not a newline-separated list wrapped inside a string.{{{
+    #
+    # If we return a  string, then this completion function must  be called by a
+    # custom command defined with the `-complete=custom` attribute.
+    # But  if  `argLead`  starts  with  `s:`,   Vim  will  filter  out  all  the
+    # candidates, because none of them would match `s:` at the start.
+    #
+    # We  must use  `-complete=customlist` to  disable the  filtering, and  that
+    # means that this function must return a list, not a string.
+    #
+    #     com -bar -complete=custom,s:FuncComplete -nargs=? Def exe s:def(<q-args>)
+    #                        ^----^
+    #                          ✘
+    #
+    #     com -bar -complete=customlist,s:FuncComplete -nargs=? Def exe s:def(<q-args>)
+    #                        ^--------^
+    #                            ✔
+    #
+    #}}}
+    # Wait.  Why 6 backslashes in the replacement?{{{
+    #
+    # To emulate the `+` quantifier.  From `:h file-pattern`:
+    #
+    #    > \\\{n,m\}  like \{n,m} in a |pattern|
+    #
+    # Note that 3 backslashes are already neededd  in a file pattern, which is a
+    # kind of globbing used by `getcompletion()`.
+    # And since we write this in the replacement part of `substitute()`, we need
+    # to double each backslash; hence 3 x 2 = 6 backslashes.
+    #}}}
+    return substitute(argLead, '^\Cs:', '<SNR>[0-9]\\\\\\{1,}_', '')
+        \ ->getcompletion('function')
+        \ ->map({_, v -> substitute(v, '($\|()$', '', '')})
+enddef
+
 export def Catch(): string #{{{1
     if get(g:, 'my_verbose_errors', 0)
         let func_name = matchstr(v:throwpoint, 'function \zs.\{-}\ze,')
@@ -31,7 +80,7 @@ export def Catch(): string #{{{1
     return ''
 enddef
 
-export def Getselection(): list<string> #{{{1
+export def GetSelection(): list<string> #{{{1
     let reg_save = getreginfo('"')
     let cb_save = &cb
     let sel_save = &sel
@@ -41,18 +90,16 @@ export def Getselection(): list<string> #{{{1
         return getreg('"', 1, 1)
     catch
         echohl ErrorMsg | echom v:exception | echohl NONE
-        return []
     finally
-        call setreg('"', reg_save)
-        &cb = cb_save
-        &sel = sel_save
+        setreg('"', reg_save)
+        [&cb, &sel] = [cb_save, sel_save]
     endtry
     return []
 enddef
 
-export def Opfunc(type: string): string #{{{1
+export def Opfunc(type: string) #{{{1
     if !exists('g:opfunc') || !has_key(g:opfunc, 'core')
-        return ''
+        return
     endif
     let reg_save = getreginfo('"')
     let cb_save = &cb
@@ -96,17 +143,17 @@ export def Opfunc(type: string): string #{{{1
             elseif type == 'line'
                 sil noa norm! '[V']y
             elseif type == 'block'
-                sil noa exe "norm! `[\<c-v>`]y"
+                noa exe "sil norm! `[\<c-v>`]y"
             endif
         endif
-        call call(g:opfunc.core, [type])
+        call(g:opfunc.core, [type])
         # Do *not* remove `g:opfunc.core`.  It would break the dot command.
     catch
-        return Catch()
+        Catch()
+        return
     finally
-        call setreg('"', reg_save)
-        &cb = cb_save
-        &sel = sel_save
+        setreg('"', reg_save)
+        [&cb, &sel] = [cb_save, sel_save]
         # Shouldn't we check the validity of the saved positions?{{{
         #
         # Indeed, the operator may have  removed the characters where the visual
@@ -116,20 +163,19 @@ export def Opfunc(type: string): string #{{{1
         #     $ vim -Nu NONE -i NONE +'echom setpos("'\''<", [0, 999, 999, 0])'
         #     0~
         #}}}
-        call setpos("'<", visual_marks_save[0])
-        call setpos("'>", visual_marks_save[1])
+        setpos("'<", visual_marks_save[0])
+        setpos("'>", visual_marks_save[1])
     endtry
-    return ''
 enddef
 
 export def Vim_parent(): string #{{{1
-    #    ┌────────────────────────────┬─────────────────────────────────────┐
-    #    │ :echo getpid()             │ print the PID of Vim                │
-    #    ├────────────────────────────┼─────────────────────────────────────┤
-    #    │ $ ps -p <Vim PID> -o ppid= │ print the PID of the parent of Vim  │
-    #    ├────────────────────────────┼─────────────────────────────────────┤
-    #    │ $ ps -p $(..^..) -o comm=  │ print the name of the parent of Vim │
-    #    └────────────────────────────┴─────────────────────────────────────┘
+#    ┌────────────────────────────┬─────────────────────────────────────┐
+#    │ :echo getpid()             │ print the PID of Vim                │
+#    ├────────────────────────────┼─────────────────────────────────────┤
+#    │ $ ps -p <Vim PID> -o ppid= │ print the PID of the parent of Vim  │
+#    ├────────────────────────────┼─────────────────────────────────────┤
+#    │ $ ps -p $(..^..) -o comm=  │ print the name of the parent of Vim │
+#    └────────────────────────────┴─────────────────────────────────────┘
     return system('ps -p $(ps -p ' .. getpid() .. ' -o ppid=) -o comm=')->trim("\n", 2)
     # What's the difference with `$_`?{{{
     #
@@ -149,7 +195,9 @@ enddef
 
 export def Win_getid(arg: string): number #{{{1
     if arg == 'P'
-        let winnr = range(1, winnr('$'))->map({_, v -> getwinvar(v, '&pvw')})->index(1) + 1
+        let winnr = range(1, winnr('$'))
+            ->map({_, v -> getwinvar(v, '&pvw')})
+            ->index(1) + 1
         if winnr == 0 | return 0 | endif
         return win_getid(winnr)
     elseif arg == '#'
