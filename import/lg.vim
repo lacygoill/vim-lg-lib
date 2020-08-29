@@ -1,5 +1,36 @@
 vim9script
 
+export def Catch(): string #{{{1
+    if get(g:, 'my_verbose_errors', 0)
+        let func_name = matchstr(v:throwpoint, 'function \zs.\{-}\ze,')
+        let line = matchstr(v:throwpoint, '\%(function \)\=.\{-}, \zsline \d\+')
+
+        echohl ErrorMsg
+        if !empty(func_name)
+            echom 'Error detected while processing function ' .. func_name .. ':'
+        else
+            # the error comes from a (temporary?) file
+            echom 'Error detected while processing ' .. matchstr(v:throwpoint, '.\{-}\ze,') .. ':'
+        endif
+        echohl LineNr
+        echom line .. ':'
+    endif
+
+    echohl ErrorMsg
+    # Even if  you set  “my_verbose_errors”, when this  function will  be called
+    # from a  function implementing  an operator (`g@`),  only the  last message
+    # will be visible (i.e. `v:exception`).
+    # But it doesn't  matter.  All the messages have been  written in Vim's log.
+    # So, `:WTF` will be able to show us where the error comes from.
+    echom v:exception
+    echohl NONE
+
+    # It's  important   to  return   an  empty   string.   Because   often,  the
+    # output   of  this   function  will   be  executed   or  inserted.    Check
+    # `vim-interactive-lists`, and `vim-readline`.
+    return ''
+enddef
+
 export def FuncComplete(argLead: string, _l: string, _p: number): list<string> #{{{1
     # Problem: `:breakadd`, `:def`, and `profile` don't complete function names.{{{
     #
@@ -49,37 +80,6 @@ export def FuncComplete(argLead: string, _l: string, _p: number): list<string> #
         \ ->map({_, v -> substitute(v, '($\|()$', '', '')})
 enddef
 
-export def Catch(): string #{{{1
-    if get(g:, 'my_verbose_errors', 0)
-        let func_name = matchstr(v:throwpoint, 'function \zs.\{-}\ze,')
-        let line = matchstr(v:throwpoint, '\%(function \)\=.\{-}, \zsline \d\+')
-
-        echohl ErrorMsg
-        if !empty(func_name)
-            echom 'Error detected while processing function ' .. func_name .. ':'
-        else
-            # the error comes from a (temporary?) file
-            echom 'Error detected while processing ' .. matchstr(v:throwpoint, '.\{-}\ze,') .. ':'
-        endif
-        echohl LineNr
-        echom line .. ':'
-    endif
-
-    echohl ErrorMsg
-    # Even if  you set  “my_verbose_errors”, when this  function will  be called
-    # from a  function implementing  an operator (`g@`),  only the  last message
-    # will be visible (i.e. `v:exception`).
-    # But it doesn't  matter.  All the messages have been  written in Vim's log.
-    # So, `:WTF` will be able to show us where the error comes from.
-    echom v:exception
-    echohl NONE
-
-    # It's  important   to  return   an  empty   string.   Because   often,  the
-    # output   of  this   function  will   be  executed   or  inserted.    Check
-    # `vim-interactive-lists`, and `vim-readline`.
-    return ''
-enddef
-
 export def GetSelection(): list<string> #{{{1
     let reg_save = getreginfo('"')
     let cb_save = &cb
@@ -95,6 +95,21 @@ export def GetSelection(): list<string> #{{{1
         [&cb, &sel] = [cb_save, sel_save]
     endtry
     return []
+enddef
+
+export def IsVim9(): bool #{{{1
+    if &ft != 'vim'
+        return false
+    endif
+
+    # we're in the Vim9 context if the first command is `:vim9script`
+    return getline(1) == 'vim9script'
+        # ... unless we're in a legacy function
+        && searchpair('^\C\s*fu\%[nction]\>', '', '^\C\s*\<endf\%[unction]\>$', 'nW') <= 0
+        # in a legacy script, we're in the Vim9 context in a `:def` function
+        || searchpair('^\C\s*def\>', '', '^\C\s*\<enddef\>$', 'nW') > 0
+        # ... unless we're on its header line
+        && getline('.') !~ '^\s*def\>'
 enddef
 
 export def Opfunc(type: string) #{{{1
