@@ -153,13 +153,8 @@ export def Opfunc(type: string) #{{{1
             # selection, as  well as  the auto  highlighting when  we've pressed
             # `coy`.
             #}}}
-            if type == 'char'
-                sil noa norm! `[v`]y
-            elseif type == 'line'
-                sil noa norm! '[V']y
-            elseif type == 'block'
-                noa exe "sil norm! `[\<c-v>`]y"
-            endif
+            let commands = #{char: '`[v`]y', line: "'[V']y", block: "`[\<c-v>`]y"}
+            sil exe 'keepj norm! ' .. get(commands, type, '')
         endif
         call(g:opfunc.core, [type])
         # Do *not* remove `g:opfunc.core`.  It would break the dot command.
