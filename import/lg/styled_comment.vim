@@ -59,14 +59,14 @@ vim9script
 
 # Init {{{1
 
-const BLACKLIST =<< trim END
+const! BLACKLIST =<< trim END
     css
     html
 END
 
 let allbut_groups = {}
 
-const CUSTOM_GROUPS =<< trim END
+const! CUSTOM_GROUPS =<< trim END
     CommentBlockquote
     CommentBlockquoteBold
     CommentBlockquoteBoldItalic
@@ -96,6 +96,7 @@ const CUSTOM_GROUPS =<< trim END
     CommentTable
     CommentTitle
     CommentTitleLeader
+    CommentUrl
     FoldMarkers
     @CommentListItemElements
 END
@@ -693,7 +694,7 @@ def Get_cmds_to_reset_group(group: string): list<string> #{{{2
         : match(v, '\m\C\<match\>') >= 0
         ?     'syn match ' .. group .. ' ' .. substitute(v, 'match', '', '')
         :     'syn keyword ' .. group .. ' ' .. v
-    })
+        })
 
     return cmds
 enddef

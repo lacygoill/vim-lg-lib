@@ -36,35 +36,35 @@ vim9script
 # CSI 32m = green (setaf 2)
 # C-o     = ??? (???)
 
-const ATTR = {
-    'trans_bold': {
-        'start': '\e\[1m',
-        'end': '\e\[22m',
-        'hi': 'term=bold cterm=bold gui=bold',
+const! ATTR = #{
+    trans_bold: #{
+        start: '\e\[1m',
+        end: '\e\[22m',
+        hi: 'term=bold cterm=bold gui=bold',
     },
 
-    'trans_boldunderlined': {
-        'start': '\e\[4m\e\[1m',
-        'end': '\e\[22m\e\[24m',
-        'hi': 'term=bold,underline cterm=bold,underline gui=bold,underline',
+    trans_boldunderlined: #{
+        start: '\e\[4m\e\[1m',
+        end: '\e\[22m\e\[24m',
+        hi: 'term=bold,underline cterm=bold,underline gui=bold,underline',
     },
 
-    'tldr_boldgreen': {
-        'start': '\e\[32m\e\[1m',
-        'end': '\e\[m\%x0f',
-        'hi': 'term=bold cterm=bold gui=bold ctermfg=green guifg=#198844',
+    tldr_boldgreen: #{
+        start: '\e\[32m\e\[1m',
+        end: '\e\[m\%x0f',
+        hi: 'term=bold cterm=bold gui=bold ctermfg=green guifg=#198844',
     },
 
-    'tldr_italic': {
-        'start': '\e\[3m',
-        'end': '\e\[m\%x0f',
-        'hi': 'term=italic cterm=italic gui=italic',
+    tldr_italic: #{
+        start: '\e\[3m',
+        end: '\e\[m\%x0f',
+        hi: 'term=italic cterm=italic gui=italic',
     },
 
-    'tldr_bold': {
-        'start': '\e\[1m',
-        'end': '\e\[m\%x0f',
-        'hi': 'term=bold cterm=bold gui=bold',
+    tldr_bold: #{
+        start: '\e\[1m',
+        end: '\e\[m\%x0f',
+        hi: 'term=bold cterm=bold gui=bold',
     },
 }
 
@@ -114,7 +114,7 @@ def Ansi() #{{{1
             prop_add(line('.'), col('.'), #{
                 length: searchpos(v.end .. '\zs', 'cn')[1] - col('.'),
                 type: 'ansi_' .. attr,
-            })
+                })
         endwhile
     endfor
 

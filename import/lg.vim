@@ -132,7 +132,7 @@ export def Opfunc(type: string) #{{{1
         #
         # See our `dr` operator for an example.
         #}}}
-        if get(g:opfunc, 'yank', v:true)
+        if get(g:opfunc, 'yank', true)
             # Why do you use visual mode to yank the text?{{{
             #
             #     norm! `[y`]    ✘

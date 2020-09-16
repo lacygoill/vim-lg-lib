@@ -7,7 +7,7 @@ vim9script
 &t_TI = ''
 &t_TE = ''
 
-const IS_MODIFYOTHERKEYS_ENABLED = &t_TI =~# "\e\\[>4;[12]m"
+const! IS_MODIFYOTHERKEYS_ENABLED = &t_TI =~# "\e\\[>4;[12]m"
 # We need to run `:exe "set <f13>=\eb"` instead of `:exe "set <m-b>=\eb"` because:{{{
 #
 #    - we want to be able to insert some accented characters
@@ -15,10 +15,10 @@ const IS_MODIFYOTHERKEYS_ENABLED = &t_TI =~# "\e\\[>4;[12]m"
 #}}}
 # But not in a terminal where `modifyOtherKeys` is enabled, nor in the GUI.
 # No need to, everything works fine there.
-const USE_FUNCTION_KEYS = !has('gui_running') && !IS_MODIFYOTHERKEYS_ENABLED
+const! USE_FUNCTION_KEYS = !has('gui_running') && !IS_MODIFYOTHERKEYS_ENABLED
 
 if USE_FUNCTION_KEYS
-    const KEY2FUNC = {
+    const! KEY2FUNC = {
         'a': '<f12>',
         'b': '<f13>',
         'c': '<f14>',
@@ -193,7 +193,7 @@ elseif IS_MODIFYOTHERKEYS_ENABLED || has('gui_running')
     au VimEnter * Nop_unused_meta_chords()
 endif
 
-const FLAG2ARG = {
+const! FLAG2ARG = {
     'S': '<script>',
     'b': '<buffer>',
     'e': '<expr>',
@@ -216,7 +216,7 @@ export def MapMeta(key: string, rhs: string, mode: string, flags: string) #{{{2
     endtry
 enddef
 
-export def MapMetaChord(key: string, symbolic = v:false): string #{{{2
+export def MapMetaChord(key: string, symbolic = false): string #{{{2
     # give us a symbolic notation (e.g. `<m-a>`)
     if symbolic
         # terminal *not* supporting modifyOtherKeys
@@ -245,7 +245,7 @@ export def MapMetaChord(key: string, symbolic = v:false): string #{{{2
     endif
 enddef
 
-export def MapSave(keys: any, mode = '', wantlocal = v:false): list<dict<any>> #{{{2
+export def MapSave(keys: any, mode = '', wantlocal = false): list<dict<any>> #{{{2
 # TODO(Vim9): `keys: any` → `keys: list<string>|string`
     if type(keys) != v:t_list && type(keys) != v:t_string | return [] | endif
     # `#save()` accepts a list of keys, or just a single key (in a string).
@@ -339,7 +339,7 @@ enddef
 # Usage:{{{
 #
 #     let my_global_mappings = MapSave(['key1', 'key2', ...], 'n')
-#     let my_local_mappings = MapSave(['key1', 'key2', ...], 'n', v:true)
+#     let my_local_mappings = MapSave(['key1', 'key2', ...], 'n', true)
 #}}}
 
 export def MapRestore(save: list<dict<any>>) #{{{2
@@ -421,7 +421,7 @@ export def MapRestore(save: list<dict<any>>) #{{{2
             #}}}
             for mode in split(maparg.mode, '\zs')
                 # reinstall a saved mapping
-                extend(maparg, {'mode': mode})->Reinstall()
+                extend(maparg, #{mode: mode})->Reinstall()
             endfor
         endif
     endfor
@@ -491,7 +491,7 @@ def Maparg(name: string, mode: string, wantlocal: bool): dict<any> #{{{2
         # An empty dictionary doesn't contain any of this info.
         #}}}
         maparg = {
-            'unmapped': v:true,
+            'unmapped': true,
             'lhs': name,
             # we want to be consistent with `maparg()` which would return a space for `nvo`
             'mode': mode == '' ? ' ' : mode,
@@ -503,8 +503,8 @@ def Maparg(name: string, mode: string, wantlocal: bool): dict<any> #{{{2
     elseif !wantlocal && Islocal(maparg)
         # remove the shadowing local mapping
         exe mode .. 'unmap <buffer> ' .. name
-        let local_maparg = deepcopy(maparg)->extend({'bufnr': bufnr('%')})
-        maparg = Maparg(name, mode, v:false)
+        let local_maparg = deepcopy(maparg)->extend(#{bufnr: bufnr('%')})
+        maparg = Maparg(name, mode, false)
         # restore the shadowing local mapping
         MapRestore([local_maparg])
 
@@ -515,13 +515,13 @@ def Maparg(name: string, mode: string, wantlocal: bool): dict<any> #{{{2
             'lhs': name,
             # we want Vim to translate `<sid>`
             'rhs': maparg(name, mode)->escape('|'),
-        })
+            })
     endif
 
     if Islocal(maparg)
         # Save the buffer number, so that we can check we're in the right buffer
         # when we want to restore the buffer-local mapping.
-        extend(maparg, {'bufnr': bufnr('%')})
+        extend(maparg, #{bufnr: bufnr('%')})
     endif
 
     return maparg
@@ -546,27 +546,7 @@ def Map_arguments(flags: string): string #{{{2
 enddef
 
 def Islocal(maparg: dict<any>): bool #{{{2
-    # Why not just returning `get(...)`?{{{
-    #
-    # `maparg.buffer` can be a boolean *or* a number.
-    # It is  a boolean  when it was  set from `Maparg()`  and contains  the info
-    # about a key which is not mapped:
-    #
-    #     maparg = {
-    #         ...
-    #         'buffer': wantlocal,
-    #                   ^-------^
-    #     }
-    #
-    # But it is a number when it was set by the builtin `maparg()`.
-    #
-    # ---
-    #
-    # We could refactor  `Maparg()` so that `wantlocal` is a  number (would need
-    # to make sure  that you pass a  number as the last  argument to `MapSave()`
-    # too).  But I prefer using a boolean; it makes the code more readable.
-    #}}}
-    return get(maparg, 'buffer', 0) ? true : false
+    return get(maparg, 'buffer', 0)
 enddef
 
 def Not_in_right_buffer(maparg: dict<any>): bool #{{{2

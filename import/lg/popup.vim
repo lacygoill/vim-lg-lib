@@ -20,13 +20,13 @@ vim9script
 #
 # You'll need to use a different expression for each feature; e.g.:
 #
-#     const DEBUG = {'popup': 0, 'other feature': 0}
-#     const LOGFILE = {'popup-nvim': '/tmp/...', 'popup-vim': '/tmp/...', 'other-feature': '/tmp/...'}
+#     const! DEBUG = {'popup': 0, 'other feature': 0}
+#     const! LOGFILE = {'popup-nvim': '/tmp/...', 'popup-vim': '/tmp/...', 'other-feature': '/tmp/...'}
 #
 #     ...
-#                                new argument
-#                                v-----v
-#     def Log(msg, sfile, slnum, feature)
+#                                   new argument
+#                                   v-----v
+#     def Log(msg, funcname, slnum, feature)
 #         if !DEBUG[feature] | return | endif
 #         ...
 #         writefile([time, source, msg], LOGFILE[feature], 'a')
@@ -35,8 +35,8 @@ vim9script
 
 # Init {{{1
 
-const DEBUG = 0
-const LOGFILE = '/tmp/.vim-popup-window.log.vim'
+const! DEBUG = 0
+const! LOGFILE = '/tmp/.vim-popup-window.log.vim'
 
 # Interface {{{1
 export def Popup_create(what: any, opts: dict<any>): list<number> #{{{2
@@ -64,7 +64,7 @@ enddef
 # Core {{{1
 def Basic(what: any, opts: dict<any>): list<number> #{{{2
 # TODO(Vim9): `what: any` → `what: number|string|list<string>`
-    let sfile = expand('<sfile>')
+    let funcname = expand('<stack>')->matchstr('.*\.\.\zs<SNR>\w\+')
     # This serves 2 purposes:{{{
     #
     #    - it lets us use a multiline string (otherwise, newlines would be translated into NULs)
@@ -101,7 +101,7 @@ def Basic(what: any, opts: dict<any>): list<number> #{{{2
         })
     remove(opts, 'width') | remove(opts, 'height')
     let cmd = printf('let winid = popup_create(%s, %s)', _what, opts)
-    Log(cmd, sfile, expand('<slnum>')->str2nr())
+    Log(cmd, funcname, expand('<slnum>')->str2nr())
     let winid = popup_create(_what, opts)
 
     # Don't reset the topline of the popup on the next screen redraw.{{{
@@ -115,7 +115,7 @@ def Basic(what: any, opts: dict<any>): list<number> #{{{2
     #    >                 Set to zero to leave the position as set by commands.
     #}}}
     cmd = printf('call popup_setoptions(%d, #{firstline: 0})', winid)
-    Log(cmd, sfile, expand('<slnum>')->str2nr())
+    Log(cmd, funcname, expand('<slnum>')->str2nr())
     popup_setoptions(winid, #{firstline: 0})
     return [winbufnr(winid), winid]
 enddef
@@ -148,7 +148,7 @@ enddef
 
 def Terminal(what: any, opts: dict<any>): list<number> #{{{2
 # TODO(Vim9): `what: any` → `what: number|string|list<string>`
-    let sfile = expand('<sfile>')
+    let funcname = expand('<stack>')->matchstr('\.\.\zs.*\ze\[\d\+\]\.\.$')
     let bufnr: number
     # If `what` is the number of a terminal buffer, don't create yet another one.{{{
     #
@@ -160,7 +160,7 @@ def Terminal(what: any, opts: dict<any>): list<number> #{{{2
     else
         let cmd = 'let bufnr = term_start(&shell, #{hidden: v:true, term_finish: ''close'','
             .. ' term_kill: ''hup''})'
-        Log(cmd, sfile, expand('<slnum>')->str2nr())
+        Log(cmd, funcname, expand('<slnum>')->str2nr())
         bufnr = term_start(&shell, #{hidden: true, term_finish: 'close', term_kill: 'hup'})
     endif
     # in Terminal-Normal mode, don't highlight empty cells with `Pmenu` (same thing for padding cells)
@@ -253,10 +253,9 @@ def Is_terminal_buffer(n: number): bool #{{{2
     return type(n) == v:t_number && n > 0 && getbufvar(n, '&bt', '') == 'terminal'
 enddef
 
-def Log(msg: string, sfile: string, slnum: number) #{{{2
+def Log(msg: string, funcname: string, slnum: number) #{{{2
     if !DEBUG | return | endif
     let time = '" ' .. strftime('%H:%M:%S')
-    let funcname = matchstr(sfile, '.*\.\.\zs.*')
     let sourcefile = execute('verb fu ' .. funcname)->split('\n')[1]
     let matchlist = matchlist(sourcefile, '^\s*Last set from \(.*\)\s\+line \(\d\+\)')
     sourcefile = matchlist[1]
