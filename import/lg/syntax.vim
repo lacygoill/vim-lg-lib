@@ -19,10 +19,10 @@ vim9script
 #         Derive('PopupSign', 'WarningMsg', {'bg': 'Normal'})
 #}}}
 
-export def Derive(to: string, from: string, newAttributes: any) #{{{2
+export def Derive(to: string, from: string, newAttributes: any, ...l: any) #{{{2
 # TODO(Vim9): `newAttributes: any` → `newAttributes: string|dict<string>`
-    let originalDefinition = Getdef(from)
-    let originalGroup: string
+    var originalDefinition = Getdef(from)
+    var originalGroup: string
     # if the `from` syntax group is linked to another group, we need to resolve the link
     if originalDefinition =~# ' links to \S\+$'
         # Why the `while` loop?{{{
@@ -31,20 +31,56 @@ export def Derive(to: string, from: string, newAttributes: any) #{{{2
         # That is, the  `from` syntax group could be linked  to `A`, which could
         # be linked to `B`, ...
         #}}}
-        let g = 0 | while originalDefinition =~# ' links to \S\+$' && g < 9 | g += 1
-            let link = matchstr(originalDefinition, ' links to \zs\S\+$')
+        var g = 0 | while originalDefinition =~# ' links to \S\+$' && g < 9 | g += 1
+            var link = matchstr(originalDefinition, ' links to \zs\S\+$')
             originalDefinition = Getdef(link)
             originalGroup = link
         endwhile
     else
         originalGroup = from
     endif
-    let pat = '^' .. originalGroup .. '\|xxx'
-    let Rep = {m -> m[0] == originalGroup ? to : ''}
-    let _newAttributes = Getattr(newAttributes)
+    var pat = '^' .. originalGroup .. '\|xxx'
+    var Rep = {m -> m[0] == originalGroup ? to : ''}
+    var _newAttributes = Getattr(newAttributes)
     exe 'hi '
         .. substitute(originalDefinition, pat, Rep, 'g')
         .. ' ' .. _newAttributes
+
+    # We want our derived HG to persist even after we change the color scheme at runtime.{{{
+    #
+    # Indeed, all  color schemes run `:hi  clear`, which might clear  our custom
+    # HG.  So, we need to save some information to reset it when needed.
+    #}}}
+    #   Ok, but why not saving the `:hi ...` command directly?{{{
+    #
+    # If we change the color scheme, we want to *re*-derive the HG.
+    # For example, suppose we've run:
+    #
+    #     call s:Derive('Ulti', 'Visual', 'term=bold cterm=bold gui=bold')
+    #
+    # `Visual`  doesn't  have the  same  attributes  from  one color  scheme  to
+    # another.  The next time we change the  color scheme, we can't just run the
+    # exact same command as  we did for the previous one.   We need to re-invoke
+    # `Derive()` with the same arguments.
+    #}}}
+    var hg = #{to: to, from: from, new: newAttributes}
+    if index(derived_hgs, hg) == -1
+        derived_hgs += [hg]
+    endif
+enddef
+
+# We   can't   write   `list<dict<string>>`,   because  we   need   to   declare
+# `newAttributes` with the type `any`.
+var derived_hgs: list<dict<any>> = []
+
+augroup reset_derived_hg_when_colorscheme_changes | au!
+    au ColorScheme * ResetDerivedHgWhenColorschemeChanges()
+augroup END
+
+def ResetDerivedHgWhenColorschemeChanges()
+    for hg in derived_hgs
+        Derive(hg.to, hg.from, hg.new)
+    endfor
 enddef
 #}}}1
 # Core {{{1
@@ -55,23 +91,23 @@ def Getdef(hg: string): string #{{{2
     # (e.g. `-V15/tmp/log`, `-D`, `$ sudo`...).
     # }}}
     return execute('hi ' .. hg)
-        ->split('\n')
-        ->filter({_, v -> v =~# '^' .. hg })[0]
+    ->split('\n')
+    ->filter({_, v -> v =~# '^' .. hg })[0]
 enddef
 
 def Getattr(attr: any): string #{{{2
-# TODO(Vim9): `attr: any` → `attr: string|dict<string>`
+    # TODO(Vim9): `attr: any` → `attr: string|dict<string>`
     if type(attr) == v:t_string
         return attr
     elseif type(attr) == v:t_dict
-        let gui = has('gui_running') || &tgc
-        let mode = gui ? 'gui' : 'cterm'
-        let _attr: string
-        let hg: string
+        var gui = has('gui_running') || &tgc
+        var mode = gui ? 'gui' : 'cterm'
+        var _attr: string
+        var hg: string
         [_attr, hg] = items(attr)[0]
-        let code = hlID(hg)
-            ->synIDtrans()
-            ->synIDattr(_attr, mode)
+        var code = hlID(hg)
+        ->synIDtrans()
+        ->synIDattr(_attr, mode)
         if code =~# '^' .. (gui ? '#\x\+' : '\d\+') .. '$'
             return mode .. _attr .. '=' .. code
         endif

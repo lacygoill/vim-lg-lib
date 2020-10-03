@@ -2,8 +2,8 @@ vim9script
 
 export def Catch(): string #{{{1
     if get(g:, 'my_verbose_errors', 0)
-        let func_name = matchstr(v:throwpoint, 'function \zs.\{-}\ze,')
-        let line = matchstr(v:throwpoint, '\%(function \)\=.\{-}, \zsline \d\+')
+        var func_name = matchstr(v:throwpoint, 'function \zs.\{-}\ze,')
+        var line = matchstr(v:throwpoint, '\%(function \)\=.\{-}, \zsline \d\+')
 
         echohl ErrorMsg
         if !empty(func_name)
@@ -81,9 +81,9 @@ export def FuncComplete(argLead: string, _l: string, _p: number): list<string> #
 enddef
 
 export def GetSelection(): list<string> #{{{1
-    let reg_save = getreginfo('"')
-    let cb_save = &cb
-    let sel_save = &sel
+    var reg_save = getreginfo('"')
+    var cb_save = &cb
+    var sel_save = &sel
     try
         set cb= sel=inclusive
         sil noa norm! gvy
@@ -97,29 +97,41 @@ export def GetSelection(): list<string> #{{{1
     return []
 enddef
 
+export def InTerminalBuffer(): bool #{{{1
+    return &bt == 'terminal'
+        # tmux terminal scrollback buffer captured in Vim via `capture-pane`
+        || (&ft == '' && expand('%:p') =~# '^$\|^\%(/proc/\|/tmp/\)' && search('^٪', 'n'))
+enddef
+
 export def IsVim9(): bool #{{{1
     if &ft != 'vim'
         return false
     endif
+
+    var patdef = '^\C\s*\%(export\s\+\)\=:\=def\>'
+    #                                    ^
+    # Sometimes, we might want to prepend a  colon in front of "def" to fix some
+    # syntax highlighting issue.  Without a  colon, "def" might be confused with
+    # the 'def' option...
 
     # we're in the Vim9 context if the first command is `:vim9script`
     return getline(1) == 'vim9script'
         # ... unless we're in a legacy function
         && searchpair('^\C\s*fu\%[nction]\>', '', '^\C\s*\<endf\%[unction]\>$', 'nW') <= 0
         # in a legacy script, we're in the Vim9 context in a `:def` function
-        || searchpair('^\C\s*def\>', '', '^\C\s*\<enddef\>$', 'nW') > 0
+        || searchpair(patdef, '', '^\C\s*\<enddef\>$', 'nW') > 0
         # ... unless we're on its header line
-        && getline('.') !~ '^\s*def\>'
+        && getline('.') !~ patdef
 enddef
 
 export def Opfunc(type: string) #{{{1
     if !exists('g:opfunc') || !has_key(g:opfunc, 'core')
         return
     endif
-    let reg_save = getreginfo('"')
-    let cb_save = &cb
-    let sel_save = &sel
-    let visual_marks_save = [getpos("'<"), getpos("'>")]
+    var reg_save = getreginfo('"')
+    var cb_save = &cb
+    var sel_save = &sel
+    var visual_marks_save = [getpos("'<"), getpos("'>")]
     try
         set cb= sel=inclusive
         # Yanking may be useless for our opfunc.{{{
@@ -153,7 +165,7 @@ export def Opfunc(type: string) #{{{1
             # selection, as  well as  the auto  highlighting when  we've pressed
             # `coy`.
             #}}}
-            let commands = #{char: '`[v`]y', line: "'[V']y", block: "`[\<c-v>`]y"}
+            var commands = #{char: '`[v`]y', line: "'[V']y", block: "`[\<c-v>`]y"}
             sil exe 'keepj norm! ' .. get(commands, type, '')
         endif
         call(g:opfunc.core, [type])
@@ -205,13 +217,13 @@ enddef
 
 export def Win_getid(arg: string): number #{{{1
     if arg == 'P'
-        let winnr = range(1, winnr('$'))
+        var winnr = range(1, winnr('$'))
             ->map({_, v -> getwinvar(v, '&pvw')})
             ->index(1) + 1
         if winnr == 0 | return 0 | endif
         return win_getid(winnr)
     elseif arg == '#'
-        let winnr = winnr('#')
+        var winnr = winnr('#')
         return win_getid(winnr)
     endif
     return 0

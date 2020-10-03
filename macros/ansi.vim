@@ -36,7 +36,7 @@ vim9script
 # CSI 32m = green (setaf 2)
 # C-o     = ??? (???)
 
-const! ATTR = #{
+const ATTR = #{
     trans_bold: #{
         start: '\e\[1m',
         end: '\e\[22m',
@@ -72,7 +72,7 @@ def Ansi() #{{{1
     if !search('\e', 'cn')
         return
     endif
-    let view = winsaveview()
+    var view = winsaveview()
 
     # Why do you use text properties and not regex-based syntax highlighting?{{{
     #
@@ -100,14 +100,14 @@ def Ansi() #{{{1
     # Besides, I think  that most of the time, programs  which output escape
     # sequences do it only for a short text on a single line...
     #}}}
-    let bufnr = bufnr('%')
-    let attr: string
-    let v: dict<string>
+    var bufnr = bufnr('%')
+    var attr: string
+    var v: dict<string>
     for item in items(ATTR)
         [attr, v] = item
         exe 'hi ansi_' .. attr .. ' ' .. v.hi
         cursor(1, 1)
-        let flags = 'cW'
+        var flags = 'cW'
         prop_type_add('ansi_' .. attr, #{highlight: 'ansi_' .. attr, bufnr: bufnr})
         while search(v.start, flags) && search(v.end, 'n')
             flags = 'W'
@@ -118,7 +118,7 @@ def Ansi() #{{{1
         endwhile
     endfor
 
-    let clean_this = '\C\e\[\d*m\|[[:cntrl:]]'
+    var clean_this = '\C\e\[\d*m\|[[:cntrl:]]'
     # TODO: Prefix `:%s` with `keepj keepp lockm` once this issue is fixed:  https://github.com/vim/vim/issues/6530{{{
     #
     #     sil exe 'keepj keepp lockm :%s/' .. clean_this .. '//ge'

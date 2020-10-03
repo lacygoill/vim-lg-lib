@@ -20,8 +20,8 @@ vim9script
 #
 # You'll need to use a different expression for each feature; e.g.:
 #
-#     const! DEBUG = {'popup': 0, 'other feature': 0}
-#     const! LOGFILE = {'popup-nvim': '/tmp/...', 'popup-vim': '/tmp/...', 'other-feature': '/tmp/...'}
+#     const DEBUG = {'popup': 0, 'other feature': 0}
+#     const LOGFILE = {'popup-nvim': '/tmp/...', 'popup-vim': '/tmp/...', 'other-feature': '/tmp/...'}
 #
 #     ...
 #                                   new argument
@@ -35,14 +35,14 @@ vim9script
 
 # Init {{{1
 
-const! DEBUG = 0
-const! LOGFILE = '/tmp/.vim-popup-window.log.vim'
+const DEBUG = 0
+const LOGFILE = '/tmp/.vim-popup-window.log.vim'
 
 # Interface {{{1
 export def Popup_create(what: any, opts: dict<any>): list<number> #{{{2
 # TODO(Vim9): `what: any` → `what: number|string|list<string>`
-    let has_border = has_key(opts, 'border')
-    let is_term = has_key(opts, 'term') ? remove(opts, 'term') : false
+    var has_border = has_key(opts, 'border')
+    var is_term = has_key(opts, 'term') ? remove(opts, 'term') : false
     if !has_border && !is_term
         return Basic(what, opts)
     elseif has_border && !is_term
@@ -53,10 +53,10 @@ export def Popup_create(what: any, opts: dict<any>): list<number> #{{{2
     return []
 enddef
 
-export def Popup_notification(what: any, opts = {}): list<number> #{{{2
+export def Popup_notification(what: any, opts: dict<number> = {}): list<number> #{{{2
 # TODO(Vim9): `what: any` → `what: number|string|list<string>`
-    let lines = Get_lines(what)
-    let n_opts = Get_notification_opts(lines)
+    var lines = Get_lines(what)
+    var n_opts = Get_notification_opts(lines)
     extend(opts, n_opts, 'keep')
     return Popup_create(lines, opts)
 enddef
@@ -64,17 +64,17 @@ enddef
 # Core {{{1
 def Basic(what: any, opts: dict<any>): list<number> #{{{2
 # TODO(Vim9): `what: any` → `what: number|string|list<string>`
-    let funcname = expand('<stack>')->matchstr('.*\.\.\zs<SNR>\w\+')
+    var funcname = expand('<stack>')->matchstr('.*\.\.\zs<SNR>\w\+')
     # This serves 2 purposes:{{{
     #
     #    - it lets us use a multiline string (otherwise, newlines would be translated into NULs)
     #    - it prevents an error later:
     #
-    #         let cmd = printf('let winid = popup_create(%s, %s)', what, opts)
+    #         var cmd = printf('let winid = popup_create(%s, %s)', what, opts)
     #         " if `what` is the string 'TEST', the surrounding quotes will be removed by `printf()`:
     #         E121: Undefined variable: TEST~
     #}}}
-    let _what: any = what
+    var _what: any = what
     if type(what) == v:t_string
         _what = split(what, '\n')
     endif
@@ -100,9 +100,9 @@ def Basic(what: any, opts: dict<any>): list<number> #{{{2
         maxheight: opts.height,
         })
     remove(opts, 'width') | remove(opts, 'height')
-    let cmd = printf('let winid = popup_create(%s, %s)', _what, opts)
+    var cmd = printf('let winid = popup_create(%s, %s)', _what, opts)
     Log(cmd, funcname, expand('<slnum>')->str2nr())
-    let winid = popup_create(_what, opts)
+    var winid = popup_create(_what, opts)
 
     # Don't reset the topline of the popup on the next screen redraw.{{{
     #
@@ -148,8 +148,8 @@ enddef
 
 def Terminal(what: any, opts: dict<any>): list<number> #{{{2
 # TODO(Vim9): `what: any` → `what: number|string|list<string>`
-    let funcname = expand('<stack>')->matchstr('\.\.\zs.*\ze\[\d\+\]\.\.$')
-    let bufnr: number
+    var funcname = expand('<stack>')->matchstr('\.\.\zs.*\ze\[\d\+\]\.\.$')
+    var bufnr: number
     # If `what` is the number of a terminal buffer, don't create yet another one.{{{
     #
     # Just use `what`.
@@ -158,7 +158,7 @@ def Terminal(what: any, opts: dict<any>): list<number> #{{{2
     if Is_terminal_buffer(what)
         bufnr = what
     else
-        let cmd = 'let bufnr = term_start(&shell, #{hidden: v:true, term_finish: ''close'','
+        var cmd = 'let bufnr = term_start(&shell, #{hidden: v:true, term_finish: ''close'','
             .. ' term_kill: ''hup''})'
         Log(cmd, funcname, expand('<slnum>')->str2nr())
         bufnr = term_start(&shell, #{hidden: true, term_finish: 'close', term_kill: 'hup'})
@@ -167,7 +167,7 @@ def Terminal(what: any, opts: dict<any>): list<number> #{{{2
     extend(opts, #{highlight: 'Normal'})
     # make sure a border is drawn even if the `border` key was not set
     extend(opts, #{border: get(opts, 'border', [])})
-    let info = Border(bufnr, opts)
+    var info = Border(bufnr, opts)
     Fire_terminal_events()
     return info
 enddef
@@ -198,8 +198,8 @@ def Get_zindex(): number #{{{2
     # Get  the `zindex`  value of  the popup  at the  screen position  where the
     # cursor is currently.  Add `1` to that, and return this value.
     #}}}
-    let screenpos = win_getid()->screenpos(line('.'), col('.'))
-    let opts = popup_locate(screenpos.row, screenpos.col)->popup_getoptions()
+    var screenpos = win_getid()->screenpos(line('.'), col('.'))
+    var opts = popup_locate(screenpos.row, screenpos.col)->popup_getoptions()
     return get(opts, 'zindex', 0) + 1
 enddef
 
@@ -213,7 +213,7 @@ enddef
 
 def Get_lines(what: any): list<string> #{{{2
 # TODO(Vim9): `what: any` → `what: number|string|list<string>`
-    let lines: list<string>
+    var lines: list<string>
     if type(what) == v:t_list
         lines = what
     elseif type(what) == v:t_string
@@ -225,11 +225,11 @@ def Get_lines(what: any): list<string> #{{{2
 enddef
 
 def Get_notification_opts(lines: list<string>): dict<any> #{{{2
-    let longest = Get_longest_width(lines)
-    let width: number
-    let height: number
+    var longest = Get_longest_width(lines)
+    var width: number
+    var height: number
     [width, height] = [longest, len(lines)]
-    let opts = #{
+    var opts = #{
         line: 2,
         col: &columns,
         width: width,
@@ -255,12 +255,12 @@ enddef
 
 def Log(msg: string, funcname: string, slnum: number) #{{{2
     if !DEBUG | return | endif
-    let time = '" ' .. strftime('%H:%M:%S')
-    let sourcefile = execute('verb fu ' .. funcname)->split('\n')[1]
-    let matchlist = matchlist(sourcefile, '^\s*Last set from \(.*\)\s\+line \(\d\+\)')
+    var time = '" ' .. strftime('%H:%M:%S')
+    var sourcefile = execute('verb fu ' .. funcname)->split('\n')[1]
+    var matchlist = matchlist(sourcefile, '^\s*Last set from \(.*\)\s\+line \(\d\+\)')
     sourcefile = matchlist[1]
-    let lnum = matchlist[2]->str2nr()
-    let source = '" ' .. sourcefile .. ':' .. (lnum + slnum)
+    var lnum = matchlist[2]->str2nr()
+    var source = '" ' .. sourcefile .. ':' .. (lnum + slnum)
     writefile([time, source, msg], LOGFILE, 'a')
 enddef
 

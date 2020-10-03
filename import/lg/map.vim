@@ -7,7 +7,7 @@ vim9script
 &t_TI = ''
 &t_TE = ''
 
-const! IS_MODIFYOTHERKEYS_ENABLED = &t_TI =~# "\e\\[>4;[12]m"
+const IS_MODIFYOTHERKEYS_ENABLED = &t_TI =~# "\e\\[>4;[12]m"
 # We need to run `:exe "set <f13>=\eb"` instead of `:exe "set <m-b>=\eb"` because:{{{
 #
 #    - we want to be able to insert some accented characters
@@ -15,10 +15,10 @@ const! IS_MODIFYOTHERKEYS_ENABLED = &t_TI =~# "\e\\[>4;[12]m"
 #}}}
 # But not in a terminal where `modifyOtherKeys` is enabled, nor in the GUI.
 # No need to, everything works fine there.
-const! USE_FUNCTION_KEYS = !has('gui_running') && !IS_MODIFYOTHERKEYS_ENABLED
+const USE_FUNCTION_KEYS = !has('gui_running') && !IS_MODIFYOTHERKEYS_ENABLED
 
 if USE_FUNCTION_KEYS
-    const! KEY2FUNC = {
+    const KEY2FUNC = {
         'a': '<f12>',
         'b': '<f13>',
         'c': '<f14>',
@@ -77,8 +77,8 @@ if USE_FUNCTION_KEYS
         # TODO(Vim9): Once Vim9 compiles `for [key, value] in items(map)`, refactor this `:for` loop.{{{
         #
         #     for item in items(KEY2FUNC)
-        #         let key: string
-        #         let funckey: string
+        #         var key: string
+        #         var funckey: string
         #         [key, funckey] = item
         #
         #     →
@@ -88,8 +88,8 @@ if USE_FUNCTION_KEYS
         # Same thing for the next identical `:for` loop.
         #}}}
         for item in items(KEY2FUNC)
-            let key: string
-            let funckey: string
+            var key: string
+            var funckey: string
             [key, funckey] = item
             exe 'set ' .. funckey .. "=\e" .. key
         endfor
@@ -126,8 +126,8 @@ if USE_FUNCTION_KEYS
     #}}}
     def Fix_meta_readline()
         for item in items(KEY2FUNC)
-            let key: string
-            let funckey: string
+            var key: string
+            var funckey: string
             [key, funckey] = item
             exe 'tno ' .. funckey .. ' <esc>' .. key
         endfor
@@ -164,17 +164,17 @@ elseif IS_MODIFYOTHERKEYS_ENABLED || has('gui_running')
     def Fix_meta_readline()
         for key in (range(char2nr('a'), char2nr('z'))
                 + range(char2nr('A'), char2nr('Z')))
-            ->map('nr2char(v:val)')
+            ->map({_, v -> nr2char(v)})
             exe 'tno <m-' .. key .. '> <esc>' .. key
         endfor
     enddef
     Fix_meta_readline()
 
     def Nop_unused_meta_chords()
-        let lhs: string
+        var lhs: string
         for key in (range(char2nr('a'), char2nr('z'))
                 + range(char2nr('A'), char2nr('Z')))
-            ->map('nr2char(v:val)')
+            ->map({_, v -> nr2char(v)})
             if toupper(key) == key
                 lhs = '<M-S-' .. key .. '>'
             else
@@ -193,7 +193,7 @@ elseif IS_MODIFYOTHERKEYS_ENABLED || has('gui_running')
     au VimEnter * Nop_unused_meta_chords()
 endif
 
-const! FLAG2ARG = {
+const FLAG2ARG = {
     'S': '<script>',
     'b': '<buffer>',
     'e': '<expr>',
@@ -267,7 +267,7 @@ export def MapSave(keys: any, mode = '', wantlocal = false): list<dict<any>> #{{
     # you've installed in the other modes).
     #
     #     nno <c-q> <esc>
-    #     let save = MapSave('<c-q>', '')
+    #     var save = MapSave('<c-q>', '')
     #     noremap <c-q> <esc><esc>
     #     MapRestore(save)
     #     map <c-q>
@@ -305,7 +305,7 @@ export def MapSave(keys: any, mode = '', wantlocal = false): list<dict<any>> #{{
     #     map <c-q>
     #     no <C-Q>       * <Esc>~
     #
-    #     let save = MapSave('<c-q>', 'n')
+    #     var save = MapSave('<c-q>', 'n')
     #     MapRestore(save)
     #     map <c-q>
     #     n  <C-Q>       * <Esc>~
@@ -319,17 +319,17 @@ export def MapSave(keys: any, mode = '', wantlocal = false): list<dict<any>> #{{
     # I  think the  same pitfalls  could  apply to  `v` which  is a  pseudo-mode
     # matching the real modes `x` and `s`.
     #}}}
-    let _keys = type(keys) == v:t_list ? keys : [keys]
+    var _keys = type(keys) == v:t_list ? keys : [keys]
 
-    let save: list<dict<any>> = []
+    var save: list<dict<any>> = []
     for key in _keys
         # This `for` loop is only necessary if you intend `#save()` to support multiple modes:{{{
         #
-        #     let save = MapSave('<c-q>', 'nxo')
+        #     var save = MapSave('<c-q>', 'nxo')
         #                                  ^-^
         #}}}
         for m in mode == '' ? [''] : split(mode, '\zs')
-            let maparg = Maparg(key, m, wantlocal)
+            var maparg = Maparg(key, m, wantlocal)
             save += [maparg]
         endfor
     endfor
@@ -338,8 +338,8 @@ enddef
 
 # Usage:{{{
 #
-#     let my_global_mappings = MapSave(['key1', 'key2', ...], 'n')
-#     let my_local_mappings = MapSave(['key1', 'key2', ...], 'n', true)
+#     var my_global_mappings = MapSave(['key1', 'key2', ...], 'n')
+#     var my_local_mappings = MapSave(['key1', 'key2', ...], 'n', true)
 #}}}
 
 export def MapRestore(save: list<dict<any>>) #{{{2
@@ -383,10 +383,10 @@ export def MapRestore(save: list<dict<any>>) #{{{2
         #
         # Besides, it adds a lot of complexity, for a dubious gain:
         #
-        #     let [curbuf, origbuf] = [bufnr('%'), get(maparg, 'bufnr', 0)]
+        #     var [curbuf, origbuf] = [bufnr('%'), get(maparg, 'bufnr', 0)]
         #     if get(maparg, 'buffer', 0) && curbuf != origbuf
         #         if bufexists(origbuf)
-        #             let altbuf = @#
+        #             var altbuf = @#
         #             exe 'noa b ' .. origbuf
         #         endif
         #     endif
@@ -395,7 +395,7 @@ export def MapRestore(save: list<dict<any>>) #{{{2
         #     # ...
         #     if exists('altbuf')
         #         noa exe 'b ' .. origbuf
-        #         let @# = altbuf
+        #         var @# = altbuf
         #     endif
         #}}}
         if Not_in_right_buffer(maparg) | continue | endif
@@ -403,7 +403,7 @@ export def MapRestore(save: list<dict<any>>) #{{{2
         # if there was no mapping when `#save()` was invoked, there should be no
         # mapping after `#restore()` is invoked
         if has_key(maparg, 'unmapped')
-            let cmd = Get_mapping_cmd(maparg)
+            var cmd = Get_mapping_cmd(maparg)
             # `sil!` because there's no guarantee that the unmapped key has been
             # mapped  to sth  after  being  saved.  We  move  `sil!` inside  the
             # string, otherwise  it doesn't work  in Vim9 script  (modifiers are
@@ -437,7 +437,7 @@ enddef
 #}}}1
 # Core {{{1
 def Maparg(name: string, mode: string, wantlocal: bool): dict<any> #{{{2
-    let maparg = maparg(name, mode, 0, 1)
+    var maparg = maparg(name, mode, 0, 1)
 
     # There are 6 cases to consider.{{{
     #
@@ -503,7 +503,7 @@ def Maparg(name: string, mode: string, wantlocal: bool): dict<any> #{{{2
     elseif !wantlocal && Islocal(maparg)
         # remove the shadowing local mapping
         exe mode .. 'unmap <buffer> ' .. name
-        let local_maparg = deepcopy(maparg)->extend(#{bufnr: bufnr('%')})
+        var local_maparg = deepcopy(maparg)->extend(#{bufnr: bufnr('%')})
         maparg = Maparg(name, mode, false)
         # restore the shadowing local mapping
         MapRestore([local_maparg])
@@ -528,7 +528,7 @@ def Maparg(name: string, mode: string, wantlocal: bool): dict<any> #{{{2
 enddef
 
 def Reinstall(maparg: dict<any>) #{{{2
-    let cmd = Get_mapping_cmd(maparg)
+    var cmd = Get_mapping_cmd(maparg)
     exe cmd
         .. (maparg.buffer  ? ' <buffer> ' : '')
         .. (maparg.expr    ? ' <expr>   ' : '')
@@ -542,7 +542,7 @@ enddef
 #}}}1
 # Util {{{1
 def Map_arguments(flags: string): string #{{{2
-    return split(flags, '\zs')->map('get(FLAG2ARG, v:val, "")')->join()
+    return split(flags, '\zs')->map({_, v -> get(FLAG2ARG, v, '')})->join()
 enddef
 
 def Islocal(maparg: dict<any>): bool #{{{2
@@ -554,7 +554,7 @@ def Not_in_right_buffer(maparg: dict<any>): bool #{{{2
 enddef
 
 def Get_mapping_cmd(maparg: dict<any>): string #{{{2
-    let cmd: string
+    var cmd: string
     if has_key(maparg, 'unmapped')
         if maparg.mode == '!'
             cmd = 'unmap!'
