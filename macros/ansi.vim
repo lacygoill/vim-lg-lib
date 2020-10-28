@@ -109,7 +109,7 @@ def Ansi() #{{{1
         cursor(1, 1)
         var flags = 'cW'
         prop_type_add('ansi_' .. attr, #{highlight: 'ansi_' .. attr, bufnr: bufnr})
-        while search(v.start, flags) && search(v.end, 'n')
+        while search(v.start, flags) > 0 && search(v.end, 'n') > 0
             flags = 'W'
             prop_add(line('.'), col('.'), #{
                 length: searchpos(v.end .. '\zs', 'cn')[1] - col('.'),

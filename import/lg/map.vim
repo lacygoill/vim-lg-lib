@@ -17,8 +17,10 @@ const IS_MODIFYOTHERKEYS_ENABLED = &t_TI =~# "\e\\[>4;[12]m"
 # No need to, everything works fine there.
 const USE_FUNCTION_KEYS = !has('gui_running') && !IS_MODIFYOTHERKEYS_ENABLED
 
+var KEY2FUNC: dict<string>
+
 if USE_FUNCTION_KEYS
-    const KEY2FUNC = {
+    KEY2FUNC = {
         'a': '<f12>',
         'b': '<f13>',
         'c': '<f14>',
@@ -193,14 +195,14 @@ elseif IS_MODIFYOTHERKEYS_ENABLED || has('gui_running')
     au VimEnter * Nop_unused_meta_chords()
 endif
 
-const FLAG2ARG = {
-    'S': '<script>',
-    'b': '<buffer>',
-    'e': '<expr>',
-    'n': '<nowait>',
-    's': '<silent>',
-    'u': '<unique>',
-}
+const FLAG2ARG = #{
+    S: '<script>',
+    b: '<buffer>',
+    e: '<expr>',
+    n: '<nowait>',
+    s: '<silent>',
+    u: '<unique>',
+    }
 
 # Interface {{{1
 export def MapMeta(key: string, rhs: string, mode: string, flags: string) #{{{2
@@ -398,12 +400,12 @@ export def MapRestore(save: list<dict<any>>) #{{{2
         #         var @# = altbuf
         #     endif
         #}}}
-        if Not_in_right_buffer(maparg) | continue | endif
+        if NotInRightBuffer(maparg) | continue | endif
 
         # if there was no mapping when `#save()` was invoked, there should be no
         # mapping after `#restore()` is invoked
         if has_key(maparg, 'unmapped')
-            var cmd = Get_mapping_cmd(maparg)
+            var cmd = GetMappingCmd(maparg)
             # `sil!` because there's no guarantee that the unmapped key has been
             # mapped  to sth  after  being  saved.  We  move  `sil!` inside  the
             # string, otherwise  it doesn't work  in Vim9 script  (modifiers are
@@ -421,7 +423,7 @@ export def MapRestore(save: list<dict<any>>) #{{{2
             #}}}
             for mode in split(maparg.mode, '\zs')
                 # reinstall a saved mapping
-                extend(maparg, #{mode: mode})->Reinstall()
+                maparg->deepcopy()->extend(#{mode: mode})->Reinstall()
             endfor
         endif
     endfor
@@ -490,13 +492,13 @@ def Maparg(name: string, mode: string, wantlocal: bool): dict<any> #{{{2
         #
         # An empty dictionary doesn't contain any of this info.
         #}}}
-        maparg = {
-            'unmapped': true,
-            'lhs': name,
+        maparg = #{
+            unmapped: true,
+            lhs: name,
             # we want to be consistent with `maparg()` which would return a space for `nvo`
-            'mode': mode == '' ? ' ' : mode,
-            'buffer': wantlocal,
-        }
+            mode: mode == '' ? ' ' : mode,
+            buffer: wantlocal,
+            }
 
     # a local mapping is shadowing the global mapping we're interested in,
     # so we don't know whether there's a relevant mapping
@@ -510,11 +512,11 @@ def Maparg(name: string, mode: string, wantlocal: bool): dict<any> #{{{2
 
     # there is a relevant mapping
     else
-        extend(maparg, {
+        extend(maparg, #{
             # we don't want Vim to translate meta keys (e.g. `<M-b> → â`)
-            'lhs': name,
+            lhs: name,
             # we want Vim to translate `<sid>`
-            'rhs': maparg(name, mode)->escape('|'),
+            rhs: maparg(name, mode)->escape('|'),
             })
     endif
 
@@ -528,8 +530,9 @@ def Maparg(name: string, mode: string, wantlocal: bool): dict<any> #{{{2
 enddef
 
 def Reinstall(maparg: dict<any>) #{{{2
-    var cmd = Get_mapping_cmd(maparg)
+    var cmd = GetMappingCmd(maparg)
     exe cmd
+        .. ' '
         .. (maparg.buffer  ? ' <buffer> ' : '')
         .. (maparg.expr    ? ' <expr>   ' : '')
         .. (maparg.nowait  ? ' <nowait> ' : '')
@@ -549,11 +552,11 @@ def Islocal(maparg: dict<any>): bool #{{{2
     return get(maparg, 'buffer', 0)
 enddef
 
-def Not_in_right_buffer(maparg: dict<any>): bool #{{{2
+def NotInRightBuffer(maparg: dict<any>): bool #{{{2
     return Islocal(maparg) && bufnr('%') != get(maparg, 'bufnr', 0)
 enddef
 
-def Get_mapping_cmd(maparg: dict<any>): string #{{{2
+def GetMappingCmd(maparg: dict<any>): string #{{{2
     var cmd: string
     if has_key(maparg, 'unmapped')
         if maparg.mode == '!'
