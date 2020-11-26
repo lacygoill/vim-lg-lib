@@ -36,32 +36,32 @@ vim9script
 # CSI 32m = green (setaf 2)
 # C-o     = ??? (???)
 
-const ATTR = #{
-    trans_bold: #{
+const ATTR = {
+    trans_bold: {
         start: '\e\[1m',
         end: '\e\[22m',
         hi: 'term=bold cterm=bold gui=bold',
     },
 
-    trans_boldunderlined: #{
+    trans_boldunderlined: {
         start: '\e\[4m\e\[1m',
         end: '\e\[22m\e\[24m',
         hi: 'term=bold,underline cterm=bold,underline gui=bold,underline',
     },
 
-    tldr_boldgreen: #{
+    tldr_boldgreen: {
         start: '\e\[32m\e\[1m',
         end: '\e\[m\%x0f',
         hi: 'term=bold cterm=bold gui=bold ctermfg=green guifg=#198844',
     },
 
-    tldr_italic: #{
+    tldr_italic: {
         start: '\e\[3m',
         end: '\e\[m\%x0f',
         hi: 'term=italic cterm=italic gui=italic',
     },
 
-    tldr_bold: #{
+    tldr_bold: {
         start: '\e\[1m',
         end: '\e\[m\%x0f',
         hi: 'term=bold cterm=bold gui=bold',
@@ -108,10 +108,10 @@ def Ansi() #{{{1
         exe 'hi ansi_' .. attr .. ' ' .. v.hi
         cursor(1, 1)
         var flags = 'cW'
-        prop_type_add('ansi_' .. attr, #{highlight: 'ansi_' .. attr, bufnr: bufnr})
+        prop_type_add('ansi_' .. attr, {highlight: 'ansi_' .. attr, bufnr: bufnr})
         while search(v.start, flags) > 0 && search(v.end, 'n') > 0
             flags = 'W'
-            prop_add(line('.'), col('.'), #{
+            prop_add(line('.'), col('.'), {
                 length: searchpos(v.end .. '\zs', 'cn')[1] - col('.'),
                 type: 'ansi_' .. attr,
                 })

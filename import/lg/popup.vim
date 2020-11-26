@@ -78,7 +78,7 @@ def Basic(what: any, opts: dict<any>): list<number> #{{{2
     if type(what) == v:t_string
         _what = split(what, '\n')
     endif
-    extend(opts, #{zindex: Get_zindex()}, 'keep')
+    extend(opts, {zindex: Get_zindex()}, 'keep')
 
     # Vim doesn't recognize the 'width' and 'height' keys.
     # We really need the `max` keys.{{{
@@ -93,7 +93,7 @@ def Basic(what: any, opts: dict<any>): list<number> #{{{2
     # Besides, we set  the `max` keys to be consistent  with popup windows where
     # we don't use a border.
     #}}}
-    extend(opts, #{
+    extend(opts, {
         minwidth: opts.width,
         maxwidth: opts.width,
         minheight: opts.height,
@@ -116,7 +116,7 @@ def Basic(what: any, opts: dict<any>): list<number> #{{{2
     #}}}
     cmd = printf('call popup_setoptions(%d, #{firstline: 0})', winid)
     Log(cmd, funcname, expand('<slnum>')->str2nr())
-    popup_setoptions(winid, #{firstline: 0})
+    popup_setoptions(winid, {firstline: 0})
     return [winbufnr(winid), winid]
 enddef
 
@@ -131,15 +131,15 @@ def Border(what: any, opts: dict<any>): list<number> #{{{2
     # OTOH, I  don't like adding an  empty line above/below the  text.  It takes
     # too much space, which is more precious vertically than horizontally.
     #}}}
-    extend(opts, #{padding: [0, 1, 0, 1]}, 'keep')
-    extend(opts, #{
+    extend(opts, {padding: [0, 1, 0, 1]}, 'keep')
+    extend(opts, {
         # to get the same position as in Nvim
         col: opts.col - 1,
         width: opts.width,
         height: opts.height,
         })
     # Vim expects the 'borderhighlight' key to be a list.  We want a string; do the conversion.
-    extend(opts, #{borderhighlight: [get(opts, 'borderhighlight', '')]})
+    extend(opts, {borderhighlight: [get(opts, 'borderhighlight', '')]})
 
     # open final window
     Set_borderchars(opts)
@@ -161,12 +161,12 @@ def Terminal(what: any, opts: dict<any>): list<number> #{{{2
         var cmd = 'let bufnr = term_start(&shell, #{hidden: v:true, term_finish: ''close'','
             .. ' term_kill: ''hup''})'
         Log(cmd, funcname, expand('<slnum>')->str2nr())
-        bufnr = term_start(&shell, #{hidden: true, term_finish: 'close', term_kill: 'hup'})
+        bufnr = term_start(&shell, {hidden: true, term_finish: 'close', term_kill: 'hup'})
     endif
     # in Terminal-Normal mode, don't highlight empty cells with `Pmenu` (same thing for padding cells)
-    extend(opts, #{highlight: 'Normal'})
+    extend(opts, {highlight: 'Normal'})
     # make sure a border is drawn even if the `border` key was not set
-    extend(opts, #{border: get(opts, 'border', [])})
+    extend(opts, {border: get(opts, 'border', [])})
     var info = Border(bufnr, opts)
     Fire_terminal_events()
     return info
@@ -208,7 +208,7 @@ def Get_borderchars(): list<string> #{{{2
 enddef
 
 def Set_borderchars(opts: dict<any>) #{{{2
-    extend(opts, #{borderchars: Get_borderchars()}, 'keep')
+    extend(opts, {borderchars: Get_borderchars()}, 'keep')
 enddef
 
 def Get_lines(what: any): list<string> #{{{2
@@ -229,7 +229,7 @@ def Get_notification_opts(lines: list<string>): dict<any> #{{{2
     var width: number
     var height: number
     [width, height] = [longest, len(lines)]
-    var opts = #{
+    var opts = {
         line: 2,
         col: &columns,
         width: width,

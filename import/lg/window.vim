@@ -104,7 +104,7 @@ export def WinScratch(lines: list<string>) #{{{1
     setl wrap
     # for vim-window to not maximize the window when we focus it
     setl pvw
-    nmap <buffer><nowait><silent> q <plug>(my_quit)
+    nmap <buffer><nowait> q <plug>(my_quit)
     wincmd p
 enddef
 

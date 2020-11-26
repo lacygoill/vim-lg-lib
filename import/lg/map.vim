@@ -195,7 +195,7 @@ elseif IS_MODIFYOTHERKEYS_ENABLED || has('gui_running')
     au VimEnter * Nop_unused_meta_chords()
 endif
 
-const FLAG2ARG = #{
+const FLAG2ARG = {
     S: '<script>',
     b: '<buffer>',
     e: '<expr>',
@@ -423,7 +423,7 @@ export def MapRestore(save: list<dict<any>>) #{{{2
             #}}}
             for mode in split(maparg.mode, '\zs')
                 # reinstall a saved mapping
-                maparg->deepcopy()->extend(#{mode: mode})->Reinstall()
+                maparg->deepcopy()->extend({mode: mode})->Reinstall()
             endfor
         endif
     endfor
@@ -492,7 +492,7 @@ def Maparg(name: string, mode: string, wantlocal: bool): dict<any> #{{{2
         #
         # An empty dictionary doesn't contain any of this info.
         #}}}
-        maparg = #{
+        maparg = {
             unmapped: true,
             lhs: name,
             # we want to be consistent with `maparg()` which would return a space for `nvo`
@@ -505,14 +505,14 @@ def Maparg(name: string, mode: string, wantlocal: bool): dict<any> #{{{2
     elseif !wantlocal && Islocal(maparg)
         # remove the shadowing local mapping
         exe mode .. 'unmap <buffer> ' .. name
-        var local_maparg = deepcopy(maparg)->extend(#{bufnr: bufnr('%')})
+        var local_maparg = deepcopy(maparg)->extend({bufnr: bufnr('%')})
         maparg = Maparg(name, mode, false)
         # restore the shadowing local mapping
         MapRestore([local_maparg])
 
     # there is a relevant mapping
     else
-        extend(maparg, #{
+        extend(maparg, {
             # we don't want Vim to translate meta keys (e.g. `<M-b> → â`)
             lhs: name,
             # we want Vim to translate `<sid>`
@@ -523,7 +523,7 @@ def Maparg(name: string, mode: string, wantlocal: bool): dict<any> #{{{2
     if Islocal(maparg)
         # Save the buffer number, so that we can check we're in the right buffer
         # when we want to restore the buffer-local mapping.
-        extend(maparg, #{bufnr: bufnr('%')})
+        extend(maparg, {bufnr: bufnr('%')})
     endif
 
     return maparg

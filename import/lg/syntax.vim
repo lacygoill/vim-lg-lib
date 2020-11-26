@@ -63,7 +63,7 @@ export def Derive(to: string, from: string, newAttributes: any, ...l: any) #{{{2
     # exact same command as  we did for the previous one.   We need to re-invoke
     # `Derive()` with the same arguments.
     #}}}
-    var hg = #{to: to, from: from, new: newAttributes}
+    var hg = {to: to, from: from, new: newAttributes}
     if index(derived_hgs, hg) == -1
         derived_hgs += [hg]
     endif

@@ -165,7 +165,7 @@ export def Opfunc(type: string) #{{{1
             # selection, as  well as  the auto  highlighting when  we've pressed
             # `coy`.
             #}}}
-            var commands = #{char: '`[v`]y', line: "'[V']y", block: "`[\<c-v>`]y"}
+            var commands = {char: '`[v`]y', line: "'[V']y", block: "`[\<c-v>`]y"}
             sil exe 'keepj norm! ' .. get(commands, type, '')
         endif
         call(g:opfunc.core, [type])
@@ -189,6 +189,46 @@ export def Opfunc(type: string) #{{{1
         setpos("'>", visual_marks_save[1])
     endtry
 enddef
+
+export def Profile(expr: any = 0): any #{{{1
+# The function needs to accept an optional argument, so that we can profile a method call.{{{
+#
+#     eval expr
+#         ->FuncA()
+#         ->Profile() # start profiling
+#         ->FuncB()
+#         ->Profile() # stop profiling
+#         ->FuncC()
+#}}}
+
+# TODO: The function should save the initial time in a script-local dictionary.
+# The keys of this dictionary should be the names of the functions we're profiling.
+# But what if we want to profile different subsets of a function's body?
+# I guess the keys  should be more specific than a  simple function name; should
+# they also include a line number?
+
+# TODO: It should also work at the script level.
+
+    #     var text = (expand('<stack>') .. ':' .. reltime(time)->reltimestr())
+    #         ->matchstr('function \%(.*\.\.\)\=\zs.*\ze\[\d\+\]\.\.<snr>\d\+_Profile')
+    #     writefile([text], '/tmp/vim9profile', 'a')
+
+    var location = expand('<stack>')->matchstr('function \zs.*\ze\.\.<SNR>\d\+_Profile\[\d\+\]$')
+    extend(profile_log, {location: {
+        timestamp: reltime(),
+        total_time: 0,
+        count: 1,
+        end_lnum: 0,
+        # TODO: do we really need this flag?
+        profiling: true,
+        }})
+    # echom profile_log
+    return expr
+enddef
+
+# We need to specify  a value because we cannot extend a  null list / dictionary
+# in a `:def` function.
+var profile_log: dict<any> = {}
 
 export def Vim_parent(): string #{{{1
 #    ┌────────────────────────────┬─────────────────────────────────────┐

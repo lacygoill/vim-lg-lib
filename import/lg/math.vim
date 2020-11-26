@@ -49,8 +49,8 @@ export def Min(numbers: any): any #{{{1
     return min
 enddef
 
-export def MatrixTransposition(lists: list<list<any>>): any #{{{1
-# TODO(Vim9): `): any` → `): list<list<any>>|number`
+export def MatrixTransposition(lists: list<list<number>>): any #{{{1
+# TODO(Vim9): `): any` → `): list<list<number>>|number`
     # This function expects a list of lists; each list with with the same size.{{{
     #
     # You could imagine the lists piled up, forming a matrix.
