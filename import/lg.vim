@@ -80,7 +80,10 @@ export def FuncComplete(argLead: string, _l: string, _p: number): list<string> #
         \ ->map({_, v -> substitute(v, '($\|()$', '', '')})
 enddef
 
-export def GetSelection(): list<string> #{{{1
+export def GetSelectionText(): list<string> #{{{1
+    if mode() =~ "[vV\<c-v>]"
+        return getreg('*', 1, 1)
+    endif
     var reg_save = getreginfo('"')
     var cb_save = &cb
     var sel_save = &sel
@@ -95,6 +98,48 @@ export def GetSelection(): list<string> #{{{1
         [&cb, &sel] = [cb_save, sel_save]
     endtry
     return []
+enddef
+
+export def GetSelectionCoords(): dict<list<number>> #{{{1
+# Get the coordinates of the current visual selection without quitting visual mode.
+    if mode() !~# "^[vV\<c-v>]$"
+        return {}
+    endif
+    var curpos: list<number>
+    var pos_v: list<number>
+    var start: list<number>
+    var end: list<number>
+    [curpos, pos_v] = [getcurpos()[1:2], getpos('v')[1:2]]
+    var control_end = curpos[0] > pos_v[0] || curpos[0] == pos_v[0] && curpos[1] >= pos_v[1]
+    if control_end
+        [start, end] = [pos_v, curpos]
+    else
+        [start, end] = [curpos, pos_v]
+    endif
+    # If the selection is linewise, the column positions are not what we expect.
+    # Let's fix that.
+    if mode() == 'V'
+        start[1] = 1
+        # Why `getline('.')->...`?{{{
+        #
+        # From `:h col()`:
+        #
+        #    > $       the end of the cursor line (the result is the
+        #    >         number of bytes in the cursor line **plus one**)
+        #}}}
+        end[1] = col([end[0], '$']) - (getline('.')->strlen() > 0 ? 1 : 0)
+    # In case we've pressed `O`.{{{
+    #
+    # Otherwise, the  returned coordinates  would not  match the  upper-left and
+    # bottom-right corners, but the upper-right and bottom-left corners.
+    #
+    # This would undoubtedly introduce some confusion in our plugins.
+    # Let's make sure the function always return what we have in mind.
+    #}}}
+    elseif mode() == "\<c-v>" && start[1] > end[1]
+        [start[1], end[1]] = [end[1], start[1]]
+    endif
+    return {start: start, end: end}
 enddef
 
 export def InTerminalBuffer(): bool #{{{1
@@ -122,6 +167,8 @@ export def IsVim9(): bool #{{{1
         || searchpair(patdef, '', '^\C\s*\<enddef\>$', 'nW') > 0
         # ... unless we're on its header line
         && getline('.') !~ patdef
+        # FIXME: Being on the header doesn't necessarily mean that we're at the script level.
+        # We could be on the header of a `:def` function nested in another `:def` function.
 enddef
 
 export def Opfunc(type: string) #{{{1
@@ -230,7 +277,7 @@ enddef
 # in a `:def` function.
 var profile_log: dict<any> = {}
 
-export def Vim_parent(): string #{{{1
+export def VimParent(): string #{{{1
 #    ┌────────────────────────────┬─────────────────────────────────────┐
 #    │ :echo getpid()             │ print the PID of Vim                │
 #    ├────────────────────────────┼─────────────────────────────────────┤

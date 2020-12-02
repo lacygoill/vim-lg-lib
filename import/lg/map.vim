@@ -76,23 +76,7 @@ if USE_FUNCTION_KEYS
     }
 
     def Set_keysyms()
-        # TODO(Vim9): Once Vim9 compiles `for [key, value] in items(map)`, refactor this `:for` loop.{{{
-        #
-        #     for item in items(KEY2FUNC)
-        #         var key: string
-        #         var funckey: string
-        #         [key, funckey] = item
-        #
-        #     →
-        #
-        #     for [key, funckey] in items(KEY2FUNC)
-        #
-        # Same thing for the next identical `:for` loop.
-        #}}}
-        for item in items(KEY2FUNC)
-            var key: string
-            var funckey: string
-            [key, funckey] = item
+        for [key, funckey] in items(KEY2FUNC)
             exe 'set ' .. funckey .. "=\e" .. key
         endfor
     enddef
@@ -127,10 +111,7 @@ if USE_FUNCTION_KEYS
     #    - you use `:h modifyOtherKeys`
     #}}}
     def Fix_meta_readline()
-        for item in items(KEY2FUNC)
-            var key: string
-            var funckey: string
-            [key, funckey] = item
+        for [key, funckey] in items(KEY2FUNC)
             exe 'tno ' .. funckey .. ' <esc>' .. key
         endfor
     enddef

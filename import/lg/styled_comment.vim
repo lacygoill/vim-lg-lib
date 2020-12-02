@@ -337,8 +337,8 @@ export def Syntax() #{{{2
     var nr: number
     # for Vim, we need to handle 2 possible comment leaders (`#` is for Vim9 script)
     if &ft == 'vim'
-        cml = '["#]'
-        cml_0_1 = '["#]\='
+        cml = '\%(#\|"\\\=\)'
+        cml_0_1 = cml .. '\='
         nr = 1
     else
         cml = matchstr(&l:cms, '\S*\ze\s*%s')
@@ -470,10 +470,10 @@ def Fix_allbut(ft: string) #{{{2
     # It defines  a cluster  containing all  the custom  syntax groups  that the
     # current plugin defines.
     #}}}
-    var groups = copy(CUSTOM_GROUPS)
-    map(groups, {_, v -> v[0] == '@' ? '@' .. ft .. trim(v, '@') : ft .. v})
-    var _groups = join(groups, ',')
-    exe 'syn cluster ' .. ft .. 'MyCustomGroups contains=' .. _groups
+    var groups = mapnew(CUSTOM_GROUPS,
+            {_, v -> v[0] == '@' ? '@' .. ft .. trim(v, '@') : ft .. v})
+        ->join(',')
+    exe 'syn cluster ' .. ft .. 'MyCustomGroups contains=' .. groups
 
     # get the list of groups using `ALLBUT`, and save it in a script-local variable
     # to avoid having to recompute it every time we reload the same kind of buffer

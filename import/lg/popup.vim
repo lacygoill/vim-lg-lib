@@ -55,8 +55,8 @@ enddef
 
 export def Popup_notification(what: any, opts: dict<number> = {}): list<number> #{{{2
 # TODO(Vim9): `what: any` → `what: number|string|list<string>`
-    var lines = Get_lines(what)
-    var n_opts = Get_notification_opts(lines)
+    var lines = GetLines(what)
+    var n_opts = GetNotificationOpts(lines)
     extend(opts, n_opts, 'keep')
     return Popup_create(lines, opts)
 enddef
@@ -78,7 +78,7 @@ def Basic(what: any, opts: dict<any>): list<number> #{{{2
     if type(what) == v:t_string
         _what = split(what, '\n')
     endif
-    extend(opts, {zindex: Get_zindex()}, 'keep')
+    extend(opts, {zindex: GetZindex()}, 'keep')
 
     # Vim doesn't recognize the 'width' and 'height' keys.
     # We really need the `max` keys.{{{
@@ -142,7 +142,7 @@ def Border(what: any, opts: dict<any>): list<number> #{{{2
     extend(opts, {borderhighlight: [get(opts, 'borderhighlight', '')]})
 
     # open final window
-    Set_borderchars(opts)
+    SetBorderchars(opts)
     return Basic(what, opts)
 enddef
 
@@ -155,7 +155,7 @@ def Terminal(what: any, opts: dict<any>): list<number> #{{{2
     # Just use `what`.
     # This is useful, in particular, when toggling a popup terminal.
     #}}}
-    if Is_terminal_buffer(what)
+    if IsTerminalBuffer(what)
         bufnr = what
     else
         var cmd = 'let bufnr = term_start(&shell, #{hidden: v:true, term_finish: ''close'','
@@ -168,12 +168,12 @@ def Terminal(what: any, opts: dict<any>): list<number> #{{{2
     # make sure a border is drawn even if the `border` key was not set
     extend(opts, {border: get(opts, 'border', [])})
     var info = Border(bufnr, opts)
-    Fire_terminal_events()
+    Fireterminalevents()
     return info
 enddef
 #}}}1
 # Util {{{1
-def Fire_terminal_events() #{{{2
+def FireTerminalEvents() #{{{2
     # Install our custom terminal settings as soon as the terminal buffer is displayed in a window.{{{
     #
     # Useful, for example,  to get our `Esc Esc` key  binding, and for `M-p`
@@ -183,7 +183,7 @@ def Fire_terminal_events() #{{{2
     if exists('#User#TermEnter') | do <nomodeline> User TermEnter | endif
 enddef
 
-def Get_zindex(): number #{{{2
+def GetZindex(): number #{{{2
     # Problem:{{{
     #
     # When  we  open  a popup,  we  want  it  to  be visible  immediately  (i.e.
@@ -203,15 +203,15 @@ def Get_zindex(): number #{{{2
     return get(opts, 'zindex', 0) + 1
 enddef
 
-def Get_borderchars(): list<string> #{{{2
+def GetBorderchars(): list<string> #{{{2
     return ['─', '│', '─', '│', '┌', '┐', '┘', '└']
 enddef
 
-def Set_borderchars(opts: dict<any>) #{{{2
-    extend(opts, {borderchars: Get_borderchars()}, 'keep')
+def SetBorderchars(opts: dict<any>) #{{{2
+    extend(opts, {borderchars: GetBorderchars()}, 'keep')
 enddef
 
-def Get_lines(what: any): list<string> #{{{2
+def GetLines(what: any): list<string> #{{{2
 # TODO(Vim9): `what: any` → `what: number|string|list<string>`
     var lines: list<string>
     if type(what) == v:t_list
@@ -224,8 +224,8 @@ def Get_lines(what: any): list<string> #{{{2
     return lines
 enddef
 
-def Get_notification_opts(lines: list<string>): dict<any> #{{{2
-    var longest = Get_longest_width(lines)
+def GetNotificationOpts(lines: list<string>): dict<any> #{{{2
+    var longest = GetLongestWidth(lines)
     var width: number
     var height: number
     [width, height] = [longest, len(lines)]
@@ -245,11 +245,11 @@ def Get_notification_opts(lines: list<string>): dict<any> #{{{2
     return opts
 enddef
 
-def Get_longest_width(lines: list<string>): number
-    return copy(lines)->map({_, v -> strchars(v, 1)})->max()
+def GetLongestWidth(lines: list<string>): number
+    return mapnew(lines, {_, v -> strchars(v, 1)})->max()
 enddef
 
-def Is_terminal_buffer(n: number): bool #{{{2
+def IsTerminalBuffer(n: number): bool #{{{2
     return type(n) == v:t_number && n > 0 && getbufvar(n, '&bt', '') == 'terminal'
 enddef
 

@@ -9,21 +9,11 @@ export def Max(numbers: any): any #{{{1
 
     if empty(numbers)
         return 0
-    elseif copy(numbers)->map({_, v -> type(v)})->index(v:t_float) == -1
+    elseif mapnew(numbers, {_, v -> type(v)})->index(v:t_float) == -1
         return max(numbers)
     endif
-    # TODO: Once Vim9 supports list slicing, refactor the next lines:{{{
-    #
-    #     var max = remove(numbers, 0)
-    #     for n in numbers
-    #
-    #     →
-    #
-    #     var max = numbers[0]
-    #     for n in numbers[1:]
-    #}}}
-    var max = remove(numbers, 0)
-    for n in numbers
+    var max = numbers[0]
+    for n in numbers[1:]
         if n > max
             max = n
         endif
@@ -37,11 +27,11 @@ export def Min(numbers: any): any #{{{1
 # `): any`       → `): number|float`
     if empty(numbers)
         return 0
-    elseif copy(numbers)->map({_, v -> type(v)})->index(v:t_float) == -1
+    elseif mapnew(numbers, {_, v -> type(v)})->index(v:t_float) == -1
         return min(numbers)
     endif
-    var min = remove(numbers, 0)
-    for n in numbers
+    var min = numbers[0]
+    for n in numbers[1:]
         if n < min
             min = n
         endif
