@@ -168,7 +168,7 @@ def Terminal(what: any, opts: dict<any>): list<number> #{{{2
     # make sure a border is drawn even if the `border` key was not set
     extend(opts, {border: get(opts, 'border', [])})
     var info = Border(bufnr, opts)
-    Fireterminalevents()
+    FireTerminalEvents()
     return info
 enddef
 #}}}1
