@@ -61,7 +61,30 @@ if USE_FUNCTION_KEYS
         'L': '<s-f23>',
         'M': '<s-f24>',
         'N': '<s-f25>',
-        'O': '<s-f26>',
+        # Do *not* add 'O'.{{{
+        #
+        #     'O': '<s-f26>',
+        #
+        # It would cause a bug in xterm:
+        #
+        #     # start an xterm terminal
+        #     $ vim -Nu NONE -S <(cat <<'EOF'
+        #         set t_RV= t_TE= t_TI=
+        #         exe "set <s-f26>=\eO"
+        #         cno <s-f26> <nop>
+        #         cno <f3> abc
+        #     EOF
+        #     )
+        #
+        #     " press:     : <F3>
+        #     " expected:  'abc' is written on the command-line
+        #     " actual:    'R' is written on the command-line
+        #
+        # ---
+        #
+        # At  least, don't  do  it  until you  can  stop  clearing `'t_TI'`  and
+        # `'t_TE'` in xterm (for the moment, we have to because of another bug).
+        #}}}
         'P': '<s-f27>',
         'Q': '<s-f28>',
         'R': '<s-f29>',
@@ -75,7 +98,7 @@ if USE_FUNCTION_KEYS
         'Z': '<s-f37>',
     }
 
-    def Set_keysyms()
+    def SetKeysyms()
         for [key, funckey] in items(KEY2FUNC)
             exe 'set ' .. funckey .. "=\e" .. key
         endfor
@@ -86,7 +109,7 @@ if USE_FUNCTION_KEYS
     # Indeed, in gVim,  if you set the keysyms during  the startup process, they
     # are somehow cleared at the end.
     #}}}
-    au VimEnter * Set_keysyms()
+    au VimEnter * SetKeysyms()
 
     # Fix readline commands in a terminal buffer.{{{
     #
@@ -110,14 +133,14 @@ if USE_FUNCTION_KEYS
     #    - you run `:set <xxx>=^[b` (`xxx` being anything: `<M-b>`, `<f13>`, ...)
     #    - you use `:h modifyOtherKeys`
     #}}}
-    def Fix_meta_readline()
+    def FixMetaReadline()
         for [key, funckey] in items(KEY2FUNC)
             exe 'tno ' .. funckey .. ' <esc>' .. key
         endfor
     enddef
-    Fix_meta_readline()
+    FixMetaReadline()
 
-    def Nop_unused_meta_chords()
+    def NopUnusedMetaChords()
         for funckey in values(KEY2FUNC)
             # we don't  want `<f37>` to  be inserted into  the buffer or  on the
             # command-line, if we press `<M-z>` and nothing is bound to it
@@ -131,7 +154,7 @@ if USE_FUNCTION_KEYS
     enddef
     # delay until `VimEnter` so that we can  check which meta keys have not been
     # mapped to anything in the end
-    au VimEnter * Nop_unused_meta_chords()
+    au VimEnter * NopUnusedMetaChords()
 
 elseif IS_MODIFYOTHERKEYS_ENABLED || has('gui_running')
     # Same issue as previously.{{{
@@ -144,16 +167,16 @@ elseif IS_MODIFYOTHERKEYS_ENABLED || has('gui_running')
     # is to install a bunch of Terminal-Job  mode mappings so that Vim sends the
     # right sequences to the shell.
     #}}}
-    def Fix_meta_readline()
+    def FixMetaReadline()
         for key in (range(char2nr('a'), char2nr('z'))
                 + range(char2nr('A'), char2nr('Z')))
             ->map({_, v -> nr2char(v)})
             exe 'tno <m-' .. key .. '> <esc>' .. key
         endfor
     enddef
-    Fix_meta_readline()
+    FixMetaReadline()
 
-    def Nop_unused_meta_chords()
+    def NopUnusedMetaChords()
         var lhs: string
         for key in (range(char2nr('a'), char2nr('z'))
                 + range(char2nr('A'), char2nr('Z')))
@@ -173,7 +196,7 @@ elseif IS_MODIFYOTHERKEYS_ENABLED || has('gui_running')
             endif
         endfor
     enddef
-    au VimEnter * Nop_unused_meta_chords()
+    au VimEnter * NopUnusedMetaChords()
 endif
 
 const FLAG2ARG = {
@@ -189,7 +212,7 @@ const FLAG2ARG = {
 export def MapMeta(key: string, rhs: string, mode: string, flags: string) #{{{2
     try
         exe (mode != '!' ? mode : '') .. (flags =~# 'r' ? 'map' : 'noremap') .. (mode == '!' ? '!' : '')
-            .. ' ' .. Map_arguments(flags)
+            .. ' ' .. MapArguments(flags)
             .. ' ' .. (USE_FUNCTION_KEYS ? KEY2FUNC[key] : '<m-' .. key .. '>')
             .. ' ' .. rhs
     catch /^Vim\%((\a\+)\)\=:E227:/
@@ -525,7 +548,7 @@ def Reinstall(maparg: dict<any>) #{{{2
 enddef
 #}}}1
 # Util {{{1
-def Map_arguments(flags: string): string #{{{2
+def MapArguments(flags: string): string #{{{2
     return split(flags, '\zs')->map({_, v -> get(FLAG2ARG, v, '')})->join()
 enddef
 

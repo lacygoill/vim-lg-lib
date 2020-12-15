@@ -76,8 +76,8 @@ export def FuncComplete(argLead: string, _l: string, _p: number): list<string> #
     # to double each backslash; hence 3 x 2 = 6 backslashes.
     #}}}
     return substitute(argLead, '^\Cs:', '<SNR>[0-9]\\\\\\{1,}_', '')
-        \ ->getcompletion('function')
-        \ ->map({_, v -> substitute(v, '($\|()$', '', '')})
+        ->getcompletion('function')
+        ->map({_, v -> substitute(v, '($\|()$', '', '')})
 enddef
 
 export def GetSelectionText(): list<string> #{{{1
@@ -175,7 +175,10 @@ export def Opfunc(type: string) #{{{1
     if !exists('g:opfunc') || !has_key(g:opfunc, 'core')
         return
     endif
-    var reg_save = getreginfo('"')
+    var reg_unnamed = getreginfo('"')
+    # It might be necessary to save and restore `"0` if the unnamed register was
+    # originally pointing to some arbitrary register (e.g. `"r`).
+    var reg_zero = getreginfo('0')
     var cb_save = &cb
     var sel_save = &sel
     var visual_marks_save = [getpos("'<"), getpos("'>")]
@@ -221,7 +224,8 @@ export def Opfunc(type: string) #{{{1
         Catch()
         return
     finally
-        setreg('"', reg_save)
+        setreg('"', reg_unnamed)
+        setreg('0', reg_unnamed)
         [&cb, &sel] = [cb_save, sel_save]
         # Shouldn't we check the validity of the saved positions?{{{
         #

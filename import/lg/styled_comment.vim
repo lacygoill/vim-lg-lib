@@ -1,6 +1,6 @@
 vim9script
 
-# If you have an issue, have a look at `Get_commentgroup()`.{{{
+# If you have an issue, have a look at `GetCommentgroup()`.{{{
 #
 # It should return a set of syntax groups which can highlight various type of comments.
 #
@@ -10,14 +10,14 @@ vim9script
 #     ^
 #     replace with the filetype you have an issue with
 #
-# In the value returned by `Get_commentgroup()`, include as many groups as you found.
+# In the value returned by `GetCommentgroup()`, include as many groups as you found.
 # }}}
 # Whenever you create or remove a custom syntax group from `Syntax()`, update `CUSTOM_GROUPS`!{{{
 #
 # Otherwise, you may have a broken syntax highlighting in any filetype whose
 # default syntax plugin uses `ALLBUT`.
 #
-# `CUSTOM_GROUPS` is used by `Fix_allbut()` to define `@xMyCustomGroups`.
+# `CUSTOM_GROUPS` is used by `FixAllbut()` to define `@xMyCustomGroups`.
 # We use this cluster to exclude our  custom groups from the ones installed by a
 # default syntax plugin.
 # In the future, it may be useful in a `after/syntax/x.vim`.
@@ -116,7 +116,7 @@ export def Fold() #{{{2
     # *right now*,  not slightly later; so  let's be consistent; let's  set them
     # right now.
     #}}}
-    Fold_settings()
+    FoldSettings()
     # Why naming the augroup `my_fold_x` instead of just `my_x`?{{{
     #
     # Suppose you install this autocmd in `after/ftplugin/x.vim`:
@@ -156,11 +156,11 @@ export def Fold() #{{{2
         #    - we write a file owned by root with `:W`
         #    - we stash some changes with `$ git stash`
         #}}}
-        au BufWinEnter,FileChangedShellPost <buffer> Fold_settings()
+        au BufWinEnter,FileChangedShellPost <buffer> FoldSettings()
     augroup END
 enddef
 
-def Fold_settings()
+def FoldSettings()
     # Why this guard?{{{
     #
     # Without, our fold settings may be unexpectedly applied in a qf buffer.
@@ -203,20 +203,20 @@ def Fold_settings()
     #
     # If you have other similar issues in the future, try this refactoring:
     #
-    #     Fold_settings()
+    #     FoldSettings()
     #     →
-    #     Fold_settings(ft)
-    #                   ^^
+    #     FoldSettings(ft)
+    #                  ^^
     #
-    #     au BufWinEnter,FileChangedShellPost <buffer> Fold_settings()
+    #     au BufWinEnter,FileChangedShellPost <buffer> FoldSettings()
     #     →
-    #     exe 'au BufWinEnter,FileChangedShellPost <buffer> Fold_settings(' .. string(ft) .. ')'
-    #     ^---^                                                           ^--------------------^
+    #     exe 'au BufWinEnter,FileChangedShellPost <buffer> FoldSettings(' .. string(ft) .. ')'
+    #     ^---^                                                          ^--------------------^
     #
-    #     fu Fold_settings() abort
+    #     fu FoldSettings() abort
     #     →
-    #     fu Fold_settings(ft) abort
-    #                      ^^
+    #     fu FoldSettings(ft) abort
+    #                     ^^
     #
     #     if &ft == 'qf' | return | endif
     #     →
@@ -331,7 +331,7 @@ export def Syntax() #{{{2
     # TODO: find a consistent order for the arguments of a region (and other items)
     # and stick to it (here and in the markdown syntax plugin)
 
-    var ft = Get_filetype()
+    var ft = GetFiletype()
     var cml: string
     var cml_0_1: string
     var nr: number
@@ -367,17 +367,17 @@ export def Syntax() #{{{2
         cml_0_1 = '\V\%(' .. cml .. '\)\=\m'
         cml = '\V' .. cml .. '\m'
     endif
-    var commentGroup = Get_commentgroup(ft)
+    var commentGroup = GetCommentgroup(ft)
 
-    Syn_commentleader(ft, cml)
-    Syn_commenttitle(ft, cml, nr)
+    SynCommentleader(ft, cml)
+    SynCommenttitle(ft, cml, nr)
     # Why this guard? {{{
     #
     # For some filetypes, such as html  and css, it's too difficult to implement
     # some styles without any undesirable side effects.
     # }}}
     if index(s:BLACKLIST, ft) == -1
-        Syn_list_item(ft, cml, commentGroup)
+        SynListItem(ft, cml, commentGroup)
         # Don't move the call to `syn_code_block()` somewhere below!{{{
         #
         # `xCommentPointer` must be defined *after* `xCommentCodeBlock`.
@@ -389,15 +389,15 @@ export def Syntax() #{{{2
         #
         # So, unless you know what you're doing, leave this call here.
         #}}}
-        Syn_code_block(ft, cml, commentGroup)
-        Syn_blockquote(ft, cml, commentGroup)
-        Syn_table(ft, cml, commentGroup)
-        Syn_output(ft, cml)
-        Syn_rule(ft, cml, commentGroup)
-        Syn_pointer(ft, cml, commentGroup)
+        SynCodeBlock(ft, cml, commentGroup)
+        SynBlockquote(ft, cml, commentGroup)
+        SynTable(ft, cml, commentGroup)
+        SynOutput(ft, cml)
+        SynRule(ft, cml, commentGroup)
+        SynPointer(ft, cml, commentGroup)
     endif
-    Syn_code_span(ft, commentGroup)
-    # Don't change the order of `Syn_italic()`, `Syn_bold()` and `Syn_bolditalic()`!{{{
+    SynCodeSpan(ft, commentGroup)
+    # Don't change the order of `SynItalic()`, `SynBold()` and `SynBolditalic()`!{{{
     #
     # It would break the syntax highlighting of some style (italic, bold, bold+italic).
     #
@@ -415,20 +415,20 @@ export def Syntax() #{{{2
     #
     # But it would probably have an impact on Vim's performance.
     #}}}
-    Syn_italic(ft, commentGroup)
-    Syn_bold(ft, commentGroup)
-    Syn_bolditalic(ft, commentGroup)
-    # TODO: This invocation of `Syn_option()` doesn't require several arguments.
+    SynItalic(ft, commentGroup)
+    SynBold(ft, commentGroup)
+    SynBolditalic(ft, commentGroup)
+    # TODO: This invocation of `SynOption()` doesn't require several arguments.
     # This  is neat;  study how  it's possible,  and try  to redefine  the other
     # syntax groups, so that we have less arguments to pass.
-    Syn_option(ft)
-    Syn_url(ft, commentGroup)
-    Syn_foldmarkers(ft, cml_0_1, commentGroup)
+    SynOption(ft)
+    SynUrl(ft, commentGroup)
+    SynFoldmarkers(ft, cml_0_1, commentGroup)
 
-    Fix_comment_region(ft)
-    Fix_allbut(ft)
+    FixCommentRegion(ft)
+    FixAllbut(ft)
 
-    Highlight_groups_links(ft)
+    HighlightGroupsLinks(ft)
     # TODO: Read: https://daringfireball.net/projects/markdown/syntax{{{
     # and   https://daringfireball.net/projects/markdown/basics
     #
@@ -443,7 +443,7 @@ export def Syntax() #{{{2
     #}}}
 enddef
 
-def Fix_allbut(ft: string) #{{{2
+def FixAllbut(ft: string) #{{{2
     # What's the purpose of this function?{{{
     #
     # Some default syntax plugins define groups with the argument `contains=ALLBUT`.
@@ -547,7 +547,7 @@ def Fix_allbut(ft: string) #{{{2
     endif
 
     for group in allbut_groups[ft]
-        var cmds = Get_cmds_to_reset_group(group)
+        var cmds = GetCmdsToResetGroup(group)
 
         # add `@xMyCustomGroups` after `ALLBUT`
         map(cmds, {_, v -> substitute(v, '\m\CALLBUT,', 'ALLBUT,@' .. ft .. 'MyCustomGroups,', '')})
@@ -558,7 +558,7 @@ def Fix_allbut(ft: string) #{{{2
     endfor
 enddef
 
-def Fix_comment_region(ft: string) #{{{2
+def FixCommentRegion(ft: string) #{{{2
     # Sometimes, a line is wrongly highlighted as a comment. {{{
     #
     # For  some filetypes,  if a  commented code  block precedes  an uncommented
@@ -603,7 +603,7 @@ def Fix_comment_region(ft: string) #{{{2
     # Here, that's not going to happen; our contained styles never go beyond the
     # last character of a comment.
     #}}}
-    var cmds = Get_cmds_to_reset_group(ft .. 'Comment')
+    var cmds = GetCmdsToResetGroup(ft .. 'Comment')
     # Do not reset the comment group if it doesn't contain any region item.{{{
     #
     # It's only needed for a region, not for a match.
@@ -640,7 +640,7 @@ def Fix_comment_region(ft: string) #{{{2
     map(cmds, {_, v -> execute(v)})
 enddef
 
-def Get_cmds_to_reset_group(group: string): list<string> #{{{2
+def GetCmdsToResetGroup(group: string): list<string> #{{{2
     # get original definition
     var definition = execute('syn list ' .. group)->split('\n')
 
@@ -664,7 +664,7 @@ def Get_cmds_to_reset_group(group: string): list<string> #{{{2
     return cmds
 enddef
 
-def Get_commentgroup(ft: string): string #{{{2
+def GetCommentgroup(ft: string): string #{{{2
     if ft == 'c'
         # What's the difference between `cComment` and `cCommentL`?{{{
         #
@@ -714,7 +714,7 @@ def Get_commentgroup(ft: string): string #{{{2
     endif
 enddef
 
-def Get_filetype(): string #{{{2
+def GetFiletype(): string #{{{2
     var ft = expand('<amatch>')
     if ft == 'snippets'
         ft = 'snip'
@@ -726,7 +726,7 @@ def Get_filetype(): string #{{{2
     return ft
 enddef
 
-def Highlight_groups_links(ft: string) #{{{2
+def HighlightGroupsLinks(ft: string) #{{{2
     exe 'hi ' .. ft .. 'FoldMarkers term=bold cterm=bold gui=bold'
 
     exe 'hi link ' .. ft .. 'CommentURL CommentUnderlined'
@@ -761,7 +761,7 @@ def Highlight_groups_links(ft: string) #{{{2
     exe 'hi link ' .. ft .. 'CommentTitle                 CommentPreProc'
 enddef
 
-def Syn_commentleader(ft: string, cml: string) #{{{2
+def SynCommentleader(ft: string, cml: string) #{{{2
     # Why `\%(^\s*\)\@<=`?{{{
     #
     # Without it, if your comment leader appears inside a list item, it would be
@@ -772,7 +772,7 @@ def Syn_commentleader(ft: string, cml: string) #{{{2
         .. ' contained'
 enddef
 
-def Syn_commenttitle(ft: string, cml: string, nr: number) #{{{2
+def SynCommenttitle(ft: string, cml: string, nr: number) #{{{2
     # Why this guard?{{{
     #
     # The default Vim syntax plugin already installs this style.
@@ -804,7 +804,7 @@ def Syn_commenttitle(ft: string, cml: string, nr: number) #{{{2
         .. ft .. 'Todo'
 enddef
 
-def Syn_list_item(ft: string, cml: string, commentGroup: string) #{{{2
+def SynListItem(ft: string, cml: string, commentGroup: string) #{{{2
     exe 'syn cluster ' .. ft .. 'CommentListItemElements'
         .. ' contains=' .. ft .. 'CommentListItemItalic,'
                         .. ft .. 'CommentListItemBold,'
@@ -835,7 +835,7 @@ def Syn_list_item(ft: string, cml: string, commentGroup: string) #{{{2
         .. ' containedin=' .. commentGroup
 enddef
 
-def Syn_code_block(ft: string, cml: string, commentGroup: string) #{{{2
+def SynCodeBlock(ft: string, cml: string, commentGroup: string) #{{{2
     # Why a region?{{{
     #
     # I  want `xCommentCodeBlock`  to highlight  only  after 5  spaces from  the
@@ -878,7 +878,7 @@ def Syn_code_block(ft: string, cml: string, commentGroup: string) #{{{2
         .. ' oneline'
 enddef
 
-def Syn_code_span(ft: string, commentGroup: string) #{{{2
+def SynCodeSpan(ft: string, commentGroup: string) #{{{2
     # TODO: We sometimes have comments with a different syntax for codespans:{{{
     #
     #     `some text'
@@ -962,7 +962,7 @@ def Syn_code_span(ft: string, commentGroup: string) #{{{2
         .. ' oneline'
 enddef
 
-def Syn_italic(ft: string, commentGroup: string) #{{{2
+def SynItalic(ft: string, commentGroup: string) #{{{2
     # It's impossible  to reliably  support the  italic style  in a  css buffer,
     # because the comment leader includes a star.
     # See our comments about the pitfall to avoid when trying to add support for
@@ -1007,7 +1007,7 @@ def Syn_italic(ft: string, commentGroup: string) #{{{2
         .. ' oneline'
 enddef
 
-def Syn_bold(ft: string, commentGroup: string) #{{{2
+def SynBold(ft: string, commentGroup: string) #{{{2
     # some **bold** comment
     exe 'syn region ' .. ft .. 'CommentBold'
         .. ' matchgroup=Comment'
@@ -1044,7 +1044,7 @@ def Syn_bold(ft: string, commentGroup: string) #{{{2
         .. ' oneline'
 enddef
 
-def Syn_bolditalic(ft: string, commentGroup: string) #{{{2
+def SynBolditalic(ft: string, commentGroup: string) #{{{2
     # some ***bold and italic*** comment
     exe 'syn region ' .. ft .. 'CommentBoldItalic'
         .. ' matchgroup=Comment'
@@ -1081,7 +1081,7 @@ def Syn_bolditalic(ft: string, commentGroup: string) #{{{2
         .. ' oneline'
 enddef
 
-def Syn_blockquote(ft: string, cml: string, commentGroup: string) #{{{2
+def SynBlockquote(ft: string, cml: string, commentGroup: string) #{{{2
     # > some quote
     # <not> a quote
     # Why do you allow `xCommentBold` to be contained in `xCommentBlockquote`?{{{
@@ -1127,7 +1127,7 @@ def Syn_blockquote(ft: string, cml: string, commentGroup: string) #{{{2
         .. ' conceal'
 enddef
 
-def Syn_output(ft: string, cml: string) #{{{2
+def SynOutput(ft: string, cml: string) #{{{2
     #     $ shell command
     #     output~
     # Why `\%(...\)\@<=` for these 2 statements?{{{
@@ -1165,7 +1165,7 @@ def Syn_output(ft: string, cml: string) #{{{2
         .. ' nextgroup=' .. ft .. 'CommentIgnore'
 enddef
 
-def Syn_option(ft: string) #{{{2
+def SynOption(ft: string) #{{{2
     # some `'option'`
     # - some `'option'`
     exe 'syn match ' .. ft .. 'CommentOption'
@@ -1174,7 +1174,7 @@ def Syn_option(ft: string) #{{{2
         .. ' containedin=' .. ft .. 'CommentCodeSpan,' .. ft .. 'CommentListItemCodeSpan'
 enddef
 
-def Syn_pointer(ft: string, cml: string, commentGroup: string) #{{{2
+def SynPointer(ft: string, cml: string, commentGroup: string) #{{{2
     # not a pointer v
     # v
     #       ^
@@ -1188,7 +1188,7 @@ def Syn_pointer(ft: string, cml: string, commentGroup: string) #{{{2
         .. ' containedin=' .. commentGroup
 enddef
 
-def Syn_rule(ft: string, cml: string, commentGroup: string) #{{{2
+def SynRule(ft: string, cml: string, commentGroup: string) #{{{2
     # some
     # ---
     # rule
@@ -1208,7 +1208,7 @@ def Syn_rule(ft: string, cml: string, commentGroup: string) #{{{2
         .. ' contains=' .. ft .. 'CommentLeader'
 enddef
 
-def Syn_table(ft: string, cml: string, commentGroup: string) #{{{2
+def SynTable(ft: string, cml: string, commentGroup: string) #{{{2
     # some table:
     #
     #    ┌───────┬──────┐
@@ -1253,7 +1253,7 @@ def Syn_table(ft: string, cml: string, commentGroup: string) #{{{2
         .. ' contains=@Spell'
 enddef
 
-def Syn_url(ft: string, commentGroup: string) #{{{2
+def SynUrl(ft: string, commentGroup: string) #{{{2
     # Where does the regex come from?{{{
     #
     # https://github.com/tmux-plugins/vim-tmux/blob/4e77341a2f8b9b7e41e81e9debbcecaea5987c85/syntax/tmux.vim#L161
@@ -1290,7 +1290,7 @@ def Syn_url(ft: string, commentGroup: string) #{{{2
         .. ' containedin=' .. commentGroup
 enddef
 
-def Syn_foldmarkers(ft: string, cml_0_1: string, commentGroup: string) #{{{2
+def SynFoldmarkers(ft: string, cml_0_1: string, commentGroup: string) #{{{2
     # If you don't care about html and css, you could probably simplify the code
     # of this function, and get rid of `cml_right`.
 
