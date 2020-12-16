@@ -117,11 +117,11 @@ export def Fold() #{{{2
     # right now.
     #}}}
     FoldSettings()
-    # Why naming the augroup `my_fold_x` instead of just `my_x`?{{{
+    # Why naming the augroup `MyFold_X` instead of just `My_X`?{{{
     #
     # Suppose you install this autocmd in `after/ftplugin/x.vim`:
     #
-    #     augroup my_x
+    #     augroup My_X
     #         au! * <buffer>
     #         au BufWinEnter " do sth
     #     augroup END
@@ -132,11 +132,11 @@ export def Fold() #{{{2
     # done it for you.
     # And  a bit  later, still  in  your vimrc,  you have  installed an  autocmd
     # listening to `FileType`  which calls the current function  (the augroup is
-    # named `styled_comments`).
+    # named `StyledComments`).
     #
     # So,   when  `FileType`   is   fired,  all   the   ftplugins  are   sourced
     # first  (including  the  ones  in   `after/`),  *then*  the  autocmds  from
-    # `styled_comments` are run.
+    # `StyledComments` are run.
     #}}}
     # Why setting those options from an autocmd?{{{
     #
@@ -147,7 +147,7 @@ export def Fold() #{{{2
     # I think that's due to:
     # https://github.com/vim/vim/issues/4994
     #}}}
-    exe 'augroup my_fold_' .. ft
+    exe 'augroup MyFold_' .. ft
         au! * <buffer>
         # Why `FileChangedShellPost`?{{{
         #
@@ -234,7 +234,7 @@ enddef
 export def UndoFtplugin() #{{{2
     var ft = expand('<amatch>')
     b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe')
-        .. '| set cocu< cole< fdm< fdt< | exe "au! my_fold_' .. ft .. ' * <buffer>"'
+        .. '| set cocu< cole< fdm< fdt< | exe "au! MyFold_' .. ft .. ' * <buffer>"'
 enddef
 # }}}1
 # syntax plugin {{{1

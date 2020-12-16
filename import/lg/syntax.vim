@@ -73,7 +73,7 @@ enddef
 # `newAttributes` with the type `any`.
 var derived_hgs: list<dict<any>> = []
 
-augroup reset_derived_hg_when_colorscheme_changes | au!
+augroup ResetDerivedHgWhenColorschemeChanges | au!
     au ColorScheme * ResetDerivedHgWhenColorschemeChanges()
 augroup END
 
