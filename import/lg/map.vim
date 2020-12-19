@@ -21,46 +21,46 @@ var KEY2FUNC: dict<string>
 
 if USE_FUNCTION_KEYS
     KEY2FUNC = {
-        'a': '<f12>',
-        'b': '<f13>',
-        'c': '<f14>',
-        'd': '<f15>',
-        'e': '<f16>',
-        'f': '<f17>',
-        'g': '<f18>',
-        'h': '<f19>',
-        'i': '<f20>',
-        'j': '<f21>',
-        'k': '<f22>',
-        'l': '<f23>',
-        'm': '<f24>',
-        'n': '<f25>',
-        'o': '<f26>',
-        'p': '<f27>',
-        'q': '<f28>',
-        'r': '<f29>',
-        's': '<f30>',
-        't': '<f31>',
-        'u': '<f32>',
-        'v': '<f33>',
-        'w': '<f34>',
-        'x': '<f35>',
-        'y': '<f36>',
-        'z': '<f37>',
-        'A': '<s-f12>',
-        'B': '<s-f13>',
-        'C': '<s-f14>',
-        'D': '<s-f15>',
-        'E': '<s-f16>',
-        'F': '<s-f17>',
-        'G': '<s-f18>',
-        'H': '<s-f19>',
-        'I': '<s-f20>',
-        'J': '<s-f21>',
-        'K': '<s-f22>',
-        'L': '<s-f23>',
-        'M': '<s-f24>',
-        'N': '<s-f25>',
+        a: '<f12>',
+        b: '<f13>',
+        c: '<f14>',
+        d: '<f15>',
+        e: '<f16>',
+        f: '<f17>',
+        g: '<f18>',
+        h: '<f19>',
+        i: '<f20>',
+        j: '<f21>',
+        k: '<f22>',
+        l: '<f23>',
+        m: '<f24>',
+        n: '<f25>',
+        o: '<f26>',
+        p: '<f27>',
+        q: '<f28>',
+        r: '<f29>',
+        s: '<f30>',
+        t: '<f31>',
+        u: '<f32>',
+        v: '<f33>',
+        w: '<f34>',
+        x: '<f35>',
+        y: '<f36>',
+        z: '<f37>',
+        A: '<s-f12>',
+        B: '<s-f13>',
+        C: '<s-f14>',
+        D: '<s-f15>',
+        E: '<s-f16>',
+        F: '<s-f17>',
+        G: '<s-f18>',
+        H: '<s-f19>',
+        I: '<s-f20>',
+        J: '<s-f21>',
+        K: '<s-f22>',
+        L: '<s-f23>',
+        M: '<s-f24>',
+        N: '<s-f25>',
         # Do *not* add 'O'.{{{
         #
         #     'O': '<s-f26>',
@@ -85,17 +85,17 @@ if USE_FUNCTION_KEYS
         # At  least, don't  do  it  until you  can  stop  clearing `'t_TI'`  and
         # `'t_TE'` in xterm (for the moment, we have to because of another bug).
         #}}}
-        'P': '<s-f27>',
-        'Q': '<s-f28>',
-        'R': '<s-f29>',
-        'S': '<s-f30>',
-        'T': '<s-f31>',
-        'U': '<s-f32>',
-        'V': '<s-f33>',
-        'W': '<s-f34>',
-        'X': '<s-f35>',
-        'Y': '<s-f36>',
-        'Z': '<s-f37>',
+        P: '<s-f27>',
+        Q: '<s-f28>',
+        R: '<s-f29>',
+        S: '<s-f30>',
+        T: '<s-f31>',
+        U: '<s-f32>',
+        V: '<s-f33>',
+        W: '<s-f34>',
+        X: '<s-f35>',
+        Y: '<s-f36>',
+        Z: '<s-f37>',
     }
 
     def SetKeysyms()
@@ -327,12 +327,12 @@ export def MapSave(keys: any, mode = '', wantlocal = false): list<dict<any>> #{{
     #}}}
     var _keys = type(keys) == v:t_list ? keys : [keys]
 
-    var save: list<dict<any>> = []
+    var save: list<dict<any>>
     for key in _keys
         # This `for` loop is only necessary if you intend `#save()` to support multiple modes:{{{
         #
         #     var save = MapSave('<c-q>', 'nxo')
-        #                                  ^-^
+        #                                  ^^^
         #}}}
         for m in mode == '' ? [''] : split(mode, '\zs')
             var maparg = Maparg(key, m, wantlocal)

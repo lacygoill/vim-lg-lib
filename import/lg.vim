@@ -176,7 +176,7 @@ export def Opfunc(type: string) #{{{1
         return
     endif
 
-    var reg_save = {}
+    var reg_save: dict<any>
     for regname in ['"', '-'] + range(10)->map({_, v -> string(v)})
         extend(reg_save, {[regname]: getreginfo(regname)})
     endfor
@@ -280,9 +280,7 @@ export def Profile(expr: any = 0): any #{{{1
     return expr
 enddef
 
-# We need to specify  a value because we cannot extend a  null list / dictionary
-# in a `:def` function.
-var profile_log: dict<any> = {}
+var profile_log: dict<any>
 
 export def VimParent(): string #{{{1
 #    ┌────────────────────────────┬─────────────────────────────────────┐

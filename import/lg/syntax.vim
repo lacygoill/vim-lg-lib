@@ -71,7 +71,7 @@ enddef
 
 # We   can't   write   `list<dict<string>>`,   because  we   need   to   declare
 # `newAttributes` with the type `any`.
-var derived_hgs: list<dict<any>> = []
+var derived_hgs: list<dict<any>>
 
 augroup ResetDerivedHgWhenColorschemeChanges | au!
     au ColorScheme * ResetDerivedHgWhenColorschemeChanges()

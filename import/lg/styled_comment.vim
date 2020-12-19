@@ -64,7 +64,7 @@ const BLACKLIST =<< trim END
     html
 END
 
-var allbut_groups = {}
+var allbut_groups: dict<list<string>>
 
 const CUSTOM_GROUPS =<< trim END
     CommentBlockquote
