@@ -1,19 +1,22 @@
-vim9script
+vim9script noclear
+
+if exists('loaded') | finish | endif
+var loaded = true
 
 export def Catch(): string #{{{1
     if get(g:, 'my_verbose_errors', 0)
-        var func_name = matchstr(v:throwpoint, 'function \zs.\{-}\ze,')
+        var funcname = matchstr(v:throwpoint, 'function \zs.\{-}\ze,')
         var line = matchstr(v:throwpoint, '\%(function \)\=.\{-}, \zsline \d\+')
 
         echohl ErrorMsg
-        if !empty(func_name)
-            echom 'Error detected while processing function ' .. func_name .. ':'
+        if !empty(funcname)
+            unsilent echom 'Error detected while processing function ' .. funcname .. ':'
         else
             # the error comes from a (temporary?) file
-            echom 'Error detected while processing ' .. matchstr(v:throwpoint, '.\{-}\ze,') .. ':'
+            unsilent echom 'Error detected while processing ' .. matchstr(v:throwpoint, '.\{-}\ze,') .. ':'
         endif
         echohl LineNr
-        echom line .. ':'
+        unsilent echom line .. ':'
     endif
 
     echohl ErrorMsg
@@ -22,7 +25,7 @@ export def Catch(): string #{{{1
     # will be visible (i.e. `v:exception`).
     # But it doesn't  matter.  All the messages have been  written in Vim's log.
     # So, `:WTF` will be able to show us where the error comes from.
-    echom v:exception
+    unsilent echom v:exception
     echohl NONE
 
     # It's  important   to  return   an  empty   string.   Because   often,  the
@@ -77,7 +80,7 @@ export def FuncComplete(argLead: string, _l: string, _p: number): list<string> #
     #}}}
     return substitute(argLead, '^\Cs:', '<SNR>[0-9]\\\\\\{1,}_', '')
         ->getcompletion('function')
-        ->map({_, v -> substitute(v, '($\|()$', '', '')})
+        ->map((_, v) => substitute(v, '($\|()$', '', ''))
 enddef
 
 export def GetSelectionText(): list<string> #{{{1
@@ -109,7 +112,7 @@ export def GetSelectionCoords(): dict<list<number>> #{{{1
     var pos_v: list<number>
     var start: list<number>
     var end: list<number>
-    [curpos, pos_v] = [getcurpos()[1:2], getpos('v')[1:2]]
+    [curpos, pos_v] = [getcurpos()[1 : 2], getpos('v')[1 : 2]]
     var control_end = curpos[0] > pos_v[0] || curpos[0] == pos_v[0] && curpos[1] >= pos_v[1]
     if control_end
         [start, end] = [pos_v, curpos]
@@ -160,7 +163,7 @@ export def IsVim9(): bool #{{{1
     # the 'def' option...
 
     # we're in the Vim9 context if the first command is `:vim9script`
-    return getline(1) == 'vim9script'
+    return getline(1) =~ '^vim9script\>'
         # ... unless we're in a legacy function
         && searchpair('^\C\s*fu\%[nction]\>', '', '^\C\s*\<endf\%[unction]\>$', 'nW') <= 0
         # in a legacy script, we're in the Vim9 context in a `:def` function
@@ -177,7 +180,7 @@ export def Opfunc(type: string) #{{{1
     endif
 
     var reg_save: dict<any>
-    for regname in ['"', '-'] + range(10)->map({_, v -> string(v)})
+    for regname in ['"', '-'] + range(10)->map((_, v) => string(v))
         extend(reg_save, {[regname]: getreginfo(regname)})
     endfor
 
@@ -228,7 +231,7 @@ export def Opfunc(type: string) #{{{1
         Catch()
         return
     finally
-        keys(reg_save)->map({_, v -> setreg(v, reg_save[v])})
+        keys(reg_save)->map((_, v) => setreg(v, reg_save[v]))
         [&cb, &sel] = [cb_save, sel_save]
         # Shouldn't we check the validity of the saved positions?{{{
         #
@@ -310,7 +313,7 @@ enddef
 export def Win_getid(arg: string): number #{{{1
     if arg == 'P'
         var winnr = range(1, winnr('$'))
-            ->map({_, v -> getwinvar(v, '&pvw')})
+            ->map((_, v) => getwinvar(v, '&pvw'))
             ->index(1) + 1
         if winnr == 0 | return 0 | endif
         return win_getid(winnr)

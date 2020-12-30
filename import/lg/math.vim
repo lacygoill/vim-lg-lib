@@ -1,4 +1,7 @@
-vim9script
+vim9script noclear
+
+if exists('loaded') | finish | endif
+var loaded = true
 
 export def Max(numbers: any): any #{{{1
 # TODO(Vim9):
@@ -9,11 +12,11 @@ export def Max(numbers: any): any #{{{1
 
     if empty(numbers)
         return 0
-    elseif mapnew(numbers, {_, v -> type(v)})->index(v:t_float) == -1
+    elseif mapnew(numbers, (_, v) => type(v))->index(v:t_float) == -1
         return max(numbers)
     endif
     var max = numbers[0]
-    for n in numbers[1:]
+    for n in numbers[1 :]
         if n > max
             max = n
         endif
@@ -27,11 +30,11 @@ export def Min(numbers: any): any #{{{1
 # `): any`       → `): number|float`
     if empty(numbers)
         return 0
-    elseif mapnew(numbers, {_, v -> type(v)})->index(v:t_float) == -1
+    elseif mapnew(numbers, (_, v) => type(v))->index(v:t_float) == -1
         return min(numbers)
     endif
     var min = numbers[0]
-    for n in numbers[1:]
+    for n in numbers[1 :]
         if n < min
             min = n
         endif
@@ -65,7 +68,7 @@ export def MatrixTransposition(lists: list<list<number>>): any #{{{1
     var firstlist = lists[0]
     # handle special case where only 1 list was received (instead of 2)
     if n_lines == 1
-        return len(firstlist)->range()->map({i -> [firstlist[i]]})
+        return len(firstlist)->range()->map((i) => [firstlist[i]])
     endif
 
     # Check that all the arguments are lists and have the same length

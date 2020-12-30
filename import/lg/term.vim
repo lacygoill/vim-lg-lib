@@ -1,4 +1,7 @@
-vim9script
+vim9script noclear
+
+if exists('loaded') | finish | endif
+var loaded = true
 
 # Why don't you move this function in `lg.vim`?{{{
 #

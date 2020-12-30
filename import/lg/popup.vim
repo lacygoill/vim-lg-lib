@@ -1,4 +1,7 @@
-vim9script
+vim9script noclear
+
+if exists('loaded') | finish | endif
+var loaded = true
 
 # `#create()` raises errors!{{{
 #
@@ -246,7 +249,7 @@ def GetNotificationOpts(lines: list<string>): dict<any> #{{{2
 enddef
 
 def GetLongestWidth(lines: list<string>): number
-    return mapnew(lines, {_, v -> strchars(v, 1)})->max()
+    return mapnew(lines, (_, v) => strchars(v, 1))->max()
 enddef
 
 def IsTerminalBuffer(n: number): bool #{{{2

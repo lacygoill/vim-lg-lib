@@ -1,4 +1,7 @@
-vim9script
+vim9script noclear
+
+if exists('loaded') | finish | endif
+var loaded = true
 
 # If you have an issue, have a look at `GetCommentgroup()`.{{{
 #
@@ -471,7 +474,7 @@ def FixAllbut(ft: string) #{{{2
     # current plugin defines.
     #}}}
     var groups = mapnew(CUSTOM_GROUPS,
-            {_, v -> v[0] == '@' ? '@' .. ft .. trim(v, '@') : ft .. v})
+            (_, v) => v[0] == '@' ? '@' .. ft .. trim(v, '@') : ft .. v)
         ->join(',')
     exe 'syn cluster ' .. ft .. 'MyCustomGroups contains=' .. groups
 
@@ -485,8 +488,8 @@ def FixAllbut(ft: string) #{{{2
         #}}}
         allbut_groups[ft] = execute('syn list')
             ->split('\n')
-            ->filter({_, v -> v =~ '\m\CALLBUT' && v !~ '^\s'})
-            ->map({_, v -> matchstr(v, '\S\+')})
+            ->filter((_, v) => v =~ '\m\CALLBUT' && v !~ '^\s')
+            ->map((_, v) => matchstr(v, '\S\+'))
         # Ignore groups defined for embedding another language.{{{
         #
         # Otherwise, this  function breaks the  syntax highlighting in  some Vim
@@ -543,18 +546,18 @@ def FixAllbut(ft: string) #{{{2
         # break  sth else,  consider  maintaining  your own  version  of the  syntax
         # plugin, in which you ignore `@xMyCustomGroups` whenever it's necessary.
         #}}}
-        filter(allbut_groups[ft], {_, v -> v =~ '^' .. ft})
+        filter(allbut_groups[ft], (_, v) => v =~ '^' .. ft)
     endif
 
     for group in allbut_groups[ft]
         var cmds = GetCmdsToResetGroup(group)
 
         # add `@xMyCustomGroups` after `ALLBUT`
-        map(cmds, {_, v -> substitute(v, '\m\CALLBUT,', 'ALLBUT,@' .. ft .. 'MyCustomGroups,', '')})
+        map(cmds, (_, v) => substitute(v, '\m\CALLBUT,', 'ALLBUT,@' .. ft .. 'MyCustomGroups,', ''))
 
         # clear and redefine all the items in the group
         exe 'syn clear ' .. group
-        map(cmds, {_, v -> execute(v)})
+        map(cmds, (_, v) => execute(v))
     endfor
 enddef
 
@@ -635,9 +638,9 @@ def FixCommentRegion(ft: string) #{{{2
     # If it gets too complex, get rid of this function, and redefine the comment
     # group in `~/.vim/after/syntax/x.vim` on a per-filetype basis.
     #}}}
-    map(cmds, {_, v -> v .. ' keepend'})
+    map(cmds, (_, v) => v .. ' keepend')
     exe 'syn clear ' .. ft .. 'Comment'
-    map(cmds, {_, v -> execute(v)})
+    map(cmds, (_, v) => execute(v))
 enddef
 
 def GetCmdsToResetGroup(group: string): list<string> #{{{2
@@ -645,7 +648,7 @@ def GetCmdsToResetGroup(group: string): list<string> #{{{2
     var definition = execute('syn list ' .. group)->split('\n')
 
     # remove noise
-    filter(definition, {_, v -> v !~ '^---\|^\s\+links\s\+to\s\+'})
+    filter(definition, (_, v) => v !~ '^---\|^\s\+links\s\+to\s\+')
     if empty(definition)
         return []
     endif
@@ -653,13 +656,13 @@ def GetCmdsToResetGroup(group: string): list<string> #{{{2
 
     # add  `:syn [keyword|match|region]` to  build new commands  to redefine
     # the items in the group
-    var cmds = map(definition, {_, v ->
+    var cmds = map(definition, (_, v) =>
         match(v, '\m\C\<start=') >= 0
         ?     'syn region ' .. group .. ' ' .. v
         : match(v, '\m\C\<match\>') >= 0
         ?     'syn match ' .. group .. ' ' .. substitute(v, 'match', '', '')
         :     'syn keyword ' .. group .. ' ' .. v
-        })
+        )
 
     return cmds
 enddef

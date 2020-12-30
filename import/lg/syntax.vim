@@ -1,4 +1,7 @@
-vim9script
+vim9script noclear
+
+if exists('loaded') | finish | endif
+var loaded = true
 
 # Interface {{{1
 
@@ -40,7 +43,7 @@ export def Derive(to: string, from: string, newAttributes: any, ...l: any) #{{{2
         originalGroup = from
     endif
     var pat = '^' .. originalGroup .. '\|xxx'
-    var Rep = {m -> m[0] == originalGroup ? to : ''}
+    var Rep = (m) => m[0] == originalGroup ? to : ''
     var _newAttributes = Getattr(newAttributes)
     exe 'hi '
         .. substitute(originalDefinition, pat, Rep, 'g')
@@ -92,7 +95,7 @@ def Getdef(hg: string): string #{{{2
     # }}}
     return execute('hi ' .. hg)
     ->split('\n')
-    ->filter({_, v -> v =~# '^' .. hg })[0]
+    ->filter((_, v) => v =~# '^' .. hg )[0]
 enddef
 
 def Getattr(attr: any): string #{{{2
