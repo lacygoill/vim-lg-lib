@@ -357,7 +357,7 @@ export def Syntax() #{{{2
         # The next statement  invokes `escape()` which may  add backslashes, and
         # alter the real number of characters inside the comment leader.
         #}}}
-        nr = strchars(cml, 1)
+        nr = strchars(cml, true)
         # Why do you escape the slashes?{{{
         #
         # We use a slash as a delimiter around the patterns of our syntax elements.

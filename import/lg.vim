@@ -4,7 +4,7 @@ if exists('loaded') | finish | endif
 var loaded = true
 
 export def Catch(): string #{{{1
-    if get(g:, 'my_verbose_errors', 0)
+    if get(g:, 'my_verbose_errors', false)
         var funcname = matchstr(v:throwpoint, 'function \zs.\{-}\ze,')
         var line = matchstr(v:throwpoint, '\%(function \)\=.\{-}, \zsline \d\+')
 
@@ -163,7 +163,7 @@ export def IsVim9(): bool #{{{1
     # the 'def' option...
 
     # we're in the Vim9 context if the first command is `:vim9script`
-    return getline(1) =~ '^vim9script\>'
+    return getline(1) =~ '^vim9\%[script]\>'
         # ... unless we're in a legacy function
         && searchpair('^\C\s*fu\%[nction]\>', '', '^\C\s*\<endf\%[unction]\>$', 'nW') <= 0
         # in a legacy script, we're in the Vim9 context in a `:def` function
