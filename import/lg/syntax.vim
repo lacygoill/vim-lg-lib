@@ -95,7 +95,7 @@ def Getdef(hg: string): string #{{{2
     # }}}
     return execute('hi ' .. hg)
     ->split('\n')
-    ->filter((_, v) => v =~# '^' .. hg )[0]
+    ->filter((_, v) => v =~ '^' .. hg)[0]
 enddef
 
 def Getattr(attr: any): string #{{{2
@@ -111,7 +111,7 @@ def Getattr(attr: any): string #{{{2
         var code = hlID(hg)
         ->synIDtrans()
         ->synIDattr(_attr, mode)
-        if code =~# '^' .. (gui ? '#\x\+' : '\d\+') .. '$'
+        if code =~ '^' .. (gui ? '#\x\+' : '\d\+') .. '$'
             return mode .. _attr .. '=' .. code
         endif
     endif
