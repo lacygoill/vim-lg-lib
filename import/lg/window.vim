@@ -9,7 +9,7 @@ export def GetWinMod(OpenLoc = v:false): string #{{{1
     var winnr = winnr()
 
     var mod: string
-    if OpenLoc && getloclist(0, {'title': 0}).title =~# '\<TOC$'
+    if OpenLoc && getloclist(0, {'title': 0}).title =~ '\<TOC$'
         mod = 'vert leftabove'
 
     # there's nothing above or below us

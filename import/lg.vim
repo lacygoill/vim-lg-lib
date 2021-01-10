@@ -148,7 +148,7 @@ enddef
 export def InTerminalBuffer(): bool #{{{1
     return &bt == 'terminal'
         # tmux terminal scrollback buffer captured in Vim via `capture-pane`
-        || (&ft == '' && expand('%:p') =~# '^$\|^\%(/proc/\|/tmp/\)' && search('^٪', 'n') > 0)
+        || (&ft == '' && expand('%:p') =~ '^$\|^\%(/proc/\|/tmp/\)' && search('^٪', 'n') > 0)
 enddef
 
 export def IsVim9(): bool #{{{1

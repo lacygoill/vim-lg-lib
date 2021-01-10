@@ -27,14 +27,14 @@ export def Derive(to: string, from: string, newAttributes: any, ...l: any) #{{{2
     var originalDefinition = Getdef(from)
     var originalGroup: string
     # if the `from` syntax group is linked to another group, we need to resolve the link
-    if originalDefinition =~# ' links to \S\+$'
+    if originalDefinition =~ ' links to \S\+$'
         # Why the `while` loop?{{{
         #
         # Well, we don't know how many links there are; there may be more than one.
         # That is, the  `from` syntax group could be linked  to `A`, which could
         # be linked to `B`, ...
         #}}}
-        var g = 0 | while originalDefinition =~# ' links to \S\+$' && g < 9 | g += 1
+        var g = 0 | while originalDefinition =~ ' links to \S\+$' && g < 9 | g += 1
             var link = matchstr(originalDefinition, ' links to \zs\S\+$')
             originalDefinition = Getdef(link)
             originalGroup = link

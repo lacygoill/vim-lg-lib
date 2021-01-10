@@ -10,7 +10,7 @@ var loaded = true
 &t_TI = ''
 &t_TE = ''
 
-const IS_MODIFYOTHERKEYS_ENABLED = &t_TI =~# "\e\\[>4;[12]m"
+const IS_MODIFYOTHERKEYS_ENABLED = &t_TI =~ "\e\\[>4;[12]m"
 # We need to run `:exe "set <f13>=\eb"` instead of `:exe "set <m-b>=\eb"` because:{{{
 #
 #    - we want to be able to insert some accented characters
@@ -214,7 +214,7 @@ const FLAG2ARG = {
 # Interface {{{1
 export def MapMeta(key: string, rhs: string, mode: string, flags: string) #{{{2
     try
-        exe (mode != '!' ? mode : '') .. (flags =~# 'r' ? 'map' : 'noremap') .. (mode == '!' ? '!' : '')
+        exe (mode != '!' ? mode : '') .. (flags =~ 'r' ? 'map' : 'noremap') .. (mode == '!' ? '!' : '')
             .. ' ' .. MapArguments(flags)
             .. ' ' .. (USE_FUNCTION_KEYS ? KEY2FUNC[key] : '<m-' .. key .. '>')
             .. ' ' .. rhs
