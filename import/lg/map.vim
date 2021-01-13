@@ -173,7 +173,7 @@ elseif IS_MODIFYOTHERKEYS_ENABLED || has('gui_running')
     def FixMetaReadline()
         for key in (range(char2nr('a'), char2nr('z'))
                 + range(char2nr('A'), char2nr('Z')))
-            ->map((_, v) => nr2char(v))
+            ->mapnew((_, v) => nr2char(v))
             exe 'tno <m-' .. key .. '> <esc>' .. key
         endfor
     enddef
@@ -183,7 +183,7 @@ elseif IS_MODIFYOTHERKEYS_ENABLED || has('gui_running')
         var lhs: string
         for key in (range(char2nr('a'), char2nr('z'))
                 + range(char2nr('A'), char2nr('Z')))
-            ->map((_, v) => nr2char(v))
+            ->mapnew((_, v) => nr2char(v))
             if toupper(key) == key
                 lhs = '<M-S-' .. key .. '>'
             else

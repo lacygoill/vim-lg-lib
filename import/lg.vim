@@ -180,7 +180,7 @@ export def Opfunc(type: string) #{{{1
     endif
 
     var reg_save: dict<any>
-    for regname in ['"', '-'] + range(10)->map((_, v) => string(v))
+    for regname in ['"', '-'] + range(10)->mapnew((_, v) => string(v))
         extend(reg_save, {[regname]: getreginfo(regname)})
     endfor
 
@@ -231,7 +231,7 @@ export def Opfunc(type: string) #{{{1
         Catch()
         return
     finally
-        keys(reg_save)->map((_, v) => setreg(v, reg_save[v]))
+        keys(reg_save)->mapnew((_, v) => setreg(v, reg_save[v]))
         [&cb, &sel] = [cb_save, sel_save]
         # Shouldn't we check the validity of the saved positions?{{{
         #
