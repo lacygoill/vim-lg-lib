@@ -5,7 +5,7 @@ var loaded = true
 
 import Catch from 'lg.vim'
 
-export def GetWinMod(OpenLoc = v:false): string #{{{1
+export def GetWinMod(OpenLoc = false): string #{{{1
     var winnr: number = winnr()
 
     var mod: string
