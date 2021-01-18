@@ -62,14 +62,14 @@ var loaded = true
 
 # Init {{{1
 
-const BLACKLIST =<< trim END
+const BLACKLIST: list<string> =<< trim END
     css
     html
 END
 
 var allbut_groups: dict<list<string>>
 
-const CUSTOM_GROUPS =<< trim END
+const CUSTOM_GROUPS: list<string> =<< trim END
     CommentBlockquote
     CommentBlockquoteBold
     CommentBlockquoteBoldItalic
@@ -107,7 +107,7 @@ END
 
 # filetype plugin {{{1
 export def Fold() #{{{2
-    var ft = expand('<amatch>')
+    var ft: string = expand('<amatch>')
     # Do *not* remove this function call.{{{
     #
     # Yes, it  seems redundant,  because it  will be called  a second  time when
@@ -221,12 +221,18 @@ def FoldSettings()
     #     fu FoldSettings(ft) abort
     #                     ^^
     #
-    #     if &ft == 'qf' | return | endif
+    #     if &ft == 'qf'
+    #         return
+    #     endif
     #     →
-    #     if &ft != ft | return | endif
-    #        ^-------^
+    #        v-------v
+    #     if &ft != ft
+    #         return
+    #     endif
     #}}}
-    if &ft == 'qf' | return | endif
+    if &ft == 'qf'
+        return
+    endif
 
     setl fdm=marker
     setl fdt=fold#fdt#get()
@@ -235,7 +241,7 @@ def FoldSettings()
 enddef
 
 export def UndoFtplugin() #{{{2
-    var ft = expand('<amatch>')
+    var ft: string = expand('<amatch>')
     b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe')
         .. '| set cocu< cole< fdm< fdt< | exe "au! MyFold_' .. ft .. ' * <buffer>"'
 enddef
@@ -334,7 +340,7 @@ export def Syntax() #{{{2
     # TODO: find a consistent order for the arguments of a region (and other items)
     # and stick to it (here and in the markdown syntax plugin)
 
-    var ft = GetFiletype()
+    var ft: string = GetFiletype()
     var cml: string
     var cml_0_1: string
     var nr: number
@@ -370,7 +376,7 @@ export def Syntax() #{{{2
         cml_0_1 = '\V\%(' .. cml .. '\)\=\m'
         cml = '\V' .. cml .. '\m'
     endif
-    var commentGroup = GetCommentgroup(ft)
+    var commentGroup: string = GetCommentgroup(ft)
 
     SynCommentleader(ft, cml)
     SynCommenttitle(ft, cml, nr)
@@ -473,7 +479,7 @@ def FixAllbut(ft: string) #{{{2
     # It defines  a cluster  containing all  the custom  syntax groups  that the
     # current plugin defines.
     #}}}
-    var groups = mapnew(CUSTOM_GROUPS,
+    var groups: string = mapnew(CUSTOM_GROUPS,
             (_, v) => v[0] == '@' ? '@' .. ft .. trim(v, '@') : ft .. v)
         ->join(',')
     exe 'syn cluster ' .. ft .. 'MyCustomGroups contains=' .. groups
@@ -550,7 +556,7 @@ def FixAllbut(ft: string) #{{{2
     endif
 
     for group in allbut_groups[ft]
-        var cmds = GetCmdsToResetGroup(group)
+        var cmds: list<string> = GetCmdsToResetGroup(group)
 
         # add `@xMyCustomGroups` after `ALLBUT`
         map(cmds, (_, v) => substitute(v, '\m\CALLBUT,', 'ALLBUT,@' .. ft .. 'MyCustomGroups,', ''))
@@ -606,7 +612,7 @@ def FixCommentRegion(ft: string) #{{{2
     # Here, that's not going to happen; our contained styles never go beyond the
     # last character of a comment.
     #}}}
-    var cmds = GetCmdsToResetGroup(ft .. 'Comment')
+    var cmds: list<string> = GetCmdsToResetGroup(ft .. 'Comment')
     # Do not reset the comment group if it doesn't contain any region item.{{{
     #
     # It's only needed for a region, not for a match.
@@ -645,7 +651,7 @@ enddef
 
 def GetCmdsToResetGroup(group: string): list<string> #{{{2
     # get original definition
-    var definition = execute('syn list ' .. group)->split('\n')
+    var definition: list<string> = execute('syn list ' .. group)->split('\n')
 
     # remove noise
     filter(definition, (_, v) => v !~ '^---\|^\s\+links\s\+to\s\+')
@@ -656,7 +662,7 @@ def GetCmdsToResetGroup(group: string): list<string> #{{{2
 
     # add  `:syn [keyword|match|region]` to  build new commands  to redefine
     # the items in the group
-    var cmds = map(definition, (_, v) =>
+    var cmds: list<string> = map(definition, (_, v) =>
         match(v, '\m\C\<start=') >= 0
         ?     'syn region ' .. group .. ' ' .. v
         : match(v, '\m\C\<match\>') >= 0
@@ -718,7 +724,7 @@ def GetCommentgroup(ft: string): string #{{{2
 enddef
 
 def GetFiletype(): string #{{{2
-    var ft = expand('<amatch>')
+    var ft: string = expand('<amatch>')
     if ft == 'snippets'
         ft = 'snip'
     elseif ft == 'desktop'
@@ -821,7 +827,7 @@ def SynListItem(ft: string, cml: string, commentGroup: string) #{{{2
     #   some text
     #
     # - some item 2
-    var list_marker = '[-*+]'
+    var list_marker: string = '[-*+]'
     exe 'syn region ' .. ft .. 'CommentListItem'
         .. ' start=/\%(^\s*\)\@<=' .. cml .. ' \{,4\}\%(' .. list_marker .. '\|\d\+\.\)\s\+\S/'
         # an empty line (except for the comment leader), followed by a non-empty line
@@ -1336,8 +1342,8 @@ def SynFoldmarkers(ft: string, cml_0_1: string, commentGroup: string) #{{{2
     #    ❯❮
     #    ❱❰
     #}}}
-    var cml_left = matchstr(&l:cms, '\S*\ze\s*%s')->escape('\/')
-    var cml_right = matchstr(&l:cms, '.*%s\s*\zs.*')->escape('\/')
+    var cml_left: string = matchstr(&l:cms, '\S*\ze\s*%s')->escape('\/')
+    var cml_right: string = matchstr(&l:cms, '.*%s\s*\zs.*')->escape('\/')
     var pat: string
     var contained: string
     if cml_right == ''

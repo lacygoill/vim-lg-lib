@@ -6,7 +6,7 @@ var loaded = true
 import Catch from 'lg.vim'
 
 export def GetWinMod(OpenLoc = v:false): string #{{{1
-    var winnr = winnr()
+    var winnr: number = winnr()
 
     var mod: string
     if OpenLoc && getloclist(0, {'title': 0}).title =~ '\<TOC$'
@@ -41,7 +41,7 @@ enddef
 
 export def QfOpenOrFocus(qftype: string) #{{{1
     var winid: number
-    var we_are_in_qf = &bt == 'quickfix'
+    var we_are_in_qf: bool = &bt == 'quickfix'
 
     if !we_are_in_qf
         winid = qftype == 'loc'
@@ -93,7 +93,7 @@ enddef
 
 export def WinScratch(lines: list<string>) #{{{1
 # TODO: Improve the whole function after reading `~/wiki/vim/todo/scratch.md`.
-    var tempfile = tempname()
+    var tempfile: string = tempname()
     try
         exe 'sp ' .. tempfile
     # `:pedit` is forbidden from a Vim popup terminal window

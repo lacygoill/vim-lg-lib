@@ -23,14 +23,16 @@ var loaded = true
 #
 # You'll need to use a different expression for each feature; e.g.:
 #
-#     const DEBUG = {'popup': 0, 'other feature': 0}
-#     const LOGFILE = {'popup-nvim': '/tmp/...', 'popup-vim': '/tmp/...', 'other-feature': '/tmp/...'}
+#     const DEBUG: dict<bool> = {popup: false, other feature: false}
+#     const LOGFILE: dict<string> = {popup-nvim: '/tmp/...', popup-vim: '/tmp/...', other-feature: '/tmp/...'}
 #
 #     ...
 #                                   new argument
 #                                   v-----v
 #     def Log(msg, funcname, slnum, feature)
-#         if !DEBUG[feature] | return | endif
+#         if !DEBUG[feature]
+#             return
+#         endif
 #         ...
 #         writefile([time, source, msg], LOGFILE[feature], 'a')
 #         ...
@@ -38,14 +40,14 @@ var loaded = true
 
 # Init {{{1
 
-const DEBUG = 0
-const LOGFILE = '/tmp/.vim-popup-window.log.vim'
+const DEBUG: bool = false
+const LOGFILE: string = '/tmp/.vim-popup-window.log.vim'
 
 # Interface {{{1
 export def Popup_create(what: any, opts: dict<any>): list<number> #{{{2
 # TODO(Vim9): `what: any` → `what: number|string|list<string>`
-    var has_border = has_key(opts, 'border')
-    var is_term = has_key(opts, 'term') ? remove(opts, 'term') : false
+    var has_border: bool = has_key(opts, 'border')
+    var is_term: bool = has_key(opts, 'term') ? remove(opts, 'term') : false
     if !has_border && !is_term
         return Basic(what, opts)
     elseif has_border && !is_term
@@ -56,10 +58,10 @@ export def Popup_create(what: any, opts: dict<any>): list<number> #{{{2
     return []
 enddef
 
-export def Popup_notification(what: any, opts: dict<number> = {}): list<number> #{{{2
+export def Popup_notification(what: any, opts: dict<any> = {}): list<number> #{{{2
 # TODO(Vim9): `what: any` → `what: number|string|list<string>`
-    var lines = GetLines(what)
-    var n_opts = GetNotificationOpts(lines)
+    var lines: list<string> = GetLines(what)
+    var n_opts: dict<any> = GetNotificationOpts(lines)
     extend(opts, n_opts, 'keep')
     return Popup_create(lines, opts)
 enddef
@@ -67,7 +69,7 @@ enddef
 # Core {{{1
 def Basic(what: any, opts: dict<any>): list<number> #{{{2
 # TODO(Vim9): `what: any` → `what: number|string|list<string>`
-    var funcname = expand('<stack>')->matchstr('.*\.\.\zs<SNR>\w\+')
+    var funcname: string = expand('<stack>')->matchstr('.*\.\.\zs<SNR>\w\+')
     # This serves 2 purposes:{{{
     #
     #    - it lets us use a multiline string (otherwise, newlines would be translated into NULs)
@@ -105,7 +107,7 @@ def Basic(what: any, opts: dict<any>): list<number> #{{{2
     remove(opts, 'width') | remove(opts, 'height')
     var cmd = printf('let winid = popup_create(%s, %s)', _what, opts)
     Log(cmd, funcname, expand('<slnum>')->str2nr())
-    var winid = popup_create(_what, opts)
+    var winid: number = popup_create(_what, opts)
 
     # Don't reset the topline of the popup on the next screen redraw.{{{
     #
@@ -151,7 +153,8 @@ enddef
 
 def Terminal(what: any, opts: dict<any>): list<number> #{{{2
 # TODO(Vim9): `what: any` → `what: number|string|list<string>`
-    var funcname = expand('<stack>')->matchstr('\.\.\zs.*\ze\[\d\+\]\.\.$')
+    var funcname: string = expand('<stack>')
+        ->matchstr('\.\.\zs.*\ze\[\d\+\]\.\.$')
     var bufnr: number
     # If `what` is the number of a terminal buffer, don't create yet another one.{{{
     #
@@ -170,7 +173,7 @@ def Terminal(what: any, opts: dict<any>): list<number> #{{{2
     extend(opts, {highlight: 'Normal'})
     # make sure a border is drawn even if the `border` key was not set
     extend(opts, {border: get(opts, 'border', [])})
-    var info = Border(bufnr, opts)
+    var info: list<number> = Border(bufnr, opts)
     FireTerminalEvents()
     return info
 enddef
@@ -201,8 +204,8 @@ def GetZindex(): number #{{{2
     # Get  the `zindex`  value of  the popup  at the  screen position  where the
     # cursor is currently.  Add `1` to that, and return this value.
     #}}}
-    var screenpos = win_getid()->screenpos(line('.'), col('.'))
-    var opts = popup_locate(screenpos.row, screenpos.col)->popup_getoptions()
+    var screenpos: dict<number> = win_getid()->screenpos(line('.'), col('.'))
+    var opts: dict<any> = popup_locate(screenpos.row, screenpos.col)->popup_getoptions()
     return get(opts, 'zindex', 0) + 1
 enddef
 
@@ -228,11 +231,11 @@ def GetLines(what: any): list<string> #{{{2
 enddef
 
 def GetNotificationOpts(lines: list<string>): dict<any> #{{{2
-    var longest = GetLongestWidth(lines)
+    var longest: number = GetLongestWidth(lines)
     var width: number
     var height: number
     [width, height] = [longest, len(lines)]
-    var opts = {
+    var opts: dict<any> = {
         line: 2,
         col: &columns,
         width: width,
@@ -257,13 +260,16 @@ def IsTerminalBuffer(n: number): bool #{{{2
 enddef
 
 def Log(msg: string, funcname: string, slnum: number) #{{{2
-    if !DEBUG | return | endif
-    var time = '" ' .. strftime('%H:%M:%S')
-    var sourcefile = execute('verb fu ' .. funcname)->split('\n')[1]
-    var matchlist = matchlist(sourcefile, '^\s*Last set from \(.*\)\s\+line \(\d\+\)')
+    if !DEBUG
+        return
+    endif
+    var time: string = '" ' .. strftime('%H:%M:%S')
+    var sourcefile: string = execute('verb fu ' .. funcname)->split('\n')[1]
+    var matchlist: list<string> = matchlist(sourcefile,
+        '^\s*Last set from \(.*\)\s\+line \(\d\+\)')
     sourcefile = matchlist[1]
-    var lnum = matchlist[2]->str2nr()
-    var source = '" ' .. sourcefile .. ':' .. (lnum + slnum)
+    var lnum: number = matchlist[2]->str2nr()
+    var source: string = '" ' .. sourcefile .. ':' .. (lnum + slnum)
     writefile([time, source, msg], LOGFILE, 'a')
 enddef
 

@@ -10,7 +10,7 @@ var loaded = true
 &t_TI = ''
 &t_TE = ''
 
-const IS_MODIFYOTHERKEYS_ENABLED = &t_TI =~ "\e\\[>4;[12]m"
+const IS_MODIFYOTHERKEYS_ENABLED: bool = &t_TI =~ "\e\\[>4;[12]m"
 # We need to run `:exe "set <f13>=\eb"` instead of `:exe "set <m-b>=\eb"` because:{{{
 #
 #    - we want to be able to insert some accented characters
@@ -18,7 +18,7 @@ const IS_MODIFYOTHERKEYS_ENABLED = &t_TI =~ "\e\\[>4;[12]m"
 #}}}
 # But not in a terminal where `modifyOtherKeys` is enabled, nor in the GUI.
 # No need to, everything works fine there.
-const USE_FUNCTION_KEYS = !has('gui_running') && !IS_MODIFYOTHERKEYS_ENABLED
+const USE_FUNCTION_KEYS: bool = !has('gui_running') && !IS_MODIFYOTHERKEYS_ENABLED
 
 var KEY2FUNC: dict<string>
 
@@ -202,7 +202,7 @@ elseif IS_MODIFYOTHERKEYS_ENABLED || has('gui_running')
     au VimEnter * NopUnusedMetaChords()
 endif
 
-const FLAG2ARG = {
+const FLAG2ARG: dict<string> = {
     S: '<script>',
     b: '<buffer>',
     e: '<expr>',
@@ -256,7 +256,9 @@ enddef
 
 export def MapSave(keys: any, mode = '', wantlocal = false): list<dict<any>> #{{{2
 # TODO(Vim9): `keys: any` → `keys: list<string>|string`
-    if type(keys) != v:t_list && type(keys) != v:t_string | return [] | endif
+    if type(keys) != v:t_list && type(keys) != v:t_string
+        return []
+    endif
     # `#save()` accepts a list of keys, or just a single key (in a string).
 
     # Which pitfall(s) may I encounter when the pseudo-mode `''` is involved?{{{
@@ -276,7 +278,7 @@ export def MapSave(keys: any, mode = '', wantlocal = false): list<dict<any>> #{{
     # you've installed in the other modes).
     #
     #     nno <c-q> <esc>
-    #     var save = MapSave('<c-q>', '')
+    #     var save: list<dict<any>> = MapSave('<c-q>', '')
     #     noremap <c-q> <esc><esc>
     #     MapRestore(save)
     #     map <c-q>
@@ -314,7 +316,7 @@ export def MapSave(keys: any, mode = '', wantlocal = false): list<dict<any>> #{{
     #     map <c-q>
     #     no <C-Q>       * <Esc>~
     #
-    #     var save = MapSave('<c-q>', 'n')
+    #     var save: list<dict<any>> = MapSave('<c-q>', 'n')
     #     MapRestore(save)
     #     map <c-q>
     #     n  <C-Q>       * <Esc>~
@@ -328,17 +330,17 @@ export def MapSave(keys: any, mode = '', wantlocal = false): list<dict<any>> #{{
     # I  think the  same pitfalls  could  apply to  `v` which  is a  pseudo-mode
     # matching the real modes `x` and `s`.
     #}}}
-    var _keys = type(keys) == v:t_list ? keys : [keys]
+    var _keys: list<string> = type(keys) == v:t_list ? keys : [keys]
 
     var save: list<dict<any>>
     for key in _keys
         # This `for` loop is only necessary if you intend `#save()` to support multiple modes:{{{
         #
-        #     var save = MapSave('<c-q>', 'nxo')
-        #                                  ^^^
+        #     var save: list<dict<any>> = MapSave('<c-q>', 'nxo')
+        #                                                   ^^^
         #}}}
         for m in mode == '' ? [''] : split(mode, '\zs')
-            var maparg = Maparg(key, m, wantlocal)
+            var maparg: dict<any> = Maparg(key, m, wantlocal)
             save += [maparg]
         endfor
     endfor
@@ -347,8 +349,8 @@ enddef
 
 # Usage:{{{
 #
-#     var my_global_mappings = MapSave(['key1', 'key2', ...], 'n')
-#     var my_local_mappings = MapSave(['key1', 'key2', ...], 'n', true)
+#     var my_global_mappings: list<dict<any>> = MapSave(['key1', 'key2', ...], 'n')
+#     var my_local_mappings: list<dict<any>> = MapSave(['key1', 'key2', ...], 'n', true)
 #}}}
 
 export def MapRestore(save: list<dict<any>>) #{{{2
@@ -364,7 +366,9 @@ export def MapRestore(save: list<dict<any>>) #{{{2
     # To support this use case, we need to immediately return when we receive an
     # empty list, since there's nothing to restore.
     #}}}
-    if empty(save) | return | endif
+    if empty(save)
+        return
+    endif
 
     for maparg in save
         # if the mapping was local to a buffer, check we're in the right one
@@ -392,10 +396,11 @@ export def MapRestore(save: list<dict<any>>) #{{{2
         #
         # Besides, it adds a lot of complexity, for a dubious gain:
         #
-        #     var [curbuf, origbuf] = [bufnr('%'), get(maparg, 'bufnr', 0)]
+        #     var curbuf: number = bufnr('%')
+        #     var origbuf: number = get(maparg, 'bufnr', 0)
         #     if get(maparg, 'buffer', 0) && curbuf != origbuf
         #         if bufexists(origbuf)
-        #             var altbuf = @#
+        #             var altbuf: string = @#
         #             exe 'noa b ' .. origbuf
         #         endif
         #     endif
@@ -404,15 +409,17 @@ export def MapRestore(save: list<dict<any>>) #{{{2
         #     # ...
         #     if exists('altbuf')
         #         noa exe 'b ' .. origbuf
-        #         var @# = altbuf
+        #         @# = altbuf
         #     endif
         #}}}
-        if NotInRightBuffer(maparg) | continue | endif
+        if NotInRightBuffer(maparg)
+            continue
+        endif
 
         # if there was no mapping when `#save()` was invoked, there should be no
         # mapping after `#restore()` is invoked
         if has_key(maparg, 'unmapped')
-            var cmd = GetMappingCmd(maparg)
+            var cmd: string = GetMappingCmd(maparg)
             # `sil!` because there's no guarantee that the unmapped key has been
             # mapped  to sth  after  being  saved.  We  move  `sil!` inside  the
             # string, otherwise  it doesn't work  in Vim9 script  (modifiers are
@@ -446,7 +453,7 @@ enddef
 #}}}1
 # Core {{{1
 def Maparg(name: string, mode: string, wantlocal: bool): dict<any> #{{{2
-    var maparg = maparg(name, mode, 0, 1)
+    var maparg: dict<any> = maparg(name, mode, false, true)
 
     # There are 6 cases to consider.{{{
     #
@@ -512,7 +519,7 @@ def Maparg(name: string, mode: string, wantlocal: bool): dict<any> #{{{2
     elseif !wantlocal && Islocal(maparg)
         # remove the shadowing local mapping
         exe mode .. 'unmap <buffer> ' .. name
-        var local_maparg = deepcopy(maparg)->extend({bufnr: bufnr('%')})
+        var local_maparg: dict<any> = deepcopy(maparg)->extend({bufnr: bufnr('%')})
         maparg = Maparg(name, mode, false)
         # restore the shadowing local mapping
         MapRestore([local_maparg])
@@ -537,7 +544,7 @@ def Maparg(name: string, mode: string, wantlocal: bool): dict<any> #{{{2
 enddef
 
 def Reinstall(maparg: dict<any>) #{{{2
-    var cmd = GetMappingCmd(maparg)
+    var cmd: string = GetMappingCmd(maparg)
     exe cmd
         .. ' '
         .. (maparg.buffer  ? ' <buffer> ' : '')

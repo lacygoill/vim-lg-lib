@@ -24,7 +24,7 @@ var loaded = true
 
 export def Derive(to: string, from: string, newAttributes: any, ...l: any) #{{{2
 # TODO(Vim9): `newAttributes: any` → `newAttributes: string|dict<string>`
-    var originalDefinition = Getdef(from)
+    var originalDefinition: string = Getdef(from)
     var originalGroup: string
     # if the `from` syntax group is linked to another group, we need to resolve the link
     if originalDefinition =~ ' links to \S\+$'
@@ -34,17 +34,17 @@ export def Derive(to: string, from: string, newAttributes: any, ...l: any) #{{{2
         # That is, the  `from` syntax group could be linked  to `A`, which could
         # be linked to `B`, ...
         #}}}
-        var g = 0 | while originalDefinition =~ ' links to \S\+$' && g < 9 | g += 1
-            var link = matchstr(originalDefinition, ' links to \zs\S\+$')
+        var g: number = 0 | while originalDefinition =~ ' links to \S\+$' && g < 9 | g += 1
+            var link: string = matchstr(originalDefinition, ' links to \zs\S\+$')
             originalDefinition = Getdef(link)
             originalGroup = link
         endwhile
     else
         originalGroup = from
     endif
-    var pat = '^' .. originalGroup .. '\|xxx'
-    var Rep = (m) => m[0] == originalGroup ? to : ''
-    var _newAttributes = Getattr(newAttributes)
+    var pat: string = '^' .. originalGroup .. '\|xxx'
+    var Rep: func = (m: list<string>): string => m[0] == originalGroup ? to : ''
+    var _newAttributes: string = Getattr(newAttributes)
     exe 'hi '
         .. substitute(originalDefinition, pat, Rep, 'g')
         .. ' ' .. _newAttributes
@@ -66,7 +66,7 @@ export def Derive(to: string, from: string, newAttributes: any, ...l: any) #{{{2
     # exact same command as  we did for the previous one.   We need to re-invoke
     # `Derive()` with the same arguments.
     #}}}
-    var hg = {to: to, from: from, new: newAttributes}
+    var hg: dict<any> = {to: to, from: from, new: newAttributes}
     if index(derived_hgs, hg) == -1
         derived_hgs += [hg]
     endif
@@ -103,12 +103,12 @@ def Getattr(attr: any): string #{{{2
     if type(attr) == v:t_string
         return attr
     elseif type(attr) == v:t_dict
-        var gui = has('gui_running') || &tgc
-        var mode = gui ? 'gui' : 'cterm'
+        var gui: bool = has('gui_running') || &tgc
+        var mode: string = gui ? 'gui' : 'cterm'
         var _attr: string
         var hg: string
         [_attr, hg] = items(attr)[0]
-        var code = hlID(hg)
+        var code: string = hlID(hg)
         ->synIDtrans()
         ->synIDattr(_attr, mode)
         if code =~ '^' .. (gui ? '#\x\+' : '\d\+') .. '$'

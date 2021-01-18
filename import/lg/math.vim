@@ -15,7 +15,7 @@ export def Max(numbers: any): any #{{{1
     elseif mapnew(numbers, (_, v) => type(v))->index(v:t_float) == -1
         return max(numbers)
     endif
-    var max = numbers[0]
+    var max: any = numbers[0]
     for n in numbers[1 :]
         if n > max
             max = n
@@ -33,7 +33,7 @@ export def Min(numbers: any): any #{{{1
     elseif mapnew(numbers, (_, v) => type(v))->index(v:t_float) == -1
         return min(numbers)
     endif
-    var min = numbers[0]
+    var min: any = numbers[0]
     for n in numbers[1 :]
         if n < min
             min = n
@@ -60,19 +60,19 @@ export def MatrixTransposition(lists: list<list<number>>): any #{{{1
     #     [[1, 3, 5], [2, 4, 6]]~
     #}}}
 
-    var n_lines = len(lists)
+    var n_lines: number = len(lists)
     if type(lists) != v:t_list || n_lines == 0
         return -1
     endif
 
-    var firstlist = lists[0]
+    var firstlist: list<number> = lists[0]
     # handle special case where only 1 list was received (instead of 2)
     if n_lines == 1
         return len(firstlist)->range()->map((i) => [firstlist[i]])
     endif
 
     # Check that all the arguments are lists and have the same length
-    var n_columns = len(firstlist)
+    var n_columns: number = len(firstlist)
     for list in lists
         if type(list) != type([]) || len(list) != n_columns
             return -1
@@ -90,7 +90,7 @@ export def MatrixTransposition(lists: list<list<number>>): any #{{{1
     # So we  create a list of  numbers with the same  size (`range(n_columns)`),
     # and then converts each number into `[]`.
     #}}}
-    var transposed = range(n_columns)->map('[]')
+    var transposed: list<string> = range(n_columns)->mapnew('[]')
 
     # Inside our table, we first iterate over lines, then over columns.{{{
     #

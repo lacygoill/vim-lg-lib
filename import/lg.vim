@@ -5,8 +5,8 @@ var loaded = true
 
 export def Catch(): string #{{{1
     if get(g:, 'my_verbose_errors', false)
-        var funcname = matchstr(v:throwpoint, 'function \zs.\{-}\ze,')
-        var line = matchstr(v:throwpoint, '\%(function \)\=.\{-}, \zsline \d\+')
+        var funcname: string = matchstr(v:throwpoint, 'function \zs.\{-}\ze,')
+        var line: string = matchstr(v:throwpoint, '\%(function \)\=.\{-}, \zsline \d\+')
 
         echohl ErrorMsg
         if !empty(funcname)
@@ -87,9 +87,9 @@ export def GetSelectionText(): list<string> #{{{1
     if mode() =~ "[vV\<c-v>]"
         return getreg('*', 1, 1)
     endif
-    var reg_save = getreginfo('"')
-    var cb_save = &cb
-    var sel_save = &sel
+    var reg_save: dict<any> = getreginfo('"')
+    var cb_save: string = &cb
+    var sel_save: string = &sel
     try
         set cb= sel=inclusive
         sil noa norm! gvy
@@ -113,7 +113,8 @@ export def GetSelectionCoords(): dict<list<number>> #{{{1
     var start: list<number>
     var end: list<number>
     [curpos, pos_v] = [getcurpos()[1 : 2], getpos('v')[1 : 2]]
-    var control_end = curpos[0] > pos_v[0] || curpos[0] == pos_v[0] && curpos[1] >= pos_v[1]
+    var control_end: bool = curpos[0] > pos_v[0]
+        || curpos[0] == pos_v[0] && curpos[1] >= pos_v[1]
     if control_end
         [start, end] = [pos_v, curpos]
     else
@@ -156,8 +157,8 @@ export def IsVim9(): bool #{{{1
         return false
     endif
 
-    var patdef = '^\C\s*\%(export\s\+\)\=:\=def\>'
-    #                                    ^
+    var patdef: string = '^\C\s*\%(export\s\+\)\=:\=def\>'
+    #                                            ^
     # Sometimes, we might want to prepend a  colon in front of "def" to fix some
     # syntax highlighting issue.  Without a  colon, "def" might be confused with
     # the 'def' option...
@@ -186,9 +187,9 @@ export def Opfunc(type: string) #{{{1
 
     #     It might be necessary to save and restore `"0` if the unnamed register was
     #     originally pointing to some arbitrary register (e.g. `"r`).
-    var cb_save = &cb
-    var sel_save = &sel
-    var visual_marks_save = [getpos("'<"), getpos("'>")]
+    var cb_save: string = &cb
+    var sel_save: string = &sel
+    var visual_marks_save: list<list<number>> = [getpos("'<"), getpos("'>")]
     try
         set cb= sel=inclusive
         # Yanking may be useless for our opfunc.{{{
@@ -222,7 +223,11 @@ export def Opfunc(type: string) #{{{1
             # selection, as  well as  the auto  highlighting when  we've pressed
             # `coy`.
             #}}}
-            var commands = {char: '`[v`]y', line: "'[V']y", block: "`[\<c-v>`]y"}
+            var commands: dict<string> = {
+                char: '`[v`]y',
+                line: "'[V']y",
+                block: "`[\<c-v>`]y"
+                }
             sil exe 'keepj norm! ' .. get(commands, type, '')
         endif
         call(g:opfunc.core, [type])
@@ -266,11 +271,12 @@ export def Profile(expr: any = 0): any #{{{1
 
 # TODO: It should also work at the script level.
 
-    #     var text = (expand('<stack>') .. ':' .. reltime(time)->reltimestr())
+    #     var text: string = (expand('<stack>') .. ':' .. reltime(time)->reltimestr())
     #         ->matchstr('function \%(.*\.\.\)\=\zs.*\ze\[\d\+\]\.\.<snr>\d\+_Profile')
     #     writefile([text], '/tmp/vim9profile', 'a')
 
-    var location = expand('<stack>')->matchstr('function \zs.*\ze\.\.<SNR>\d\+_Profile\[\d\+\]$')
+    var location: string = expand('<stack>')
+        ->matchstr('function \zs.*\ze\.\.<SNR>\d\+_Profile\[\d\+\]$')
     extend(profile_log, {location: {
         timestamp: reltime(),
         total_time: 0,
@@ -312,13 +318,15 @@ enddef
 
 export def Win_getid(arg: string): number #{{{1
     if arg == 'P'
-        var winnr = range(1, winnr('$'))
+        var winnr: number = range(1, winnr('$'))
             ->map((_, v) => getwinvar(v, '&pvw'))
             ->index(1) + 1
-        if winnr == 0 | return 0 | endif
+        if winnr == 0
+            return 0
+        endif
         return win_getid(winnr)
     elseif arg == '#'
-        var winnr = winnr('#')
+        var winnr: number = winnr('#')
         return win_getid(winnr)
     endif
     return 0
