@@ -9,7 +9,7 @@ export def GetWinMod(OpenLoc = false): string #{{{1
     var winnr: number = winnr()
 
     var mod: string
-    if OpenLoc && getloclist(0, {'title': 0}).title =~ '\<TOC$'
+    if OpenLoc && getloclist(0, {title: 0}).title =~ '\<TOC$'
         mod = 'vert leftabove'
 
     # there's nothing above or below us
@@ -45,8 +45,8 @@ export def QfOpenOrFocus(qftype: string) #{{{1
 
     if !we_are_in_qf
         winid = qftype == 'loc'
-            ? getloclist(0, {'winid': 0}).winid
-            : getqflist({'winid': 0}).winid
+            ? getloclist(0, {winid: 0}).winid
+            : getqflist({winid: 0}).winid
         if !winid
             # Why `:[cl]open`? Are they valid commands here?{{{
             #
@@ -85,8 +85,8 @@ export def QfOpenOrFocus(qftype: string) #{{{1
 
     # if we are already in the ll window, focus the associated window
     elseif we_are_in_qf && qftype == 'loc'
-        getloclist(0, {'filewinid': 0})
-            ->get('filewinid', 0)
+        getloclist(0, {filewinid: 0})
+            ->get(filewinid, 0)
             ->win_gotoid()
     endif
 enddef

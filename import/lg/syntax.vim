@@ -19,7 +19,7 @@ var loaded = true
 #     # create `PopupSign` from `WarningMsg`; override the `guibg` or `ctermbg` attribute,
 #     # using the colors of the `Normal` HG
 #
-#         Derive('PopupSign', 'WarningMsg', {'bg': 'Normal'})
+#         Derive('PopupSign', 'WarningMsg', {bg: 'Normal'})
 #}}}
 
 export def Derive(to: string, from: string, newAttributes: any, ...l: any) #{{{2
