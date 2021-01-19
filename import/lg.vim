@@ -44,8 +44,8 @@ export def FuncComplete(argLead: string, _l: string, _p: number): list<string> #
     # Example:
     #
     #     import FuncComplete from 'lg.vim'
-    #     com -bar -complete=customlist,s:FuncComplete -nargs=? Def exe s:def(<q-args>)
-    #              ^---------------------------------^
+    #     com -bar -complete=customlist,FuncComplete -nargs=? Def Def(<q-args>)
+    #              ^-------------------------------^
     #}}}
 
     # We really need to return a list, and not a newline-separated list wrapped inside a string.{{{
@@ -58,11 +58,11 @@ export def FuncComplete(argLead: string, _l: string, _p: number): list<string> #
     # We  must use  `-complete=customlist` to  disable the  filtering, and  that
     # means that this function must return a list, not a string.
     #
-    #     com -bar -complete=custom,s:FuncComplete -nargs=? Def exe s:def(<q-args>)
+    #     com -bar -complete=custom,FuncComplete -nargs=? Def Def(<q-args>)
     #                        ^----^
     #                          ✘
     #
-    #     com -bar -complete=customlist,s:FuncComplete -nargs=? Def exe s:def(<q-args>)
+    #     com -bar -complete=customlist,FuncComplete -nargs=? Def Def(<q-args>)
     #                        ^--------^
     #                            ✔
     #
@@ -180,7 +180,7 @@ export def Opfunc(type: string) #{{{1
         return
     endif
 
-    var reg_save: dict<any>
+    var reg_save: dict<dict<any>>
     for regname in ['"', '-'] + range(10)->mapnew((_, v) => string(v))
         extend(reg_save, {[regname]: getreginfo(regname)})
     endfor

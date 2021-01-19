@@ -90,7 +90,7 @@ export def MatrixTransposition(lists: list<list<number>>): any #{{{1
     # So we  create a list of  numbers with the same  size (`range(n_columns)`),
     # and then converts each number into `[]`.
     #}}}
-    var transposed: list<string> = range(n_columns)->mapnew('[]')
+    var transposed: list<list<number>> = range(n_columns)->mapnew('[]')
 
     # Inside our table, we first iterate over lines, then over columns.{{{
     #
