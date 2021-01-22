@@ -86,7 +86,7 @@ export def QfOpenOrFocus(qftype: string) #{{{1
     # if we are already in the ll window, focus the associated window
     elseif we_are_in_qf && qftype == 'loc'
         getloclist(0, {filewinid: 0})
-            ->get(filewinid, 0)
+            ->get('filewinid', 0)
             ->win_gotoid()
     endif
 enddef
