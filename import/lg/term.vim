@@ -14,6 +14,6 @@ export def Termname(): string #{{{1
     if exists('$TMUX')
         return system('tmux display -p "#{client_termname}"')->trim("\n", 2)
     else
-        return $TERM
+        return &term
     endif
 enddef

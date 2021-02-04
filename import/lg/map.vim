@@ -108,9 +108,9 @@ if USE_FUNCTION_KEYS
     enddef
     # We don't really need to delay until `VimEnter` for the moment.{{{
     #
-    # But it could be necessary in the future if you want to run this code for gVim.
-    # Indeed, in gVim,  if you set the keysyms during  the startup process, they
-    # are somehow cleared at the end.
+    # But it could be necessary in the future if you want to run this code for the GUI.
+    # Indeed, in  the GUI, if  you set the  keysyms during the  startup process,
+    # they are somehow cleared at the end.
     #}}}
     au VimEnter * SetKeysyms()
 
@@ -130,7 +130,7 @@ if USE_FUNCTION_KEYS
     #
     # ---
     #
-    # The issue affects gVim.
+    # The issue affects the GUI.
     # The issue affects Vim iff one of these statements is true:
     #
     #    - you run `:set <xxx>=^[b` (`xxx` being anything: `<M-b>`, `<f13>`, ...)
@@ -163,7 +163,7 @@ elseif IS_MODIFYOTHERKEYS_ENABLED || has('gui_running')
     # Same issue as previously.{{{
     #
     # When  you press  `M-b`,  the terminal  sends some  special  sequence in  a
-    # terminal where modifyOtherKeys is enabled, or `Esc` + `b` in gVim.
+    # terminal where modifyOtherKeys is enabled, or `Esc` + `b` in the GUI.
     #
     # In any case, Vim encodes the sequence  into `â`, which is then sent to the
     # shell.  Again, this  breaks all readline commands, and  again the solution

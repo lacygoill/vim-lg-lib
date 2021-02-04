@@ -59,7 +59,7 @@ export def Derive(to: string, from: string, newAttributes: any, ...l: any) #{{{2
     # If we change the color scheme, we want to *re*-derive the HG.
     # For example, suppose we've run:
     #
-    #     call s:Derive('Ulti', 'Visual', 'term=bold cterm=bold gui=bold')
+    #     Derive('Ulti', 'Visual', 'term=bold cterm=bold gui=bold')
     #
     # `Visual`  doesn't  have the  same  attributes  from  one color  scheme  to
     # another.  The next time we change the  color scheme, we can't just run the

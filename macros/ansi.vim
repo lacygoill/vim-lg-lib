@@ -72,7 +72,7 @@ const ATTR: dict<dict<string>> = {
 }
 
 def Ansi() #{{{1
-    if !search('\e', 'cn')
+    if search('\e', 'cn') == 0
         return
     endif
     var view: dict<number> = winsaveview()

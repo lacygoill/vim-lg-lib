@@ -385,7 +385,7 @@ export def Syntax() #{{{2
     # For some filetypes, such as html  and css, it's too difficult to implement
     # some styles without any undesirable side effects.
     # }}}
-    if index(s:BLACKLIST, ft) == -1
+    if index(BLACKLIST, ft) == -1
         SynListItem(ft, cml, commentGroup)
         # Don't move the call to `syn_code_block()` somewhere below!{{{
         #

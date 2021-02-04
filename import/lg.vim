@@ -34,6 +34,30 @@ export def Catch(): string #{{{1
     return ''
 enddef
 
+export def FixIndent() #{{{1
+# Purpose: fix indentation from insert mode; like pressing `C-f`.
+    var splitted_cinkeys: list<string> = &cinkeys->split(',')
+    var n: number = splitted_cinkeys->match('^!')
+    if n == -1
+        return
+    endif
+    var key: string = splitted_cinkeys[n]->trim('!', 1)
+    if key =~ '^\^'
+        key = substitute(key, '^\^', '<c-', '') .. '>'
+        key = eval('"\' .. key .. '"')
+    endif
+    var cindent_was_off: bool = !&l:cindent
+    setl cindent
+    feedkeys(key, 'int')
+    if cindent_was_off
+        var buf: number = bufnr('%')
+        TurnOffCindent = () => bufnr('%') == buf && !!execute('setl nocindent')
+        au SafeState * ++once TurnOffCindent()
+    endif
+enddef
+
+var TurnOffCindent: func
+
 export def FuncComplete(argLead: string, _l: string, _p: number): list<string> #{{{1
     # Problem: `:breakadd`, `:def`, and `profile` don't complete function names.{{{
     #
@@ -105,14 +129,14 @@ enddef
 
 export def GetSelectionCoords(): dict<list<number>> #{{{1
 # Get the coordinates of the current visual selection without quitting visual mode.
-    if mode() !~# "^[vV\<c-v>]$"
+    if mode() !~ "^[vV\<c-v>]$"
         return {}
     endif
     var curpos: list<number>
     var pos_v: list<number>
     var start: list<number>
     var end: list<number>
-    [curpos, pos_v] = [getcurpos()[1 : 2], getpos('v')[1 : 2]]
+    [pos_v, curpos] = [getpos('v')[1 : 2], getcurpos()[1 : 2]]
     var control_end: bool = curpos[0] > pos_v[0]
         || curpos[0] == pos_v[0] && curpos[1] >= pos_v[1]
     if control_end
@@ -252,45 +276,6 @@ export def Opfunc(type: string) #{{{1
     endtry
 enddef
 
-export def Profile(expr: any = 0): any #{{{1
-# The function needs to accept an optional argument, so that we can profile a method call.{{{
-#
-#     eval expr
-#         ->FuncA()
-#         ->Profile() # start profiling
-#         ->FuncB()
-#         ->Profile() # stop profiling
-#         ->FuncC()
-#}}}
-
-# TODO: The function should save the initial time in a script-local dictionary.
-# The keys of this dictionary should be the names of the functions we're profiling.
-# But what if we want to profile different subsets of a function's body?
-# I guess the keys  should be more specific than a  simple function name; should
-# they also include a line number?
-
-# TODO: It should also work at the script level.
-
-    #     var text: string = (expand('<stack>') .. ':' .. reltime(time)->reltimestr())
-    #         ->matchstr('function \%(.*\.\.\)\=\zs.*\ze\[\d\+\]\.\.<snr>\d\+_Profile')
-    #     writefile([text], '/tmp/vim9profile', 'a')
-
-    var location: string = expand('<stack>')
-        ->matchstr('function \zs.*\ze\.\.<SNR>\d\+_Profile\[\d\+\]$')
-    extend(profile_log, {location: {
-        timestamp: reltime(),
-        total_time: 0,
-        count: 1,
-        end_lnum: 0,
-        # TODO: do we really need this flag?
-        profiling: true,
-        }})
-    # echom profile_log
-    return expr
-enddef
-
-var profile_log: dict<any>
-
 export def VimParent(): string #{{{1
 #    ┌────────────────────────────┬─────────────────────────────────────┐
 #    │ :echo getpid()             │ print the PID of Vim                │
@@ -320,7 +305,7 @@ export def Win_getid(arg: string): number #{{{1
     if arg == 'P'
         var winnr: number = range(1, winnr('$'))
             ->map((_, v) => getwinvar(v, '&pvw'))
-            ->index(1) + 1
+            ->index(true) + 1
         if winnr == 0
             return 0
         endif

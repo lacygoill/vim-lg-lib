@@ -42,6 +42,7 @@ var loaded = true
 
 const DEBUG: bool = false
 const LOGFILE: string = '/tmp/.vim-popup-window.log.vim'
+const MAX_ZINDEX: number = 32'000
 
 # Interface {{{1
 export def Popup_create(what: any, opts: dict<any>): list<number> #{{{2
@@ -83,7 +84,7 @@ def Basic(what: any, opts: dict<any>): list<number> #{{{2
     if type(what) == v:t_string
         _what = split(what, '\n')
     endif
-    extend(opts, {zindex: GetZindex()}, 'keep')
+    extend(opts, {zindex: MAX_ZINDEX}, 'keep')
 
     # Vim doesn't recognize the 'width' and 'height' keys.
     # We really need the `max` keys.{{{
@@ -119,7 +120,7 @@ def Basic(what: any, opts: dict<any>): list<number> #{{{2
     #    > firstline       ...
     #    >                 Set to zero to leave the position as set by commands.
     #}}}
-    cmd = printf('call popup_setoptions(%d, #{firstline: 0})', winid)
+    cmd = printf('call popup_setoptions(%d, {''firstline'': 0})', winid)
     Log(cmd, funcname, expand('<slnum>')->str2nr())
     popup_setoptions(winid, {firstline: 0})
     return [winbufnr(winid), winid]
@@ -164,7 +165,7 @@ def Terminal(what: any, opts: dict<any>): list<number> #{{{2
     if IsTerminalBuffer(what)
         bufnr = what
     else
-        var cmd = 'let bufnr = term_start(&shell, #{hidden: v:true, term_finish: ''close'','
+        var cmd = 'let bufnr = term_start(&shell, {''hidden'': v:true, ''term_finish'': ''close'','
             .. ' term_kill: ''hup''})'
         Log(cmd, funcname, expand('<slnum>')->str2nr())
         bufnr = term_start(&shell, {hidden: true, term_finish: 'close', term_kill: 'hup'})
@@ -187,26 +188,6 @@ def FireTerminalEvents() #{{{2
     #}}}
     if exists('#TerminalWinOpen') | do <nomodeline> TerminalWinOpen | endif
     if exists('#User#TermEnter') | do <nomodeline> User TermEnter | endif
-enddef
-
-def GetZindex(): number #{{{2
-    # Problem:{{{
-    #
-    # When  we  open  a popup,  we  want  it  to  be visible  immediately  (i.e.
-    # not  hidden  by another  popup  with  a higher  `zindex`),  so  we need  a
-    # not-too-small `zindex` value.
-    #
-    # But when Vim or a third-party plugin opens  a popup, we also want it to be
-    # visible immediately, so we need a not-too-big `zindex` value.
-    #}}}
-    # Solution:{{{
-    #
-    # Get  the `zindex`  value of  the popup  at the  screen position  where the
-    # cursor is currently.  Add `1` to that, and return this value.
-    #}}}
-    var screenpos: dict<number> = win_getid()->screenpos(line('.'), col('.'))
-    var opts: dict<any> = popup_locate(screenpos.row, screenpos.col)->popup_getoptions()
-    return get(opts, 'zindex', 0) + 1
 enddef
 
 def GetBorderchars(): list<string> #{{{2
