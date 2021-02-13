@@ -81,7 +81,7 @@ def Basic(what: any, opts: dict<any>): list<number> #{{{2
     #         E121: Undefined variable: TEST~
     #}}}
     var _what: any = what
-    if type(what) == v:t_string
+    if typename(what) == 'string'
         _what = split(what, '\n')
     endif
     extend(opts, {zindex: MAX_ZINDEX}, 'keep')
@@ -201,11 +201,11 @@ enddef
 def GetLines(what: any): list<string> #{{{2
 # TODO(Vim9): `what: any` → `what: number|string|list<string>`
     var lines: list<string>
-    if type(what) == v:t_list
+    if typename(what) =~ '^list'
         lines = what
-    elseif type(what) == v:t_string
+    elseif typename(what) == 'string'
         lines = split(what, '\n')
-    elseif type(what) == v:t_number
+    elseif typename(what) == 'number'
         lines = getbufline(what, 1, '$')
     endif
     return lines
@@ -237,7 +237,7 @@ def GetLongestWidth(lines: list<string>): number
 enddef
 
 def IsTerminalBuffer(n: number): bool #{{{2
-    return type(n) == v:t_number && n > 0 && getbufvar(n, '&bt', '') == 'terminal'
+    return typename(n) == 'number' && n > 0 && getbufvar(n, '&bt', '') == 'terminal'
 enddef
 
 def Log(msg: string, funcname: string, slnum: number) #{{{2

@@ -256,7 +256,7 @@ enddef
 
 export def MapSave(keys: any, mode = '', wantlocal = false): list<dict<any>> #{{{2
 # TODO(Vim9): `keys: any` → `keys: list<string>|string`
-    if type(keys) != v:t_list && type(keys) != v:t_string
+    if typename(keys) !~ '^list' && typename(keys) != 'string'
         return []
     endif
     # `#save()` accepts a list of keys, or just a single key (in a string).
@@ -330,7 +330,7 @@ export def MapSave(keys: any, mode = '', wantlocal = false): list<dict<any>> #{{
     # I  think the  same pitfalls  could  apply to  `v` which  is a  pseudo-mode
     # matching the real modes `x` and `s`.
     #}}}
-    var _keys: list<string> = type(keys) == v:t_list ? keys : [keys]
+    var _keys: list<string> = typename(keys) =~ '^list' ? keys : [keys]
 
     var save: list<dict<any>>
     for key in _keys

@@ -36,20 +36,32 @@ enddef
 
 export def FixIndent() #{{{1
 # Purpose: fix indentation from insert mode; like pressing `C-f`.
-    var splitted_cinkeys: list<string> = &cinkeys->split(',')
-    var n: number = splitted_cinkeys->match('^!')
+    if &l:indentexpr == '' && !&l:cindent
+        return
+    endif
+    var splitted_keys: list<string> =
+        (&l:indentexpr != '' ? &l:indentkeys : &l:cinkeys)->split(',')
+    var n: number = splitted_keys->match('^!')
     if n == -1
         return
     endif
-    var key: string = splitted_cinkeys[n]->trim('!', 1)
+    var key: string = splitted_keys[n]->trim('!', 1)
     if key =~ '^\^'
         key = substitute(key, '^\^', '<c-', '') .. '>'
         key = eval('"\' .. key .. '"')
     endif
-    var cindent_was_off: bool = !&l:cindent
-    setl cindent
-    feedkeys(key, 'int')
-    if cindent_was_off
+    var need_to_set_cindent: bool = &l:indentexpr == '' && !&l:cindent
+    if need_to_set_cindent
+        setl cindent
+    endif
+    # Do *not* use the `t` flag!{{{
+    #
+    # Suppose we want  to undo afterward; `t`  would cause the key  to break the
+    # undo sequence, which in turn would force  us to press `u` twice instead of
+    # once.
+    #}}}
+    feedkeys(key, 'in')
+    if need_to_set_cindent
         var buf: number = bufnr('%')
         TurnOffCindent = () => bufnr('%') == buf && !!execute('setl nocindent')
         au SafeState * ++once TurnOffCindent()

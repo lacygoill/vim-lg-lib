@@ -12,7 +12,7 @@ export def Max(numbers: any): any #{{{1
 
     if empty(numbers)
         return 0
-    elseif mapnew(numbers, (_, v) => type(v))->index(v:t_float) == -1
+    elseif mapnew(numbers, (_, v) => typename(v))->index('float') == -1
         return max(numbers)
     endif
     var max: any = numbers[0]
@@ -30,7 +30,7 @@ export def Min(numbers: any): any #{{{1
 # `): any`       → `): number|float`
     if empty(numbers)
         return 0
-    elseif mapnew(numbers, (_, v) => type(v))->index(v:t_float) == -1
+    elseif mapnew(numbers, (_, v) => typename(v))->index('float') == -1
         return min(numbers)
     endif
     var min: any = numbers[0]
@@ -61,7 +61,7 @@ export def MatrixTransposition(lists: list<list<number>>): any #{{{1
     #}}}
 
     var n_lines: number = len(lists)
-    if type(lists) != v:t_list || n_lines == 0
+    if typename(lists) !~ '^list' || n_lines == 0
         return -1
     endif
 

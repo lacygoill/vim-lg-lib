@@ -100,9 +100,9 @@ enddef
 
 def Getattr(attr: any): string #{{{2
     # TODO(Vim9): `attr: any` → `attr: string|dict<string>`
-    if type(attr) == v:t_string
+    if typename(attr) == 'string'
         return attr
-    elseif type(attr) == v:t_dict
+    elseif typename(attr) =~ '^dict'
         var gui: bool = has('gui_running') || &tgc
         var mode: string = gui ? 'gui' : 'cterm'
         var _attr: string
