@@ -1,4 +1,4 @@
-vim9 noclear
+vim9script noclear
 
 if exists('loaded') | finish | endif
 var loaded = true
@@ -200,7 +200,7 @@ export def IsVim9(): bool #{{{1
     # the 'def' option...
 
     # we're in the Vim9 context if the first command is `:vim9script`
-    return getline(1) =~ '^vim9\%[script]\>'
+    return getline(1) =~ '^vim9s\%[cript]\>'
         # ... unless we're in a legacy function
         && searchpair('^\C\s*fu\%[nction]\>', '', '^\C\s*\<endf\%[unction]\>$', 'nW') <= 0
         # in a legacy script, we're in the Vim9 context in a `:def` function
