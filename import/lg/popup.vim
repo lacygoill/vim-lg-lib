@@ -59,11 +59,11 @@ export def Popup_create(what: any, opts: dict<any>): list<number> #{{{2
     return []
 enddef
 
-export def Popup_notification(what: any, opts: dict<any> = {}): list<number> #{{{2
+export def Popup_notification(what: any, arg_opts: dict<any> = {}): list<number> #{{{2
 # TODO(Vim9): `what: any` → `what: number|string|list<string>`
     var lines: list<string> = GetLines(what)
     var n_opts: dict<any> = GetNotificationOpts(lines)
-    extend(opts, n_opts, 'keep')
+    var opts: dict<any> = extendnew(arg_opts, n_opts, 'keep')
     return Popup_create(lines, opts)
 enddef
 #}}}1
@@ -76,7 +76,7 @@ def Basic(what: any, opts: dict<any>): list<number> #{{{2
     #    - it lets us use a multiline string (otherwise, newlines would be translated into NULs)
     #    - it prevents an error later:
     #
-    #         var cmd = printf('let winid = popup_create(%s, %s)', what, opts)
+    #         var cmd: string = printf('let winid = popup_create(%s, %s)', what, opts)
     #         " if `what` is the string 'TEST', the surrounding quotes will be removed by `printf()`:
     #         E121: Undefined variable: TEST~
     #}}}
@@ -106,7 +106,7 @@ def Basic(what: any, opts: dict<any>): list<number> #{{{2
         maxheight: opts.height,
         })
     remove(opts, 'width') | remove(opts, 'height')
-    var cmd = printf('let winid = popup_create(%s, %s)', _what, opts)
+    var cmd: string = printf('let winid = popup_create(%s, %s)', _what, opts)
     Log(cmd, funcname, expand('<slnum>')->str2nr())
     var winid: number = popup_create(_what, opts)
 
@@ -165,8 +165,11 @@ def Terminal(what: any, opts: dict<any>): list<number> #{{{2
     if IsTerminalBuffer(what)
         bufnr = what
     else
-        var cmd = 'let bufnr = term_start(&shell, {''hidden'': v:true, ''term_finish'': ''close'','
-            .. ' term_kill: ''hup''})'
+        var cmd: string = 'let bufnr = term_start(&shell, #{'
+            .. 'hidden: v:true,'
+            .. 'term_finish: "close",'
+            .. 'term_kill: "hup",'
+            .. '})'
         Log(cmd, funcname, expand('<slnum>')->str2nr())
         bufnr = term_start(&shell, {hidden: true, term_finish: 'close', term_kill: 'hup'})
     endif
@@ -233,7 +236,9 @@ def GetNotificationOpts(lines: list<string>): dict<any> #{{{2
 enddef
 
 def GetLongestWidth(lines: list<string>): number
-    return mapnew(lines, (_, v) => strchars(v, true))->max()
+    return lines
+        ->mapnew((_, v: string): number => strchars(v, true))
+        ->max()
 enddef
 
 def IsTerminalBuffer(n: number): bool #{{{2

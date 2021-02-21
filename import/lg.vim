@@ -116,7 +116,7 @@ export def FuncComplete(argLead: string, _l: string, _p: number): list<string> #
     #}}}
     return substitute(argLead, '^\Cs:', '<SNR>[0-9]\\\\\\{1,}_', '')
         ->getcompletion('function')
-        ->map((_, v) => substitute(v, '($\|()$', '', ''))
+        ->map((_, v: string): string => substitute(v, '($\|()$', '', ''))
 enddef
 
 export def GetSelectionText(): list<string> #{{{1
@@ -217,7 +217,8 @@ export def Opfunc(type: string) #{{{1
     endif
 
     var reg_save: dict<dict<any>>
-    for regname in ['"', '-'] + range(10)->mapnew((_, v) => string(v))
+    for regname in ['"', '-'] + range(10)
+            ->mapnew((_, v: number): string => string(v))
         extend(reg_save, {[regname]: getreginfo(regname)})
     endfor
 
@@ -272,7 +273,7 @@ export def Opfunc(type: string) #{{{1
         Catch()
         return
     finally
-        keys(reg_save)->mapnew((_, v) => setreg(v, reg_save[v]))
+        keys(reg_save)->mapnew((_, v: string) => setreg(v, reg_save[v]))
         [&cb, &sel] = [cb_save, sel_save]
         # Shouldn't we check the validity of the saved positions?{{{
         #
@@ -316,7 +317,7 @@ enddef
 export def Win_getid(arg: string): number #{{{1
     if arg == 'P'
         var winnr: number = range(1, winnr('$'))
-            ->map((_, v) => getwinvar(v, '&pvw'))
+            ->mapnew((_, v: number): bool => getwinvar(v, '&pvw'))
             ->index(true) + 1
         if winnr == 0
             return 0

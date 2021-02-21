@@ -95,7 +95,7 @@ def Getdef(hg: string): string #{{{2
     # }}}
     return execute('hi ' .. hg)
     ->split('\n')
-    ->filter((_, v) => v =~ '^' .. hg)[0]
+    ->filter((_, v: string): bool => v =~ '^' .. hg)[0]
 enddef
 
 def Getattr(attr: any): string #{{{2
