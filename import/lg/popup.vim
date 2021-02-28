@@ -68,8 +68,8 @@ export def Popup_notification(what: any, arg_opts: dict<any> = {}): list<number>
 enddef
 #}}}1
 # Core {{{1
-def Basic(what: any, opts: dict<any>): list<number> #{{{2
-# TODO(Vim9): `what: any` → `what: number|string|list<string>`
+def Basic(arg_what: any, opts: dict<any>): list<number> #{{{2
+# TODO(Vim9): `arg_what: any` → `arg_what: number|string|list<string>`
     var funcname: string = expand('<stack>')->matchstr('.*\.\.\zs<SNR>\w\+')
     # This serves 2 purposes:{{{
     #
@@ -80,9 +80,9 @@ def Basic(what: any, opts: dict<any>): list<number> #{{{2
     #         " if `what` is the string 'TEST', the surrounding quotes will be removed by `printf()`:
     #         E121: Undefined variable: TEST~
     #}}}
-    var _what: any = what
-    if typename(what) == 'string'
-        _what = split(what, '\n')
+    var what: any = arg_what
+    if typename(arg_what) == 'string'
+        what = split(arg_what, '\n')
     endif
     extend(opts, {zindex: MAX_ZINDEX}, 'keep')
 
@@ -106,9 +106,9 @@ def Basic(what: any, opts: dict<any>): list<number> #{{{2
         maxheight: opts.height,
         })
     remove(opts, 'width') | remove(opts, 'height')
-    var cmd: string = printf('let winid = popup_create(%s, %s)', _what, opts)
+    var cmd: string = printf('let winid = popup_create(%s, %s)', what, opts)
     Log(cmd, funcname, expand('<slnum>')->str2nr())
-    var winid: number = popup_create(_what, opts)
+    var winid: number = popup_create(what, opts)
 
     # Don't reset the topline of the popup on the next screen redraw.{{{
     #
@@ -145,7 +145,7 @@ def Border(what: any, opts: dict<any>): list<number> #{{{2
         height: opts.height,
         })
     # Vim expects the 'borderhighlight' key to be a list.  We want a string; do the conversion.
-    extend(opts, {borderhighlight: [get(opts, 'borderhighlight', '')]})
+    opts.borderhighlight = [get(opts, 'borderhighlight', '')]
 
     # open final window
     SetBorderchars(opts)
@@ -174,9 +174,9 @@ def Terminal(what: any, opts: dict<any>): list<number> #{{{2
         bufnr = term_start(&shell, {hidden: true, term_finish: 'close', term_kill: 'hup'})
     endif
     # in Terminal-Normal mode, don't highlight empty cells with `Pmenu` (same thing for padding cells)
-    extend(opts, {highlight: 'Normal'})
+    opts.highlight = 'Normal'
     # make sure a border is drawn even if the `border` key was not set
-    extend(opts, {border: get(opts, 'border', [])})
+    opts.border = get(opts, 'border', [])
     var info: list<number> = Border(bufnr, opts)
     FireTerminalEvents()
     return info

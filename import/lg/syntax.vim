@@ -22,8 +22,8 @@ var loaded = true
 #         Derive('PopupSign', 'WarningMsg', {bg: 'Normal'})
 #}}}
 
-export def Derive(to: string, from: string, newAttributes: any, ...l: any) #{{{2
-# TODO(Vim9): `newAttributes: any` → `newAttributes: string|dict<string>`
+export def Derive(to: string, from: string, arg_newAttributes: any, ...l: any) #{{{2
+# TODO(Vim9): `arg_newAttributes: any` → `arg_newAttributes: string|dict<string>`
     var originalDefinition: string = Getdef(from)
     var originalGroup: string
     # if the `from` syntax group is linked to another group, we need to resolve the link
@@ -44,10 +44,10 @@ export def Derive(to: string, from: string, newAttributes: any, ...l: any) #{{{2
     endif
     var pat: string = '^' .. originalGroup .. '\|xxx'
     var Rep: func = (m: list<string>): string => m[0] == originalGroup ? to : ''
-    var _newAttributes: string = Getattr(newAttributes)
+    var newAttributes: string = Getattr(arg_newAttributes)
     exe 'hi '
         .. substitute(originalDefinition, pat, Rep, 'g')
-        .. ' ' .. _newAttributes
+        .. ' ' .. newAttributes
 
     # We want our derived HG to persist even after we change the color scheme at runtime.{{{
     #
@@ -66,14 +66,14 @@ export def Derive(to: string, from: string, newAttributes: any, ...l: any) #{{{2
     # exact same command as  we did for the previous one.   We need to re-invoke
     # `Derive()` with the same arguments.
     #}}}
-    var hg: dict<any> = {to: to, from: from, new: newAttributes}
+    var hg: dict<any> = {to: to, from: from, new: arg_newAttributes}
     if index(derived_hgs, hg) == -1
         derived_hgs += [hg]
     endif
 enddef
 
 # We   can't   write   `list<dict<string>>`,   because  we   need   to   declare
-# `newAttributes` with the type `any`.
+# `arg_newAttributes` with the type `any`.
 var derived_hgs: list<dict<any>>
 
 augroup ResetDerivedHgWhenColorschemeChanges | au!
@@ -98,21 +98,21 @@ def Getdef(hg: string): string #{{{2
     ->filter((_, v: string): bool => v =~ '^' .. hg)[0]
 enddef
 
-def Getattr(attr: any): string #{{{2
-    # TODO(Vim9): `attr: any` → `attr: string|dict<string>`
-    if typename(attr) == 'string'
-        return attr
-    elseif typename(attr) =~ '^dict'
+def Getattr(arg_attr: any): string #{{{2
+    # TODO(Vim9): `arg_attr: any` → `arg_attr: string|dict<string>`
+    if typename(arg_attr) == 'string'
+        return arg_attr
+    elseif typename(arg_attr) =~ '^dict'
         var gui: bool = has('gui_running') || &tgc
         var mode: string = gui ? 'gui' : 'cterm'
-        var _attr: string
+        var attr: string
         var hg: string
-        [_attr, hg] = items(attr)[0]
+        [attr, hg] = items(arg_attr)[0]
         var code: string = hlID(hg)
         ->synIDtrans()
-        ->synIDattr(_attr, mode)
+        ->synIDattr(attr, mode)
         if code =~ '^' .. (gui ? '#\x\+' : '\d\+') .. '$'
-            return mode .. _attr .. '=' .. code
+            return mode .. attr .. '=' .. code
         endif
     endif
     return ''

@@ -70,7 +70,7 @@ enddef
 
 var TurnOffCindent: func
 
-export def FuncComplete(argLead: string, _l: string, _p: number): list<string> #{{{1
+export def FuncComplete(arglead: string, _l: string, _p: number): list<string> #{{{1
     # Problem: `:breakadd`, `:def`, and `profile` don't complete function names.{{{
     #
     # This is especially annoying for names of script-local functions.
@@ -88,7 +88,7 @@ export def FuncComplete(argLead: string, _l: string, _p: number): list<string> #
     #
     # If we return a  string, then this completion function must  be called by a
     # custom command defined with the `-complete=custom` attribute.
-    # But  if  `argLead`  starts  with  `s:`,   Vim  will  filter  out  all  the
+    # But  if  `arglead`  starts  with  `s:`,   Vim  will  filter  out  all  the
     # candidates, because none of them would match `s:` at the start.
     #
     # We  must use  `-complete=customlist` to  disable the  filtering, and  that
@@ -114,7 +114,7 @@ export def FuncComplete(argLead: string, _l: string, _p: number): list<string> #
     # And since we write this in the replacement part of `substitute()`, we need
     # to double each backslash; hence 3 x 2 = 6 backslashes.
     #}}}
-    return substitute(argLead, '^\Cs:', '<SNR>[0-9]\\\\\\{1,}_', '')
+    return substitute(arglead, '^\Cs:', '<SNR>[0-9]\\\\\\{1,}_', '')
         ->getcompletion('function')
         ->map((_, v: string): string => substitute(v, '($\|()$', '', ''))
 enddef
@@ -219,7 +219,7 @@ export def Opfunc(type: string) #{{{1
     var reg_save: dict<dict<any>>
     for regname in ['"', '-'] + range(10)
             ->mapnew((_, v: number): string => string(v))
-        extend(reg_save, {[regname]: getreginfo(regname)})
+        reg_save[regname] = getreginfo(regname)
     endfor
 
     #     It might be necessary to save and restore `"0` if the unnamed register was

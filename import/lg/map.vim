@@ -254,9 +254,9 @@ export def MapMetaChord(key: string, symbolic = false): string #{{{2
     endif
 enddef
 
-export def MapSave(keys: any, mode = '', wantlocal = false): list<dict<any>> #{{{2
-# TODO(Vim9): `keys: any` → `keys: list<string>|string`
-    if typename(keys) !~ '^list' && typename(keys) != 'string'
+export def MapSave(arg_keys: any, mode = '', wantlocal = false): list<dict<any>> #{{{2
+# TODO(Vim9): `arg_keys: any` → `arg_keys: list<string>|string`
+    if typename(arg_keys) !~ '^list' && typename(arg_keys) != 'string'
         return []
     endif
     # `#save()` accepts a list of keys, or just a single key (in a string).
@@ -330,10 +330,10 @@ export def MapSave(keys: any, mode = '', wantlocal = false): list<dict<any>> #{{
     # I  think the  same pitfalls  could  apply to  `v` which  is a  pseudo-mode
     # matching the real modes `x` and `s`.
     #}}}
-    var _keys: list<string> = typename(keys) =~ '^list' ? keys : [keys]
+    var keys: list<string> = typename(arg_keys) =~ '^list' ? arg_keys : [arg_keys]
 
     var save: list<dict<any>>
-    for key in _keys
+    for key in keys
         # This `for` loop is only necessary if you intend `#save()` to support multiple modes:{{{
         #
         #     var save: list<dict<any>> = MapSave('<c-q>', 'nxo')
@@ -537,7 +537,7 @@ def Maparg(name: string, mode: string, wantlocal: bool): dict<any> #{{{2
     if Islocal(maparg)
         # Save the buffer number, so that we can check we're in the right buffer
         # when we want to restore the buffer-local mapping.
-        extend(maparg, {bufnr: bufnr('%')})
+        maparg.bufnr = bufnr('%')
     endif
 
     return maparg
