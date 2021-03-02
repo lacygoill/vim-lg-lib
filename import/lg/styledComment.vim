@@ -373,7 +373,7 @@ export def Syntax() #{{{2
         # This is needed for `xkb` where the comment leader is `//`.
         #}}}
         cml = escape(cml, '\/')
-        cml_0_1 = '\V\%(' .. cml .. '\)\=\m'
+        cml_0_1 = '\V' .. '\%(' .. cml .. '\)\=' .. '\m'
         cml = '\V' .. cml .. '\m'
     endif
     var commentGroup: string = GetCommentgroup(ft)
@@ -480,8 +480,11 @@ def FixAllbut(ft: string) #{{{2
     # current plugin defines.
     #}}}
     var groups: string = CUSTOM_GROUPS
-        ->mapnew((_, v: string): string => v[0] == '@' ? '@' .. ft .. trim(v, '@') : ft .. v)
-        ->join(',')
+        ->mapnew((_, v: string): string =>
+                      v[0] == '@'
+                    ?     '@' .. ft .. trim(v, '@')
+                    :     ft .. v
+        )->join(',')
     exe 'syn cluster ' .. ft .. 'MyCustomGroups contains=' .. groups
 
     # get the list of groups using `ALLBUT`, and save it in a script-local variable
@@ -494,77 +497,78 @@ def FixAllbut(ft: string) #{{{2
         #}}}
         allbut_groups[ft] = execute('syn list')
             ->split('\n')
-            ->filter((_, v: string): bool => v =~ '\m\CALLBUT' && v !~ '^\s')
+            ->filter((_, v: string): bool => v =~ '\CALLBUT' && v !~ '^\s')
             ->map((_, v: string): string => matchstr(v, '\S\+'))
-        # Ignore groups defined for embedding another language.{{{
-        #
-        # Otherwise, this  function breaks the  syntax highlighting in  some Vim
-        # files, when we embed the code of another language.
-        #
-        # For example in `$VIMRUNTIME/autoload/rubycomplete.vim`.
-        # Move at the end, and press `=d` to redraw/reload the syntax plugin.
-        #
-        # The issue is not in the syntax  of the `:syn` commands executed at the
-        # end of the function.
-        # Maybe they're executed too soon, or too late, I don't know.
-        #
-        # If you duplicate the ruby syntax plugin in `~/.vim/syntax/ruby.vim`,
-        # and if you edit `$VIMRUNTIME/syntax/vim.vim:689`:
-        #
-        #     " this line makes Vim source the default ruby syntax plugin
-        #     " when defining the cluster/region used to embed ruby inside Vim
-        #     s:rubypath= fnameescape(expand("<sfile>:p:h")."/ruby.vim")
-        #
-        #     " this new line makes Vim source our custom ruby syntax plugin instead
-        #     s:rubypath= split(globpath(&rtp,"syntax/ruby.vim"),"\n")[0]
-        #
-        # Then, if you  edit all the items  using `ALLBUT` so that  they also ignore
-        # `@xMyCustomGroups`, then the issue disappears.
-        # And yet, the definition of the items is the same as in this function.
-        # So, again, the issue is *not* in the syntax of the command.
-        #
-        # ---
-        #
-        # Note that Vim doesn't need  this function, because there's no `ALLBUT`
-        # in its syntax plugin.
-        #
-        # Besides, Vim is  a special case, because I doubt  there are many languages
-        # where the default syntax plugin supports embedding other languages.
-        # For example, these languages do not support it:
-        # awk, conf, css, desktop, dircolors, gitconfig, lua, python, readline, sed,
-        # snippets, tmux, xdefaults, xkb, zsh...
-        #
-        # To check this yourself, search for `syn\%[tax]\s*include`.
-        #
-        # OTOH, another language may be embedded in C and html.
-        # But  I don't  think  they  will cause  an  issue,  because there's  no
-        # `ALLBUT` in the html syntax plugin.
-        # And the embedding in C seems very limited/simple.
-        # It defines the cluster `@cAutodoc` which contains all the items in:
-        #
-        #     /usr/local/share/vim/vim81/syntax/autodoc.vim
-        #
-        # But none of them contains `ALLBUT`.
-        #
-        # ---
-        #
-        # If you  need to ignore  another filetype, but  you can't because  it would
-        # break  sth else,  consider  maintaining  your own  version  of the  syntax
-        # plugin, in which you ignore `@xMyCustomGroups` whenever it's necessary.
-        #}}}
-        filter(allbut_groups[ft], (_, v: string): bool => v =~ '^' .. ft)
+            # Ignore groups defined for embedding another language.{{{
+            #
+            # Otherwise, this  function breaks  the syntax highlighting  in some
+            # Vim files, when we embed the code of another language.
+            #
+            # For example in `$VIMRUNTIME/autoload/rubycomplete.vim`.
+            # Move at the end, and press `=d` to redraw/reload the syntax plugin.
+            #
+            # The issue is not in the  syntax of the `:syn` commands executed at
+            # the end of the function.
+            # Maybe they're executed too soon, or too late, I don't know.
+            #
+            # If you duplicate the ruby syntax plugin in `~/.vim/syntax/ruby.vim`,
+            # and if you edit `$VIMRUNTIME/syntax/vim.vim:689`:
+            #
+            #     " this line makes Vim source the default ruby syntax plugin
+            #     " when defining the cluster/region used to embed ruby inside Vim
+            #     s:rubypath= fnameescape(expand("<sfile>:p:h")."/ruby.vim")
+            #
+            #     " this new line makes Vim source our custom ruby syntax plugin instead
+            #     s:rubypath= split(globpath(&rtp,"syntax/ruby.vim"),"\n")[0]
+            #
+            # Then, if you  edit all the items using `ALLBUT`  so that they also
+            # ignore `@xMyCustomGroups`, then the issue disappears.
+            # And yet, the definition of the items is the same as in this function.
+            # So, again, the issue is *not* in the syntax of the command.
+            #
+            # ---
+            #
+            # Note  that Vim  doesn't  need this  function,  because there's  no
+            # `ALLBUT` in its syntax plugin.
+            #
+            # Besides, Vim  is a special  case, because  I doubt there  are many
+            # languages where the default syntax plugin supports embedding other
+            # languages.
+            # For  example,  these  languages  do not  support  it:  awk,  conf,
+            # css, desktop,  dircolors, gitconfig,  lua, python,  readline, sed,
+            # snippets, tmux, xdefaults, xkb, zsh...
+            #
+            # To check this yourself, search for `syn\%[tax]\s*include`.
+            #
+            # OTOH, another language may be embedded in C and html.
+            # But I  don't think they  will cause  an issue, because  there's no
+            # `ALLBUT` in the html syntax plugin.
+            # And the embedding in C seems very limited/simple.
+            # It defines the cluster `@cAutodoc` which contains all the items in:
+            #
+            #     /usr/local/share/vim/vim81/syntax/autodoc.vim
+            #
+            # But none of them contains `ALLBUT`.
+            #
+            # ---
+            #
+            # If you need  to ignore another filetype, but you  can't because it
+            # would break sth else, consider maintaining your own version of the
+            # syntax  plugin, in  which you  ignore `@xMyCustomGroups`  whenever
+            # it's necessary.
+            #}}}
+            ->filter((_, v: string): bool => v =~ '^' .. ft)
     endif
 
     for group in allbut_groups[ft]
         var cmds: list<string> = GetCmdsToResetGroup(group)
-
-        # add `@xMyCustomGroups` after `ALLBUT`
-        map(cmds, (_, v: string): string =>
-            substitute(v, '\m\CALLBUT,', 'ALLBUT,@' .. ft .. 'MyCustomGroups,', ''))
+            # add `@xMyCustomGroups` after `ALLBUT`
+            ->map((_, v: string): string =>
+                    v->substitute('\CALLBUT,', 'ALLBUT,@' .. ft .. 'MyCustomGroups,', ''))
 
         # clear and redefine all the items in the group
         exe 'syn clear ' .. group
-        map(cmds, (_, v: string) => execute(v))
+        cmds->map((_, v: string) => execute(v))
     endfor
 enddef
 
@@ -645,32 +649,32 @@ def FixCommentRegion(ft: string) #{{{2
     # If it gets too complex, get rid of this function, and redefine the comment
     # group in `~/.vim/after/syntax/x.vim` on a per-filetype basis.
     #}}}
-    map(cmds, (_, v: string): string => v .. ' keepend')
+    cmds->map((_, v: string): string => v .. ' keepend')
     exe 'syn clear ' .. ft .. 'Comment'
-    map(cmds, (_, v: string) => execute(v))
+    cmds->map((_, v: string) => execute(v))
 enddef
 
 def GetCmdsToResetGroup(group: string): list<string> #{{{2
     # get original definition
-    var definition: list<string> = execute('syn list ' .. group)->split('\n')
-
-    # remove noise
-    filter(definition, (_, v: string): bool => v !~ '^---\|^\s\+links\s\+to\s\+')
+    var definition: list<string> = execute('syn list ' .. group)
+        ->split('\n')
+        # remove noise
+        ->filter((_, v: string): bool => v !~ '^---\|^\s\+links\s\+to\s\+')
     if empty(definition)
         return []
     endif
-    definition[0] = substitute(definition[0], '^\a\+\s\+xxx', '', '')
+    definition[0] = definition[0]->substitute('^\a\+\s\+xxx', '', '')
 
     # add  `:syn [keyword|match|region]` to  build new commands  to redefine
     # the items in the group
     var cmds: list<string> = definition
         ->map((_, v: string): string =>
-            match(v, '\m\C\<start=') >= 0
-            ?     'syn region ' .. group .. ' ' .. v
-            : match(v, '\m\C\<match\>') >= 0
-            ?     'syn match ' .. group .. ' ' .. substitute(v, 'match', '', '')
-            :     'syn keyword ' .. group .. ' ' .. v
-            )
+                  match(v, '\C\<start=') >= 0
+                ?     'syn region ' .. group .. ' ' .. v
+                : match(v, '\C\<match\>') >= 0
+                ?     'syn match ' .. group .. ' ' .. v->substitute('match', '', '')
+                :     'syn keyword ' .. group .. ' ' .. v
+        )
 
     return cmds
 enddef
@@ -1344,15 +1348,15 @@ def SynFoldmarkers(ft: string, cml_0_1: string, commentGroup: string) #{{{2
     #    ❯❮
     #    ❱❰
     #}}}
-    var cml_left: string = matchstr(&l:cms, '\S*\ze\s*%s')->escape('\/')
-    var cml_right: string = matchstr(&l:cms, '.*%s\s*\zs.*')->escape('\/')
+    var cml_left: string = '\V' .. matchstr(&l:cms, '\S*\ze\s*%s')->escape('\/') .. '\m'
+    var cml_right: string = '\V' .. matchstr(&l:cms, '.*%s\s*\zs.*')->escape('\/') .. '\m'
     var pat: string
     var contained: string
-    if cml_right == ''
+    if cml_right == '\V\m'
         pat = cml_0_1 .. '\s*\%({' .. '{{\|}' .. '}}\)\d*\s*\ze\n'
         contained = ' contained'
     else
-        pat = '\s*\V' .. cml_left .. '\m\s*\%({' .. '{{\|}' .. '}}\)\d*\s*\V' .. cml_right .. '\m\s*$'
+        pat = '\s*' .. cml_left .. '\s*\%({' .. '{{\|}' .. '}}\)\d*\s*' .. cml_right .. '\s*$'
         contained = ''
     endif
     exe 'syn match ' .. ft .. 'FoldMarkers'

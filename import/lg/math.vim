@@ -12,7 +12,8 @@ export def Max(numbers: any): any #{{{1
 
     if empty(numbers)
         return 0
-    elseif mapnew(numbers, (_, v: any): string => typename(v))
+    elseif numbers
+            ->mapnew((_, v: any): string => typename(v))
             ->index('float') == -1
         return max(numbers)
     endif
@@ -31,7 +32,8 @@ export def Min(numbers: any): any #{{{1
 # `): any`       → `): number|float`
     if empty(numbers)
         return 0
-    elseif mapnew(numbers, (_, v: any): string => typename(v))
+    elseif numbers
+            ->mapnew((_, v: any): string => typename(v))
             ->index('float') == -1
         return min(numbers)
     endif

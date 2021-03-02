@@ -46,7 +46,7 @@ export def Derive(to: string, from: string, arg_newAttributes: any, ...l: any) #
     var Rep: func = (m: list<string>): string => m[0] == originalGroup ? to : ''
     var newAttributes: string = Getattr(arg_newAttributes)
     exe 'hi '
-        .. substitute(originalDefinition, pat, Rep, 'g')
+        .. originalDefinition->substitute(pat, Rep, 'g')
         .. ' ' .. newAttributes
 
     # We want our derived HG to persist even after we change the color scheme at runtime.{{{
@@ -94,8 +94,8 @@ def Getdef(hg: string): string #{{{2
     # (e.g. `-V15/tmp/log`, `-D`, `$ sudo`...).
     # }}}
     return execute('hi ' .. hg)
-    ->split('\n')
-    ->filter((_, v: string): bool => v =~ '^' .. hg)[0]
+        ->split('\n')
+        ->filter((_, v: string): bool => v =~ '^' .. hg)[0]
 enddef
 
 def Getattr(arg_attr: any): string #{{{2

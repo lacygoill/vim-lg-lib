@@ -41,13 +41,13 @@ export def FixIndent() #{{{1
     endif
     var splitted_keys: list<string> =
         (&l:indentexpr != '' ? &l:indentkeys : &l:cinkeys)->split(',')
-    var n: number = splitted_keys->match('^!')
+    var n: number = match(splitted_keys, '^!')
     if n == -1
         return
     endif
     var key: string = splitted_keys[n]->trim('!', 1)
     if key =~ '^\^'
-        key = substitute(key, '^\^', '<c-', '') .. '>'
+        key = key->substitute('^\^', '<c-', '') .. '>'
         key = eval('"\' .. key .. '"')
     endif
     var need_to_set_cindent: bool = &l:indentexpr == '' && !&l:cindent
@@ -114,9 +114,10 @@ export def FuncComplete(arglead: string, _l: string, _p: number): list<string> #
     # And since we write this in the replacement part of `substitute()`, we need
     # to double each backslash; hence 3 x 2 = 6 backslashes.
     #}}}
-    return substitute(arglead, '^\Cs:', '<SNR>[0-9]\\\\\\{1,}_', '')
+    return arglead
+        ->substitute('^\Cs:', '<SNR>[0-9]\\\\\\{1,}_', '')
         ->getcompletion('function')
-        ->map((_, v: string): string => substitute(v, '($\|()$', '', ''))
+        ->map((_, v: string): string => v->substitute('($\|()$', '', ''))
 enddef
 
 export def GetSelectionText(): list<string> #{{{1
@@ -217,8 +218,8 @@ export def Opfunc(type: string) #{{{1
     endif
 
     var reg_save: dict<dict<any>>
-    for regname in ['"', '-'] + range(10)
-            ->mapnew((_, v: number): string => string(v))
+    for regname in ['"', '-']
+                 + range(10)->mapnew((_, v: number): string => string(v))
         reg_save[regname] = getreginfo(regname)
     endfor
 

@@ -171,9 +171,10 @@ elseif IS_MODIFYOTHERKEYS_ENABLED || has('gui_running')
     # right sequences to the shell.
     #}}}
     def FixMetaReadline()
-        for key in (range(char2nr('a'), char2nr('z'))
-                + range(char2nr('A'), char2nr('Z')))
-            ->mapnew((_, v: number): string => nr2char(v))
+        for key in (
+            range(char2nr('a'), char2nr('z'))
+          + range(char2nr('A'), char2nr('Z'))
+        )->mapnew((_, v: number): string => nr2char(v))
             exe 'tno <m-' .. key .. '> <esc>' .. key
         endfor
     enddef
@@ -181,9 +182,10 @@ elseif IS_MODIFYOTHERKEYS_ENABLED || has('gui_running')
 
     def NopUnusedMetaChords()
         var lhs: string
-        for key in (range(char2nr('a'), char2nr('z'))
-                + range(char2nr('A'), char2nr('Z')))
-            ->mapnew((_, v: number): string => nr2char(v))
+        for key in (
+            range(char2nr('a'), char2nr('z'))
+          + range(char2nr('A'), char2nr('Z'))
+        )->mapnew((_, v: number): string => nr2char(v))
             if toupper(key) == key
                 lhs = '<M-S-' .. key .. '>'
             else

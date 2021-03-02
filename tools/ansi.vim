@@ -105,17 +105,17 @@ def Ansi() #{{{1
     #}}}
     var bufnr: number = bufnr('%')
     var attr: string
-    var v: dict<string>
+    var props: dict<string>
     for item in items(ATTR)
-        [attr, v] = item
-        exe 'hi ansi_' .. attr .. ' ' .. v.hi
+        [attr, props] = item
+        exe 'hi ansi_' .. attr .. ' ' .. props.hi
         cursor(1, 1)
         var flags: string = 'cW'
         prop_type_add('ansi_' .. attr, {highlight: 'ansi_' .. attr, bufnr: bufnr})
-        while search(v.start, flags) > 0 && search(v.end, 'n') > 0
+        while search(props.start, flags) > 0 && search(props.end, 'n') > 0
             flags = 'W'
             prop_add(line('.'), col('.'), {
-                length: searchpos(v.end .. '\zs', 'cn')[1] - col('.'),
+                length: searchpos(props.end .. '\zs', 'cn')[1] - col('.'),
                 type: 'ansi_' .. attr,
                 })
         endwhile
