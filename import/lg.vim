@@ -34,42 +34,6 @@ export def Catch(): string #{{{1
     return ''
 enddef
 
-export def FixIndent() #{{{1
-# Purpose: fix indentation from insert mode; like pressing `C-f`.
-    if &l:indentexpr == '' && !&l:cindent
-        return
-    endif
-    var splitted_keys: list<string> =
-        (&l:indentexpr != '' ? &l:indentkeys : &l:cinkeys)->split(',')
-    var n: number = match(splitted_keys, '^!')
-    if n == -1
-        return
-    endif
-    var key: string = splitted_keys[n]->trim('!', 1)
-    if key =~ '^\^'
-        key = key->substitute('^\^', '<c-', '') .. '>'
-        key = eval('"\' .. key .. '"')
-    endif
-    var need_to_set_cindent: bool = &l:indentexpr == '' && !&l:cindent
-    if need_to_set_cindent
-        setl cindent
-    endif
-    # Do *not* use the `t` flag!{{{
-    #
-    # Suppose we want  to undo afterward; `t`  would cause the key  to break the
-    # undo sequence, which in turn would force  us to press `u` twice instead of
-    # once.
-    #}}}
-    feedkeys(key, 'in')
-    if need_to_set_cindent
-        var buf: number = bufnr('%')
-        TurnOffCindent = () => bufnr('%') == buf && !!execute('setl nocindent')
-        au SafeState * ++once TurnOffCindent()
-    endif
-enddef
-
-var TurnOffCindent: func
-
 export def FuncComplete(arglead: string, _l: string, _p: number): list<string> #{{{1
     # Problem: `:breakadd`, `:def`, and `profile` don't complete function names.{{{
     #
