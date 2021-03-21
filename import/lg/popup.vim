@@ -47,8 +47,8 @@ const MAX_ZINDEX: number = 32'000
 # Interface {{{1
 export def Popup_create(what: any, opts: dict<any>): list<number> #{{{2
 # TODO(Vim9): `what: any` → `what: number|string|list<string>`
-    var has_border: bool = has_key(opts, 'border')
-    var is_term: bool = has_key(opts, 'term') ? remove(opts, 'term') : false
+    var has_border: bool = opts->has_key('border')
+    var is_term: bool = opts->has_key('term') ? remove(opts, 'term') : false
     if !has_border && !is_term
         return Basic(what, opts)
     elseif has_border && !is_term
@@ -237,7 +237,7 @@ enddef
 
 def GetLongestWidth(lines: list<string>): number
     return lines
-        ->mapnew((_, v: string): number => strchars(v, true))
+        ->mapnew((_, v: string): number => strcharlen(v))
         ->max()
 enddef
 

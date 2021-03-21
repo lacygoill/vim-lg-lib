@@ -363,7 +363,7 @@ export def Syntax() #{{{2
         # The next statement  invokes `escape()` which may  add backslashes, and
         # alter the real number of characters inside the comment leader.
         #}}}
-        nr = strchars(cml, true)
+        nr = strcharlen(cml)
         # Why do you escape the slashes?{{{
         #
         # We use a slash as a delimiter around the patterns of our syntax elements.
@@ -489,7 +489,7 @@ def FixAllbut(ft: string) #{{{2
 
     # get the list of groups using `ALLBUT`, and save it in a script-local variable
     # to avoid having to recompute it every time we reload the same kind of buffer
-    if !has_key(allbut_groups, ft)
+    if !allbut_groups->has_key(ft)
         # Don't try to read and parse the original syntax plugin.{{{
         #
         # `ALLBUT` could be  on a continuation line, and in  this case, it would

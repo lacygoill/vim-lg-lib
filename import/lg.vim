@@ -177,7 +177,7 @@ export def IsVim9(): bool #{{{1
 enddef
 
 export def Opfunc(type: string) #{{{1
-    if !exists('g:opfunc') || !has_key(g:opfunc, 'core')
+    if !exists('g:opfunc') || !g:opfunc->has_key('core')
         return
     endif
 
@@ -277,6 +277,12 @@ export def VimParent(): string #{{{1
     # Note that `$_` is  less costly, since you don't have  to spawn an external
     # process to evaluate it.
     #}}}
+enddef
+
+export def VirtcolFirstCell(filepos: string): number #{{{1
+    var lnum: number = line(filepos)
+    var col: number = getline(filepos)->byteidx(charcol(filepos) - 2) + 1
+    return virtcol([lnum, col]) + 1
 enddef
 
 export def Win_getid(arg: string): number #{{{1

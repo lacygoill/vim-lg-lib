@@ -64,7 +64,7 @@ if USE_FUNCTION_KEYS
         L: '<s-f23>',
         M: '<s-f24>',
         N: '<s-f25>',
-        # Do *not* add 'O'.{{{
+        # Do *not* add 'O', nor 'P'.{{{
         #
         #     'O': '<s-f26>',
         #
@@ -87,8 +87,18 @@ if USE_FUNCTION_KEYS
         #
         # At  least, don't  do  it  until you  can  stop  clearing `'t_TI'`  and
         # `'t_TE'` in xterm (for the moment, we have to because of another bug).
+        #
+        # ---
+        #
+        # Similar issue with the `P` character:
+        #
+        #     vim -Nu NONE --cmd 'exe "set <s-f27>=\eP"' \
+        #                  --cmd 'let [&t_TI, &t_TE] = ["", ""]' \
+        #                  --cmd 'nno <space>q :qa!<cr>'
+        #
+        # Here, *sometimes*, the mapping  is unexpectedly triggered, causing Vim
+        # to quit right after starting up, which is very confusing.
         #}}}
-        P: '<s-f27>',
         Q: '<s-f28>',
         R: '<s-f29>',
         S: '<s-f30>',
@@ -420,7 +430,7 @@ export def MapRestore(save: list<dict<any>>) #{{{2
 
         # if there was no mapping when `#save()` was invoked, there should be no
         # mapping after `#restore()` is invoked
-        if has_key(maparg, 'unmapped')
+        if maparg->has_key('unmapped')
             var cmd: string = GetMappingCmd(maparg)
             # `sil!` because there's no guarantee that the unmapped key has been
             # mapped  to sth  after  being  saved.  We  move  `sil!` inside  the
@@ -576,7 +586,7 @@ enddef
 
 def GetMappingCmd(maparg: dict<any>): string #{{{2
     var cmd: string
-    if has_key(maparg, 'unmapped')
+    if maparg->has_key('unmapped')
         if maparg.mode == '!'
             cmd = 'unmap!'
         else

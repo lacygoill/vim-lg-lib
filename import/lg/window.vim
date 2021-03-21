@@ -9,7 +9,7 @@ export def GetWinMod(OpenLoc = false): string #{{{1
     var winnr: number = winnr()
 
     var mod: string
-    if OpenLoc && getloclist(0, {title: 0}).title =~ '\<TOC$'
+    if OpenLoc
         mod = 'vert leftabove'
 
     # there's nothing above or below us
@@ -26,13 +26,10 @@ export def GetWinMod(OpenLoc = false): string #{{{1
 
     # we're in a middle window
     else
-        # this will cause a vertical split to be opened on the left
-        # if you would prefer on the right, write this instead:
+        # This will cause a vertical split to be opened on the left.
+        # If you would prefer on the right, write this instead:
         #
         #     mod = 'vert rightbelow'
-        #
-        # For the moment, I prefer on the left, to be consistent with
-        # how a TOC window is opened (on the left).
         mod = 'vert leftabove'
     endif
 
