@@ -34,7 +34,11 @@ export def Catch(): string #{{{1
     return ''
 enddef
 
-export def FuncComplete(arglead: string, _l: string, _p: number): list<string> #{{{1
+export def FuncComplete( #{{{1
+    arglead: string,
+    _, _
+): list<string>
+
     # Problem: `:breakadd`, `:def`, and `profile` don't complete function names.{{{
     #
     # This is especially annoying for names of script-local functions.
@@ -106,7 +110,8 @@ enddef
 
 export def GetSelectionCoords(): dict<list<number>> #{{{1
 # Get the coordinates of the current visual selection without quitting visual mode.
-    if mode() !~ "^[vV\<c-v>]$"
+    var mode: string = mode()
+    if mode !~ "^[vV\<c-v>]$"
         return {}
     endif
     var curpos: list<number>
@@ -115,7 +120,7 @@ export def GetSelectionCoords(): dict<list<number>> #{{{1
     var end: list<number>
     [pos_v, curpos] = [getpos('v')[1 : 2], getcurpos()[1 : 2]]
     var control_end: bool = curpos[0] > pos_v[0]
-        || curpos[0] == pos_v[0] && curpos[1] >= pos_v[1]
+                         || curpos[0] == pos_v[0] && curpos[1] >= pos_v[1]
     if control_end
         [start, end] = [pos_v, curpos]
     else
@@ -123,16 +128,16 @@ export def GetSelectionCoords(): dict<list<number>> #{{{1
     endif
     # If the selection is linewise, the column positions are not what we expect.
     # Let's fix that.
-    if mode() == 'V'
+    if mode == 'V'
         start[1] = 1
-        # Why `getline('.')->...`?{{{
+        # Why `getline(end[0])->...`?{{{
         #
         # From `:h col()`:
         #
         #    > $       the end of the cursor line (the result is the
         #    >         number of bytes in the cursor line **plus one**)
         #}}}
-        end[1] = col([end[0], '$']) - (getline('.')->strlen() > 0 ? 1 : 0)
+        end[1] = col([end[0], '$']) - (getline(end[0])->strlen() > 0 ? 1 : 0)
     # In case we've pressed `O`.{{{
     #
     # Otherwise, the  returned coordinates  would not  match the  upper-left and
@@ -141,7 +146,7 @@ export def GetSelectionCoords(): dict<list<number>> #{{{1
     # This would undoubtedly introduce some confusion in our plugins.
     # Let's make sure the function always return what we have in mind.
     #}}}
-    elseif mode() == "\<c-v>" && start[1] > end[1]
+    elseif mode == "\<c-v>" && start[1] > end[1]
         [start[1], end[1]] = [end[1], start[1]]
     endif
     return {start: start, end: end}
@@ -229,7 +234,7 @@ export def Opfunc(type: string) #{{{1
                 char: '`[v`]y',
                 line: "'[V']y",
                 block: "`[\<c-v>`]y"
-                }
+            }
             sil exe 'keepj norm! ' .. get(commands, type, '')
         endif
         call(g:opfunc.core, [type])
@@ -277,12 +282,6 @@ export def VimParent(): string #{{{1
     # Note that `$_` is  less costly, since you don't have  to spawn an external
     # process to evaluate it.
     #}}}
-enddef
-
-export def VirtcolFirstCell(filepos: string): number #{{{1
-    var lnum: number = line(filepos)
-    var col: number = getline(filepos)->byteidx(charcol(filepos) - 2) + 1
-    return virtcol([lnum, col]) + 1
 enddef
 
 export def Win_getid(arg: string): number #{{{1

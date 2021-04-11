@@ -111,13 +111,13 @@ def Ansi() #{{{1
         exe 'hi ansi_' .. attr .. ' ' .. props.hi
         cursor(1, 1)
         var flags: string = 'cW'
-        prop_type_add('ansi_' .. attr, {highlight: 'ansi_' .. attr, bufnr: bufnr})
+        prop_type_add('ansi_' .. attr, {highlight: 'ansi_' .. attr, bufnr: bufnr, combine: false})
         while search(props.start, flags) > 0 && search(props.end, 'n') > 0
             flags = 'W'
             prop_add(line('.'), col('.'), {
                 length: searchpos(props.end .. '\zs', 'cn')[1] - col('.'),
                 type: 'ansi_' .. attr,
-                })
+            })
         endwhile
     endfor
 

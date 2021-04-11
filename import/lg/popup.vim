@@ -59,8 +59,12 @@ export def Popup_create(what: any, opts: dict<any>): list<number> #{{{2
     return []
 enddef
 
-export def Popup_notification(what: any, arg_opts: dict<any> = {}): list<number> #{{{2
-# TODO(Vim9): `what: any` → `what: number|string|list<string>`
+export def Popup_notification( #{{{2
+    # TODO(Vim9): `what: any` → `what: number|string|list<string>`
+    what: any,
+    arg_opts: dict<any> = {}
+): list<number>
+
     var lines: list<string> = GetLines(what)
     var n_opts: dict<any> = GetNotificationOpts(lines)
     var opts: dict<any> = extendnew(arg_opts, n_opts, 'keep')
@@ -76,7 +80,7 @@ def Basic(arg_what: any, opts: dict<any>): list<number> #{{{2
     #    - it lets us use a multiline string (otherwise, newlines would be translated into NULs)
     #    - it prevents an error later:
     #
-    #         var cmd: string = printf('let winid = popup_create(%s, %s)', what, opts)
+    #         var cmd: string = printf('var winid = popup_create(%s, %s)', what, opts)
     #         " if `what` is the string 'TEST', the surrounding quotes will be removed by `printf()`:
     #         E121: Undefined variable: TEST~
     #}}}
@@ -104,9 +108,9 @@ def Basic(arg_what: any, opts: dict<any>): list<number> #{{{2
         maxwidth: opts.width,
         minheight: opts.height,
         maxheight: opts.height,
-        })
+    })
     remove(opts, 'width') | remove(opts, 'height')
-    var cmd: string = printf('let winid = popup_create(%s, %s)', what, opts)
+    var cmd: string = printf('var winid = popup_create(%s, %s)', what, opts)
     Log(cmd, funcname, expand('<slnum>')->str2nr())
     var winid: number = popup_create(what, opts)
 
@@ -120,7 +124,7 @@ def Basic(arg_what: any, opts: dict<any>): list<number> #{{{2
     #    > firstline       ...
     #    >                 Set to zero to leave the position as set by commands.
     #}}}
-    cmd = printf('call popup_setoptions(%d, {''firstline'': 0})', winid)
+    cmd = printf('popup_setoptions(%d, {firstline: 0})', winid)
     Log(cmd, funcname, expand('<slnum>')->str2nr())
     popup_setoptions(winid, {firstline: 0})
     return [winbufnr(winid), winid]
@@ -143,7 +147,7 @@ def Border(what: any, opts: dict<any>): list<number> #{{{2
         col: opts.col - 1,
         width: opts.width,
         height: opts.height,
-        })
+    })
     # Vim expects the 'borderhighlight' key to be a list.  We want a string; do the conversion.
     opts.borderhighlight = [get(opts, 'borderhighlight', '')]
 
@@ -165,10 +169,10 @@ def Terminal(what: any, opts: dict<any>): list<number> #{{{2
     if IsTerminalBuffer(what)
         bufnr = what
     else
-        var cmd: string = 'let bufnr = term_start(&shell, #{'
-            .. 'hidden: v:true,'
-            .. 'term_finish: "close",'
-            .. 'term_kill: "hup",'
+        var cmd: string = 'var bufnr = term_start(&shell, {'
+            .. "hidden: true, "
+            .. "term_finish: 'close', "
+            .. "term_kill: 'hup'"
             .. '})'
         Log(cmd, funcname, expand('<slnum>')->str2nr())
         bufnr = term_start(&shell, {hidden: true, term_finish: 'close', term_kill: 'hup'})
@@ -231,7 +235,7 @@ def GetNotificationOpts(lines: list<string>): dict<any> #{{{2
         time: 3000,
         tabpage: -1,
         zindex: 300,
-        }
+    }
     return opts
 enddef
 
@@ -245,7 +249,11 @@ def IsTerminalBuffer(n: number): bool #{{{2
     return typename(n) == 'number' && n > 0 && getbufvar(n, '&bt', '') == 'terminal'
 enddef
 
-def Log(msg: string, funcname: string, slnum: number) #{{{2
+def Log( #{{{2
+    msg: string,
+    funcname: string,
+    slnum: number
+)
     if !DEBUG
         return
     endif

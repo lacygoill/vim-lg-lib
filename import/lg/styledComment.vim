@@ -482,7 +482,7 @@ def FixAllbut(ft: string) #{{{2
     var groups: string = CUSTOM_GROUPS
         ->mapnew((_, v: string): string =>
                       v[0] == '@'
-                    ?     '@' .. ft .. trim(v, '@')
+                    ?     '@' .. ft .. v->trim('@')
                     :     ft .. v
         )->join(',')
     exe 'syn cluster ' .. ft .. 'MyCustomGroups contains=' .. groups
@@ -787,7 +787,11 @@ def SynCommentleader(ft: string, cml: string) #{{{2
         .. ' contained'
 enddef
 
-def SynCommenttitle(ft: string, cml: string, nr: number) #{{{2
+def SynCommenttitle( #{{{2
+    ft: string,
+    cml: string,
+    nr: number
+)
     # Why this guard?{{{
     #
     # The default Vim syntax plugin already installs this style.
@@ -819,7 +823,11 @@ def SynCommenttitle(ft: string, cml: string, nr: number) #{{{2
         .. ft .. 'Todo'
 enddef
 
-def SynListItem(ft: string, cml: string, commentGroup: string) #{{{2
+def SynListItem( #{{{2
+    ft: string,
+    cml: string,
+    commentGroup: string
+)
     exe 'syn cluster ' .. ft .. 'CommentListItemElements'
         .. ' contains=' .. ft .. 'CommentListItemItalic,'
                         .. ft .. 'CommentListItemBold,'
@@ -850,7 +858,11 @@ def SynListItem(ft: string, cml: string, commentGroup: string) #{{{2
         .. ' containedin=' .. commentGroup
 enddef
 
-def SynCodeBlock(ft: string, cml: string, commentGroup: string) #{{{2
+def SynCodeBlock( #{{{2
+    ft: string,
+    cml: string,
+    commentGroup: string
+)
     # Why a region?{{{
     #
     # I  want `xCommentCodeBlock`  to highlight  only  after 5  spaces from  the
@@ -1096,7 +1108,11 @@ def SynBolditalic(ft: string, commentGroup: string) #{{{2
         .. ' oneline'
 enddef
 
-def SynBlockquote(ft: string, cml: string, commentGroup: string) #{{{2
+def SynBlockquote( #{{{2
+    ft: string,
+    cml: string,
+    commentGroup: string
+)
     # > some quote
     # <not> a quote
     # Why do you allow `xCommentBold` to be contained in `xCommentBlockquote`?{{{
@@ -1189,7 +1205,11 @@ def SynOption(ft: string) #{{{2
         .. ' containedin=' .. ft .. 'CommentCodeSpan,' .. ft .. 'CommentListItemCodeSpan'
 enddef
 
-def SynPointer(ft: string, cml: string, commentGroup: string) #{{{2
+def SynPointer( #{{{2
+    ft: string,
+    cml: string,
+    commentGroup: string
+)
     # not a pointer v
     # v
     #       ^
@@ -1203,7 +1223,11 @@ def SynPointer(ft: string, cml: string, commentGroup: string) #{{{2
         .. ' containedin=' .. commentGroup
 enddef
 
-def SynRule(ft: string, cml: string, commentGroup: string) #{{{2
+def SynRule( #{{{2
+    ft: string,
+    cml: string,
+    commentGroup: string
+)
     # some
     # ---
     # rule
@@ -1223,7 +1247,11 @@ def SynRule(ft: string, cml: string, commentGroup: string) #{{{2
         .. ' contains=' .. ft .. 'CommentLeader'
 enddef
 
-def SynTable(ft: string, cml: string, commentGroup: string) #{{{2
+def SynTable( #{{{2
+    ft: string,
+    cml: string,
+    commentGroup: string
+)
     # some table:
     #
     #    ┌───────┬──────┐
@@ -1311,7 +1339,11 @@ def SynUrl(ft: string, commentGroup: string) #{{{2
         .. ' containedin=' .. commentGroup
 enddef
 
-def SynFoldmarkers(ft: string, cml_0_1: string, commentGroup: string) #{{{2
+def SynFoldmarkers( #{{{2
+    ft: string,
+    cml_0_1: string,
+    commentGroup: string
+)
     # If you don't care about html and css, you could probably simplify the code
     # of this function, and get rid of `cml_right`.
 

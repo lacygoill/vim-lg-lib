@@ -72,15 +72,16 @@ export def MatrixTransposition(lists: list<list<number>>): any #{{{1
     var firstlist: list<number> = lists[0]
     # handle special case where only 1 list was received (instead of 2)
     if n_lines == 1
-        return len(firstlist)
+        return firstlist
+            ->len()
             ->range()
-            ->map((i: number): list<number> => [firstlist[i]])
+            ->map((i: number, _): list<number> => [firstlist[i]])
     endif
 
     # Check that all the arguments are lists and have the same length
     var n_columns: number = len(firstlist)
     for list in lists
-        if type(list) != type([]) || len(list) != n_columns
+        if typename(list) !~ '^list' || len(list) != n_columns
             return -1
         endif
     endfor

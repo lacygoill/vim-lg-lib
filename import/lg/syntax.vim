@@ -22,8 +22,12 @@ var loaded = true
 #         Derive('PopupSign', 'WarningMsg', {bg: 'Normal'})
 #}}}
 
-export def Derive(to: string, from: string, arg_newAttributes: any, ...l: any) #{{{2
-# TODO(Vim9): `arg_newAttributes: any` → `arg_newAttributes: string|dict<string>`
+export def Derive( #{{{2
+    to: string,
+    from: string,
+    # TODO(Vim9): `arg_newAttributes: any` → `arg_newAttributes: string|dict<string>`
+    arg_newAttributes: any,
+)
     var originalDefinition: string = Getdef(from)
     var originalGroup: string
     # if the `from` syntax group is linked to another group, we need to resolve the link

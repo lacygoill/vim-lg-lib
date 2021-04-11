@@ -221,10 +221,15 @@ const FLAG2ARG: dict<string> = {
     n: '<nowait>',
     s: '<silent>',
     u: '<unique>',
-    }
+}
 
 # Interface {{{1
-export def MapMeta(key: string, rhs: string, mode: string, flags: string) #{{{2
+export def MapMeta( #{{{2
+    key: string,
+    rhs: string,
+    mode: string,
+    flags: string
+)
     try
         exe (mode != '!' ? mode : '') .. (flags =~ 'r' ? 'map' : 'noremap') .. (mode == '!' ? '!' : '')
             .. ' ' .. MapArguments(flags)
@@ -266,8 +271,13 @@ export def MapMetaChord(key: string, symbolic = false): string #{{{2
     endif
 enddef
 
-export def MapSave(arg_keys: any, mode = '', wantlocal = false): list<dict<any>> #{{{2
-# TODO(Vim9): `arg_keys: any` → `arg_keys: list<string>|string`
+export def MapSave( #{{{2
+    # TODO(Vim9): `arg_keys: any` → `arg_keys: list<string>|string`
+    arg_keys: any,
+    mode = '',
+    wantlocal = false
+): list<dict<any>>
+
     if typename(arg_keys) !~ '^list' && typename(arg_keys) != 'string'
         return []
     endif
@@ -351,7 +361,7 @@ export def MapSave(arg_keys: any, mode = '', wantlocal = false): list<dict<any>>
         #     var save: list<dict<any>> = MapSave('<c-q>', 'nxo')
         #                                                   ^^^
         #}}}
-        for m in mode == '' ? [''] : split(mode, '\zs')
+        for m in mode == '' ? [''] : mode
             var maparg: dict<any> = Maparg(key, m, wantlocal)
             save += [maparg]
         endfor
@@ -447,7 +457,7 @@ export def MapRestore(save: list<dict<any>>) #{{{2
             #     ^^
             #     2 modes
             #}}}
-            for mode in split(maparg.mode, '\zs')
+            for mode in maparg.mode
                 # reinstall a saved mapping
                 maparg->deepcopy()->extend({mode: mode})->Reinstall()
             endfor
@@ -464,7 +474,12 @@ enddef
 #}}}
 #}}}1
 # Core {{{1
-def Maparg(name: string, mode: string, wantlocal: bool): dict<any> #{{{2
+def Maparg( #{{{2
+    name: string,
+    mode: string,
+    wantlocal: bool
+): dict<any>
+
     var maparg: dict<any> = maparg(name, mode, false, true)
 
     # There are 6 cases to consider.{{{
@@ -524,7 +539,7 @@ def Maparg(name: string, mode: string, wantlocal: bool): dict<any> #{{{2
             # we want to be consistent with `maparg()` which would return a space for `nvo`
             mode: mode == '' ? ' ' : mode,
             buffer: wantlocal,
-            }
+        }
 
     # a local mapping is shadowing the global mapping we're interested in,
     # so we don't know whether there's a relevant mapping
@@ -543,7 +558,7 @@ def Maparg(name: string, mode: string, wantlocal: bool): dict<any> #{{{2
             lhs: name,
             # we want Vim to translate `<sid>`
             rhs: maparg(name, mode)->escape('|'),
-            })
+        })
     endif
 
     if Islocal(maparg)
@@ -556,8 +571,7 @@ def Maparg(name: string, mode: string, wantlocal: bool): dict<any> #{{{2
 enddef
 
 def Reinstall(maparg: dict<any>) #{{{2
-    var cmd: string = GetMappingCmd(maparg)
-    exe cmd
+    exe GetMappingCmd(maparg)
         .. ' '
         .. (maparg.buffer  ? ' <buffer> ' : '')
         .. (maparg.expr    ? ' <expr>   ' : '')
