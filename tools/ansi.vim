@@ -124,7 +124,7 @@ def Ansi() #{{{1
     var clean_this: string = '\C\e\[\d*m\|[[:cntrl:]]'
     # TODO: Prefix `:%s` with `keepj keepp lockm` once this issue is fixed:  https://github.com/vim/vim/issues/6530{{{
     #
-    #     sil exe 'keepj keepp lockm :%s/' .. clean_this .. '//ge'
+    #     exe 'sil keepj keepp lockm :%s/' .. clean_this .. '//ge'
     #
     # If you still can't use these modifiers after #6530 has been fixed, open a new issue.
     #
@@ -133,7 +133,7 @@ def Ansi() #{{{1
     # Also,  right now,  `:silent` doesn't  work.  Again,  once #6530  is fixed,
     # check that the substitution is silent.
     #}}}
-    sil exe ':%s/' .. clean_this .. '//ge'
+    exe 'sil :%s/' .. clean_this .. '//ge'
     # Don't save the buffer.{{{
     #
     # It's useful to keep the file as it is, in case we want to send it to a Vim

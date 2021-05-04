@@ -5,15 +5,15 @@ var loaded = true
 
 export def Catch(): string #{{{1
     if get(g:, 'my_verbose_errors', false)
-        var funcname: string = matchstr(v:throwpoint, 'function \zs.\{-}\ze,')
-        var line: string = matchstr(v:throwpoint, '\%(function \)\=.\{-}, \zsline \d\+')
+        var funcname: string = v:throwpoint->matchstr('function \zs.\{-}\ze,')
+        var line: string = v:throwpoint->matchstr('\%(function \)\=.\{-}, \zsline \d\+')
 
         echohl ErrorMsg
         if !empty(funcname)
             unsilent echom 'Error detected while processing function ' .. funcname .. ':'
         else
             # the error comes from a (temporary?) file
-            unsilent echom 'Error detected while processing ' .. matchstr(v:throwpoint, '.\{-}\ze,') .. ':'
+            unsilent echom 'Error detected while processing ' .. v:throwpoint->matchstr('.\{-}\ze,') .. ':'
         endif
         echohl LineNr
         unsilent echom line .. ':'
@@ -153,13 +153,13 @@ export def GetSelectionCoords(): dict<list<number>> #{{{1
 enddef
 
 export def InTerminalBuffer(): bool #{{{1
-    return &bt == 'terminal'
+    return &buftype == 'terminal'
         # tmux terminal scrollback buffer captured in Vim via `capture-pane`
-        || (&ft == '' && expand('%:p') =~ '^$\|^\%(/proc/\|/tmp/\)' && search('^٪', 'n') > 0)
+        || (&filetype == '' && expand('%:p') =~ '^$\|^\%(/proc/\|/tmp/\)' && search('^٪', 'n') > 0)
 enddef
 
 export def IsVim9(): bool #{{{1
-    if &ft != 'vim'
+    if &filetype != 'vim'
         return false
     endif
 
@@ -235,7 +235,7 @@ export def Opfunc(type: string) #{{{1
                 line: "'[V']y",
                 block: "`[\<c-v>`]y"
             }
-            sil exe 'keepj norm! ' .. get(commands, type, '')
+            exe 'sil keepj norm! ' .. get(commands, type, '')
         endif
         call(g:opfunc.core, [type])
         # Do *not* remove `g:opfunc.core`.  It would break the dot command.

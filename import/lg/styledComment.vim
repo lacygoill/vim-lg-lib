@@ -131,8 +131,7 @@ export def Fold() #{{{2
     #
     # It will be removed by the `au! * <buffer>` from the next autocmd.
     #
-    # Indeed, in your vimrc, you have run `:filetype plugin on`, or vim-plug has
-    # done it for you.
+    # Indeed, in your vimrc, you have run `:filetype plugin on`.
     # And  a bit  later, still  in  your vimrc,  you have  installed an  autocmd
     # listening to `FileType`  which calls the current function  (the augroup is
     # named `StyledComments`).
@@ -221,16 +220,16 @@ def FoldSettings()
     #     fu FoldSettings(ft) abort
     #                     ^^
     #
-    #     if &ft == 'qf'
+    #     if &filetype == 'qf'
     #         return
     #     endif
     #     →
-    #        v-------v
-    #     if &ft != ft
+    #        v-------------v
+    #     if &filetype != ft
     #         return
     #     endif
     #}}}
-    if &ft == 'qf'
+    if &filetype == 'qf'
         return
     endif
 
@@ -345,12 +344,12 @@ export def Syntax() #{{{2
     var cml_0_1: string
     var nr: number
     # for Vim, we need to handle 2 possible comment leaders (`#` is for Vim9 script)
-    if &ft == 'vim'
+    if &filetype == 'vim'
         cml = '\%(#\|"\\\=\)'
         cml_0_1 = cml .. '\='
         nr = 1
     else
-        cml = matchstr(&l:cms, '\S*\ze\s*%s')
+        cml = &l:cms->matchstr('\S*\ze\s*%s')
         # What do you need this `nr` for?{{{
         #
         # For offsets when defining the syntax groups:
@@ -441,8 +440,8 @@ export def Syntax() #{{{2
     # TODO: Read: https://daringfireball.net/projects/markdown/syntax{{{
     # and   https://daringfireball.net/projects/markdown/basics
     #
-    # `markdown` provides some useful syntax which our comments
-    # don't emulate yet.
+    # `markdown` provides  some useful syntax  which our comments  don't emulate
+    # yet.
     #
     # Like the fact that  a list item can include a blockquote  or a code block.
     # Make some tests on github,  stackexchange, reddit, and with `:Preview`, to
@@ -498,7 +497,7 @@ def FixAllbut(ft: string) #{{{2
         allbut_groups[ft] = execute('syn list')
             ->split('\n')
             ->filter((_, v: string): bool => v =~ '\CALLBUT' && v !~ '^\s')
-            ->map((_, v: string): string => matchstr(v, '\S\+'))
+            ->map((_, v: string): string => v->matchstr('\S\+'))
             # Ignore groups defined for embedding another language.{{{
             #
             # Otherwise, this  function breaks  the syntax highlighting  in some
@@ -1380,8 +1379,8 @@ def SynFoldmarkers( #{{{2
     #    ❯❮
     #    ❱❰
     #}}}
-    var cml_left: string = '\V' .. matchstr(&l:cms, '\S*\ze\s*%s')->escape('\/') .. '\m'
-    var cml_right: string = '\V' .. matchstr(&l:cms, '.*%s\s*\zs.*')->escape('\/') .. '\m'
+    var cml_left: string = '\V' .. &l:cms->matchstr('\S*\ze\s*%s')->escape('\/') .. '\m'
+    var cml_right: string = '\V' .. &l:cms->matchstr('.*%s\s*\zs.*')->escape('\/') .. '\m'
     var pat: string
     var contained: string
     if cml_right == '\V\m'

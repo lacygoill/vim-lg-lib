@@ -430,7 +430,7 @@ export def MapRestore(save: list<dict<any>>) #{{{2
         #     # restore local mapping
         #     # ...
         #     if exists('altbuf')
-        #         noa exe 'b ' .. origbuf
+        #         exe 'noa b ' .. origbuf
         #         @# = altbuf
         #     endif
         #}}}

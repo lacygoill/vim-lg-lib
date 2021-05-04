@@ -246,7 +246,7 @@ def GetLongestWidth(lines: list<string>): number
 enddef
 
 def IsTerminalBuffer(n: number): bool #{{{2
-    return typename(n) == 'number' && n > 0 && getbufvar(n, '&bt', '') == 'terminal'
+    return typename(n) == 'number' && n > 0 && getbufvar(n, '&buftype', '') == 'terminal'
 enddef
 
 def Log( #{{{2

@@ -38,7 +38,7 @@ enddef
 
 export def QfOpenOrFocus(qftype: string) #{{{1
     var winid: number
-    var we_are_in_qf: bool = &bt == 'quickfix'
+    var we_are_in_qf: bool = &buftype == 'quickfix'
 
     if !we_are_in_qf
         winid = qftype == 'loc'

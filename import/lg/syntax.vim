@@ -38,8 +38,8 @@ export def Derive( #{{{2
         # That is, the  `from` syntax group could be linked  to `A`, which could
         # be linked to `B`, ...
         #}}}
-        var g: number = 0 | while originalDefinition =~ ' links to \S\+$' && g < 9 | g += 1
-            var link: string = matchstr(originalDefinition, ' links to \zs\S\+$')
+        var g: number = 0 | while originalDefinition =~ ' links to \S\+$' && g < 9 | ++g
+            var link: string = originalDefinition->matchstr(' links to \zs\S\+$')
             originalDefinition = Getdef(link)
             originalGroup = link
         endwhile
