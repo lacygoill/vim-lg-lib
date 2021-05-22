@@ -252,7 +252,7 @@ export def Opfunc(type: string) #{{{1
         # invalid.  But in practice, it doesn't seem to raise any error:
         #
         #     $ vim -Nu NONE -i NONE +'echom setpos("'\''<", [0, 999, 999, 0])'
-        #     0~
+        #     0˜
         #}}}
         setpos("'<", visual_marks_save[0])
         setpos("'>", visual_marks_save[1])

@@ -82,7 +82,7 @@ def Basic(arg_what: any, opts: dict<any>): list<number> #{{{2
     #
     #         var cmd: string = printf('var winid = popup_create(%s, %s)', what, opts)
     #         " if `what` is the string 'TEST', the surrounding quotes will be removed by `printf()`:
-    #         E121: Undefined variable: TEST~
+    #         E121: Undefined variable: TEST˜
     #}}}
     var what: any = arg_what
     if typename(arg_what) == 'string'

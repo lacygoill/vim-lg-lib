@@ -61,7 +61,7 @@ export def MatrixTransposition(lists: list<list<number>>): any #{{{1
     # Usage example:{{{
     #
     #     :echo Matrix_transposition([[1, 2], [3, 4], [5, 6]])
-    #     [[1, 3, 5], [2, 4, 6]]~
+    #     [[1, 3, 5], [2, 4, 6]]˜
     #}}}
 
     var n_lines: number = len(lists)

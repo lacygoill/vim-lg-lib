@@ -179,7 +179,7 @@ def FoldSettings()
     #         qa!
     #     EOF
     #     )
-    #     marker~
+    #     marker˜
     #     " it should be "manual"
     #
     # Obviously, if  `'fdm'` is wrongly set  to "marker", and the  text field of
@@ -1159,7 +1159,7 @@ enddef
 
 def SynOutput(ft: string, cml: string) #{{{2
     #     $ shell command
-    #     output~
+    #     output˜
     # Why `\%(...\)\@<=` for these 2 statements?{{{
     #
     # It's required in the first statement because:
@@ -1175,7 +1175,7 @@ def SynOutput(ft: string, cml: string) #{{{2
     # with `Ignore` *all* the output of a command, only the last tilde.
     #}}}
     exe 'syn match ' .. ft .. 'CommentOutput'
-        .. ' /\%(^\s*' .. cml .. ' \{5,}\)\@<=.*\~$/'
+        .. ' /\%(^\s*' .. cml .. ' \{5,}\)\@<=.*˜$/'
         .. ' contained'
         .. ' containedin=' .. ft .. 'CommentCodeBlock'
         .. ' nextgroup=' .. ft .. 'CommentIgnore'
@@ -1187,9 +1187,9 @@ def SynOutput(ft: string, cml: string) #{{{2
         .. ' conceal'
 
     # - some item
-    #         some output~
+    #         some output˜
     exe 'syn match ' .. ft .. 'CommentListItemOutput'
-        .. ' /\%(^\s*' .. cml .. ' \{9,}\)\@<=.*\~$/'
+        .. ' /\%(^\s*' .. cml .. ' \{9,}\)\@<=.*˜$/'
         .. ' contained'
         .. ' containedin=' .. ft .. 'CommentListItemCodeBlock'
         .. ' nextgroup=' .. ft .. 'CommentIgnore'

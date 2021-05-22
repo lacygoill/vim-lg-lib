@@ -304,8 +304,8 @@ export def MapSave( #{{{2
     #     noremap <c-q> <esc><esc>
     #     MapRestore(save)
     #     map <c-q>
-    #     n  <C-Q>       * <Esc>~
-    #     ov <C-Q>       * <Esc><Esc>~
+    #     n  <C-Q>       * <Esc>˜
+    #     ov <C-Q>       * <Esc><Esc>˜
     #     ^^
     #     the C-q mappings in these modes should have been removed
     #
@@ -336,13 +336,13 @@ export def MapSave( #{{{2
     #     noremap <c-q> <esc>
     #     vunmap <c-q>
     #     map <c-q>
-    #     no <C-Q>       * <Esc>~
+    #     no <C-Q>       * <Esc>˜
     #
     #     var save: list<dict<any>> = MapSave('<c-q>', 'n')
     #     MapRestore(save)
     #     map <c-q>
-    #     n  <C-Q>       * <Esc>~
-    #     o  <C-Q>       * <Esc>~
+    #     n  <C-Q>       * <Esc>˜
+    #     o  <C-Q>       * <Esc>˜
     #
     # I don't consider that as an issue.
     # On the contrary, I prefer the second output, because `no` is not a real mode.
@@ -453,7 +453,7 @@ export def MapRestore(save: list<dict<any>>) #{{{2
             #     noremap <c-q> <esc>
             #     nunmap <c-q>
             #     echo maparg('<c-q>', '', 0, 1).mode
-            #     ov~
+            #     ov˜
             #     ^^
             #     2 modes
             #}}}
