@@ -115,7 +115,7 @@ export def MatrixTransposition(lists: list<list<number>>): any #{{{1
     #}}}
     for i in range(n_lines)
         for j in range(n_columns)
-            add(transposed[j], lists[i][j])
+            transposed[j]->add(lists[i][j])
         endfor
     endfor
 
