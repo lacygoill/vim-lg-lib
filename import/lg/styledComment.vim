@@ -340,41 +340,32 @@ export def Syntax() #{{{2
     # and stick to it (here and in the markdown syntax plugin)
 
     var ft: string = GetFiletype()
-    var cml: string
+    var cml: string = &l:cms->matchstr('\S*\ze\s*%s')
     var cml_0_1: string
-    var nr: number
-    # for Vim, we need to handle 2 possible comment leaders (`#` is for Vim9 script)
-    if &filetype == 'vim'
-        cml = '\%(#\|"\\\=\)'
-        cml_0_1 = cml .. '\='
-        nr = 1
-    else
-        cml = &l:cms->matchstr('\S*\ze\s*%s')
-        # What do you need this `nr` for?{{{
-        #
-        # For offsets when defining the syntax groups:
-        #
-        #    - xxxCommentTitle
-        #    - xxxCommentTitleLeader
-        #}}}
-        # Why capturing it now?{{{
-        #
-        # The next statement  invokes `escape()` which may  add backslashes, and
-        # alter the real number of characters inside the comment leader.
-        #}}}
-        nr = strcharlen(cml)
-        # Why do you escape the slashes?{{{
-        #
-        # We use a slash as a delimiter around the patterns of our syntax elements.
-        # As a result, if the comment  leader of the current filetype contains a
-        # slash, we need to escape the  slashes to prevent Vim from interpreting
-        # them as the end of the pattern.
-        # This is needed for `xkb` where the comment leader is `//`.
-        #}}}
-        cml = escape(cml, '\/')
-        cml_0_1 = '\V' .. '\%(' .. cml .. '\)\=' .. '\m'
-        cml = '\V' .. cml .. '\m'
-    endif
+    # What do you need this `nr` for?{{{
+    #
+    # For offsets when defining the syntax groups:
+    #
+    #    - xxxCommentTitle
+    #    - xxxCommentTitleLeader
+    #}}}
+    #   Why capturing it now?{{{
+    #
+    # The next statement  invokes `escape()` which may  add backslashes, and
+    # alter the real number of characters inside the comment leader.
+    #}}}
+    var nr: number = strcharlen(cml)
+    # Why do you escape the slashes?{{{
+    #
+    # We use a slash as a delimiter around the patterns of our syntax elements.
+    # As a result, if the comment  leader of the current filetype contains a
+    # slash, we need to escape the  slashes to prevent Vim from interpreting
+    # them as the end of the pattern.
+    # This is needed for `xkb` where the comment leader is `//`.
+    #}}}
+    cml = escape(cml, '\/')
+    cml_0_1 = '\V' .. '\%(' .. cml .. '\)\=' .. '\m'
+    cml = '\V' .. cml .. '\m'
     var commentGroup: string = GetCommentgroup(ft)
 
     SynCommentleader(ft, cml)
@@ -400,7 +391,7 @@ export def Syntax() #{{{2
         SynCodeBlock(ft, cml, commentGroup)
         SynBlockquote(ft, cml, commentGroup)
         SynTable(ft, cml, commentGroup)
-        SynOutput(ft, cml)
+        SynOutput(ft)
         SynRule(ft, cml, commentGroup)
         SynPointer(ft, cml, commentGroup)
     endif
@@ -1157,31 +1148,17 @@ def SynBlockquote( #{{{2
         .. ' conceal'
 enddef
 
-def SynOutput(ft: string, cml: string) #{{{2
+def SynOutput(ft: string) #{{{2
     #     $ shell command
     #     output˜
-    # Why `\%(...\)\@<=` for these 2 statements?{{{
-    #
-    # It's required in the first statement because:
-    #
-    #    1. `xCommentOutput` is contained in `xCommentCodeBlock`
-    #
-    #    2. `xCommentCodeBlock` is a region using `matchgroup=`
-    #
-    #    3. `matchgroup=` prevents  a contained  item to  match where  `start` and
-    #       `end` matched
-    #
-    # It's required in  the second statement because we don't  want to highlight
-    # with `Ignore` *all* the output of a command, only the last tilde.
-    #}}}
     exe 'syn match ' .. ft .. 'CommentOutput'
-        .. ' /\%(^\s*' .. cml .. ' \{5,}\)\@<=.*˜$/'
+        .. ' /.*˜$/'
         .. ' contained'
         .. ' containedin=' .. ft .. 'CommentCodeBlock'
         .. ' nextgroup=' .. ft .. 'CommentIgnore'
 
     exe 'syn match ' .. ft .. 'CommentIgnore'
-        .. ' /\%(^\s*' .. cml .. '.*\)\@<=.$/'
+        .. ' /.$/'
         .. ' contained'
         .. ' containedin=' .. ft .. 'CommentOutput,' .. ft .. 'CommentListItemOutput'
         .. ' conceal'
@@ -1189,7 +1166,7 @@ def SynOutput(ft: string, cml: string) #{{{2
     # - some item
     #         some output˜
     exe 'syn match ' .. ft .. 'CommentListItemOutput'
-        .. ' /\%(^\s*' .. cml .. ' \{9,}\)\@<=.*˜$/'
+        .. ' /.*˜$/'
         .. ' contained'
         .. ' containedin=' .. ft .. 'CommentListItemCodeBlock'
         .. ' nextgroup=' .. ft .. 'CommentIgnore'
