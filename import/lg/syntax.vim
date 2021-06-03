@@ -29,6 +29,9 @@ export def Derive( #{{{2
     arg_newAttributes: any,
 )
     var originalDefinition: string = Getdef(from)
+    if originalDefinition =~ '\<cleared\>'
+        return
+    endif
     var originalGroup: string
     # if the `from` syntax group is linked to another group, we need to resolve the link
     if originalDefinition =~ ' links to \S\+$'

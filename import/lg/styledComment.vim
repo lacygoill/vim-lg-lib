@@ -247,6 +247,11 @@ enddef
 # }}}1
 # syntax plugin {{{1
 export def Syntax() #{{{2
+    # We don't want to customize legacy Vim scripts.
+    if b:current_syntax == 'vim'
+        return
+    endif
+
     # Use `\s` instead of ` `!{{{
     #
     # This is necessary for a whitespace before a comment leader:
@@ -734,36 +739,36 @@ enddef
 def HighlightGroupsLinks(ft: string) #{{{2
     exe 'hi ' .. ft .. 'FoldMarkers term=bold cterm=bold gui=bold'
 
-    exe 'hi link ' .. ft .. 'CommentURL CommentUnderlined'
+    exe 'hi def link ' .. ft .. 'CommentURL CommentUnderlined'
 
-    exe 'hi link ' .. ft .. 'CommentBold                  CommentBold'
-    exe 'hi link ' .. ft .. 'CommentBoldItalic            CommentBoldItalic'
-    exe 'hi link ' .. ft .. 'CommentCodeBlock             CommentCodeSpan'
-    exe 'hi link ' .. ft .. 'CommentCodeSpan              CommentCodeSpan'
-    exe 'hi link ' .. ft .. 'CommentItalic                CommentItalic'
+    exe 'hi def link ' .. ft .. 'CommentBold                  CommentBold'
+    exe 'hi def link ' .. ft .. 'CommentBoldItalic            CommentBoldItalic'
+    exe 'hi def link ' .. ft .. 'CommentCodeBlock             CommentCodeSpan'
+    exe 'hi def link ' .. ft .. 'CommentCodeSpan              CommentCodeSpan'
+    exe 'hi def link ' .. ft .. 'CommentItalic                CommentItalic'
 
-    exe 'hi link ' .. ft .. 'CommentBlockquote            markdownBlockquote'
-    exe 'hi link ' .. ft .. 'CommentBlockquoteBold        markdownBlockquoteBold'
-    exe 'hi link ' .. ft .. 'CommentBlockquoteBoldItalic  markdownBlockquoteBoldItalic'
-    exe 'hi link ' .. ft .. 'CommentBlockquoteCodeSpan    markdownBlockquoteCodeSpan'
-    exe 'hi link ' .. ft .. 'CommentBlockquoteItalic      markdownBlockquoteItalic'
+    exe 'hi def link ' .. ft .. 'CommentBlockquote            markdownBlockquote'
+    exe 'hi def link ' .. ft .. 'CommentBlockquoteBold        markdownBlockquoteBold'
+    exe 'hi def link ' .. ft .. 'CommentBlockquoteBoldItalic  markdownBlockquoteBoldItalic'
+    exe 'hi def link ' .. ft .. 'CommentBlockquoteCodeSpan    markdownBlockquoteCodeSpan'
+    exe 'hi def link ' .. ft .. 'CommentBlockquoteItalic      markdownBlockquoteItalic'
 
-    exe 'hi link ' .. ft .. 'CommentKey                   markdownKey'
-    exe 'hi link ' .. ft .. 'CommentLeader                Comment'
-    exe 'hi link ' .. ft .. 'CommentListItem              markdownListItem'
-    exe 'hi link ' .. ft .. 'CommentListItemBlockquote    markdownListItemBlockquote'
-    exe 'hi link ' .. ft .. 'CommentListItemBold          markdownListItemBold'
-    exe 'hi link ' .. ft .. 'CommentListItemBoldItalic    markdownListItemBoldItalic'
-    exe 'hi link ' .. ft .. 'CommentListItemCodeBlock     CommentCodeSpan'
-    exe 'hi link ' .. ft .. 'CommentListItemCodeSpan      CommentListItemCodeSpan'
-    exe 'hi link ' .. ft .. 'CommentListItemItalic        markdownListItemItalic'
-    exe 'hi link ' .. ft .. 'CommentListItemOutput        CommentPreProc'
-    exe 'hi link ' .. ft .. 'CommentOption                markdownOption'
-    exe 'hi link ' .. ft .. 'CommentOutput                CommentPreProc'
-    exe 'hi link ' .. ft .. 'CommentPointer               markdownPointer'
-    exe 'hi link ' .. ft .. 'CommentRule                  markdownRule'
-    exe 'hi link ' .. ft .. 'CommentTable                 markdownTable'
-    exe 'hi link ' .. ft .. 'CommentTitle                 CommentPreProc'
+    exe 'hi def link ' .. ft .. 'CommentKey                   markdownKey'
+    exe 'hi def link ' .. ft .. 'CommentLeader                Comment'
+    exe 'hi def link ' .. ft .. 'CommentListItem              markdownListItem'
+    exe 'hi def link ' .. ft .. 'CommentListItemBlockquote    markdownListItemBlockquote'
+    exe 'hi def link ' .. ft .. 'CommentListItemBold          markdownListItemBold'
+    exe 'hi def link ' .. ft .. 'CommentListItemBoldItalic    markdownListItemBoldItalic'
+    exe 'hi def link ' .. ft .. 'CommentListItemCodeBlock     CommentCodeSpan'
+    exe 'hi def link ' .. ft .. 'CommentListItemCodeSpan      CommentListItemCodeSpan'
+    exe 'hi def link ' .. ft .. 'CommentListItemItalic        markdownListItemItalic'
+    exe 'hi def link ' .. ft .. 'CommentListItemOutput        CommentPreProc'
+    exe 'hi def link ' .. ft .. 'CommentOption                markdownOption'
+    exe 'hi def link ' .. ft .. 'CommentOutput                CommentPreProc'
+    exe 'hi def link ' .. ft .. 'CommentPointer               markdownPointer'
+    exe 'hi def link ' .. ft .. 'CommentRule                  markdownRule'
+    exe 'hi def link ' .. ft .. 'CommentTable                 markdownTable'
+    exe 'hi def link ' .. ft .. 'CommentTitle                 CommentPreProc'
 enddef
 
 def SynCommentleader(ft: string, cml: string) #{{{2
