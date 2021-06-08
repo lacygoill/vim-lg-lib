@@ -107,14 +107,14 @@ END
 
 # filetype plugin {{{1
 export def Fold() #{{{2
-    var ft: string = expand('<amatch>')
+    var filetype: string = expand('<amatch>')
     # Do *not* remove this function call.{{{
     #
     # Yes, it  seems redundant,  because it  will be called  a second  time when
     # `BufWinEnter` will be fired right after `FileType`.
     #
     # But if you don't set the options now, it may lead to subtle issues; we had
-    # one in the past in `vim-fold` when we used a timer to delay `setl fdm=manual`.
+    # one in the past in `vim-fold` when we used a timer to delay `&l:foldmethod = 'manual'`.
     # Anyway, if  these options  were in  a filetype plugin,  they would  be set
     # *right now*,  not slightly later; so  let's be consistent; let's  set them
     # right now.
@@ -149,7 +149,7 @@ export def Fold() #{{{2
     # I think that's due to:
     # https://github.com/vim/vim/issues/4994
     #}}}
-    exe 'augroup MyFold_' .. ft
+    exe 'augroup MyFold_' .. filetype
         au! * <buffer>
         # Why `FileChangedShellPost`?{{{
         #
@@ -170,20 +170,21 @@ def FoldSettings()
     #
     # MWE:
     #
-    #     $ vim -Nu NONE -es -S <(cat <<'EOF'
+    #     $ vim -Nu NONE -i NONE -es -S <(cat <<'EOF'
+    #         vim9script
     #         au QuickFixCmdPost * au BufWinEnter * ++once lw
-    #         au FileType help au BufWinEnter <buffer> setl fdm=marker
+    #         au FileType help au BufWinEnter <buffer> &l:foldmethod = 'marker'
     #         lh foobar
-    #         getloclist(0, {"winid": 0}).winid->win_gotoid()
-    #         set vbs=1|echo &l:fdm
+    #         getloclist(0, {winid: 0}).winid->win_gotoid()
+    #         &verbose = 1 | echo &l:foldmethod
     #         qa!
     #     EOF
     #     )
     #     marker˜
     #     " it should be "manual"
     #
-    # Obviously, if  `'fdm'` is wrongly set  to "marker", and the  text field of
-    # some entry contains a fold marker, the qf buffer gets folded.
+    # Obviously,  if `'foldmethod'`  is wrongly  set to  "marker", and  the text
+    # field of some entry contains a fold marker, the qf buffer gets folded.
     # This  can  have another  unexpected  side effect;  there  may be  a  weird
     # interaction with `vim-window` which makes the current line in the location
     # window wrong after `:llast`.
@@ -192,9 +193,9 @@ def FoldSettings()
     #
     # The issue disappears if you remove the `BufWinEnter` autocmd:
     #
-    #     au FileType help au BufWinEnter <buffer> setl fdm=marker
+    #     au FileType help au BufWinEnter <buffer> &l:foldmethod = 'marker'
     #     →
-    #     au FileType help setl fdm=marker
+    #     au FileType help &l:foldmethod = 'marker'
     #
     # ---
     #
@@ -207,25 +208,25 @@ def FoldSettings()
     #
     #     FoldSettings()
     #     →
-    #     FoldSettings(ft)
-    #                  ^^
+    #     FoldSettings(filetype)
+    #                  ^------^
     #
     #     au BufWinEnter,FileChangedShellPost <buffer> FoldSettings()
     #     →
-    #     exe 'au BufWinEnter,FileChangedShellPost <buffer> FoldSettings(' .. string(ft) .. ')'
-    #     ^---^                                                          ^--------------------^
+    #     exe 'au BufWinEnter,FileChangedShellPost <buffer> FoldSettings(' .. string(filetype) .. ')'
+    #     ^---^                                                          ^--------------------------^
     #
     #     fu FoldSettings() abort
     #     →
-    #     fu FoldSettings(ft) abort
-    #                     ^^
+    #     fu FoldSettings(filetype) abort
+    #                     ^------^
     #
     #     if &filetype == 'qf'
     #         return
     #     endif
     #     →
-    #        v-------------v
-    #     if &filetype != ft
+    #        v-------------------v
+    #     if &filetype != filetype
     #         return
     #     endif
     #}}}
@@ -233,22 +234,25 @@ def FoldSettings()
         return
     endif
 
-    setl fdm=marker
-    setl fdt=fold#fdt#get()
-    setl cocu=nc
-    setl cole=3
+    &l:foldmethod = 'marker'
+    &l:foldtext = 'fold#foldtext#get()'
+    &l:concealcursor = 'nc'
+    &l:conceallevel = 3
 enddef
 
 export def UndoFtplugin() #{{{2
-    var ft: string = expand('<amatch>')
+    var filetype: string = expand('<amatch>')
     b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe')
-        .. '| set cocu< cole< fdm< fdt< | exe "au! MyFold_' .. ft .. ' * <buffer>"'
+        .. ' | set concealcursor< conceallevel< foldmethod< foldtext<'
+        .. ' | exe "au! MyFold_' .. filetype .. ' * <buffer>"'
 enddef
 # }}}1
 # syntax plugin {{{1
 export def Syntax() #{{{2
     # We don't want to customize legacy Vim scripts.
-    if b:current_syntax == 'vim'
+    if get(b:, 'current_syntax', '') == 'vim'
+    # NOTE: `b:current_syntax` might not exist.
+    # For example, after `:syn off` then `:syn on`.
         return
     endif
 
@@ -344,8 +348,8 @@ export def Syntax() #{{{2
     # TODO: find a consistent order for the arguments of a region (and other items)
     # and stick to it (here and in the markdown syntax plugin)
 
-    var ft: string = GetFiletype()
-    var cml: string = &l:cms->matchstr('\S*\ze\s*%s')
+    var filetype: string = GetFiletype()
+    var cml: string = &l:commentstring->matchstr('\S*\ze\s*%s')
     var cml_0_1: string
     # What do you need this `nr` for?{{{
     #
@@ -371,17 +375,17 @@ export def Syntax() #{{{2
     cml = escape(cml, '\/')
     cml_0_1 = '\V' .. '\%(' .. cml .. '\)\=' .. '\m'
     cml = '\V' .. cml .. '\m'
-    var commentGroup: string = GetCommentgroup(ft)
+    var commentGroup: string = GetCommentgroup(filetype)
 
-    SynCommentleader(ft, cml)
-    SynCommenttitle(ft, cml, nr)
+    SynCommentleader(filetype, cml)
+    SynCommenttitle(filetype, cml, nr)
     # Why this guard? {{{
     #
     # For some filetypes, such as html  and css, it's too difficult to implement
     # some styles without any undesirable side effects.
     # }}}
-    if index(BLACKLIST, ft) == -1
-        SynListItem(ft, cml, commentGroup)
+    if index(BLACKLIST, filetype) == -1
+        SynListItem(filetype, cml, commentGroup)
         # Don't move the call to `syn_code_block()` somewhere below!{{{
         #
         # `xCommentPointer` must be defined *after* `xCommentCodeBlock`.
@@ -393,14 +397,14 @@ export def Syntax() #{{{2
         #
         # So, unless you know what you're doing, leave this call here.
         #}}}
-        SynCodeBlock(ft, cml, commentGroup)
-        SynBlockquote(ft, cml, commentGroup)
-        SynTable(ft, cml, commentGroup)
-        SynOutput(ft)
-        SynRule(ft, cml, commentGroup)
-        SynPointer(ft, cml, commentGroup)
+        SynCodeBlock(filetype, cml, commentGroup)
+        SynBlockquote(filetype, cml, commentGroup)
+        SynTable(filetype, cml, commentGroup)
+        SynOutput(filetype)
+        SynRule(filetype, cml, commentGroup)
+        SynPointer(filetype, cml, commentGroup)
     endif
-    SynCodeSpan(ft, commentGroup)
+    SynCodeSpan(filetype, commentGroup)
     # Don't change the order of `SynItalic()`, `SynBold()` and `SynBolditalic()`!{{{
     #
     # It would break the syntax highlighting of some style (italic, bold, bold+italic).
@@ -419,20 +423,20 @@ export def Syntax() #{{{2
     #
     # But it would probably have an impact on Vim's performance.
     #}}}
-    SynItalic(ft, commentGroup)
-    SynBold(ft, commentGroup)
-    SynBolditalic(ft, commentGroup)
+    SynItalic(filetype, commentGroup)
+    SynBold(filetype, commentGroup)
+    SynBolditalic(filetype, commentGroup)
     # TODO: This invocation of `SynOption()` doesn't require several arguments.
     # This  is neat;  study how  it's possible,  and try  to redefine  the other
     # syntax groups, so that we have less arguments to pass.
-    SynOption(ft)
-    SynUrl(ft, commentGroup)
-    SynFoldmarkers(ft, cml_0_1, commentGroup)
+    SynOption(filetype)
+    SynUrl(filetype, commentGroup)
+    SynFoldmarkers(filetype, cml_0_1, commentGroup)
 
-    FixCommentRegion(ft)
-    FixAllbut(ft)
+    FixCommentRegion(filetype)
+    FixAllbut(filetype)
 
-    HighlightGroupsLinks(ft)
+    HighlightGroupsLinks(filetype)
     # TODO: Read: https://daringfireball.net/projects/markdown/syntax{{{
     # and   https://daringfireball.net/projects/markdown/basics
     #
@@ -447,7 +451,7 @@ export def Syntax() #{{{2
     #}}}
 enddef
 
-def FixAllbut(ft: string) #{{{2
+def FixAllbut(filetype: string) #{{{2
     # What's the purpose of this function?{{{
     #
     # Some default syntax plugins define groups with the argument `contains=ALLBUT`.
@@ -477,20 +481,20 @@ def FixAllbut(ft: string) #{{{2
     var groups: string = CUSTOM_GROUPS
         ->mapnew((_, v: string): string =>
                       v[0] == '@'
-                    ?     '@' .. ft .. v->trim('@')
-                    :     ft .. v
+                    ?     '@' .. filetype .. v->trim('@')
+                    :     filetype .. v
         )->join(',')
-    exe 'syn cluster ' .. ft .. 'MyCustomGroups contains=' .. groups
+    exe 'syn cluster ' .. filetype .. 'MyCustomGroups contains=' .. groups
 
     # get the list of groups using `ALLBUT`, and save it in a script-local variable
     # to avoid having to recompute it every time we reload the same kind of buffer
-    if !allbut_groups->has_key(ft)
+    if !allbut_groups->has_key(filetype)
         # Don't try to read and parse the original syntax plugin.{{{
         #
         # `ALLBUT` could be  on a continuation line, and in  this case, it would
         # be hard to get the name of the syntax group.
         #}}}
-        allbut_groups[ft] = execute('syn list')
+        allbut_groups[filetype] = execute('syn list')
             ->split('\n')
             ->filter((_, v: string): bool => v =~ '\CALLBUT' && v !~ '^\s')
             ->map((_, v: string): string => v->matchstr('\S\+'))
@@ -552,14 +556,14 @@ def FixAllbut(ft: string) #{{{2
             # syntax  plugin, in  which you  ignore `@xMyCustomGroups`  whenever
             # it's necessary.
             #}}}
-            ->filter((_, v: string): bool => v =~ '^' .. ft)
+            ->filter((_, v: string): bool => v =~ '^' .. filetype)
     endif
 
-    for group in allbut_groups[ft]
+    for group in allbut_groups[filetype]
         var cmds: list<string> = GetCmdsToResetGroup(group)
             # add `@xMyCustomGroups` after `ALLBUT`
             ->map((_, v: string): string =>
-                    v->substitute('\CALLBUT,', 'ALLBUT,@' .. ft .. 'MyCustomGroups,', ''))
+                    v->substitute('\CALLBUT,', 'ALLBUT,@' .. filetype .. 'MyCustomGroups,', ''))
 
         # clear and redefine all the items in the group
         exe 'syn clear ' .. group
@@ -567,7 +571,7 @@ def FixAllbut(ft: string) #{{{2
     endfor
 enddef
 
-def FixCommentRegion(ft: string) #{{{2
+def FixCommentRegion(filetype: string) #{{{2
     # Sometimes, a line is wrongly highlighted as a comment. {{{
     #
     # For  some filetypes,  if a  commented code  block precedes  an uncommented
@@ -612,7 +616,7 @@ def FixCommentRegion(ft: string) #{{{2
     # Here, that's not going to happen; our contained styles never go beyond the
     # last character of a comment.
     #}}}
-    var cmds: list<string> = GetCmdsToResetGroup(ft .. 'Comment')
+    var cmds: list<string> = GetCmdsToResetGroup(filetype .. 'Comment')
     # Do not reset the comment group if it doesn't contain any region item.{{{
     #
     # It's only needed for a region, not for a match.
@@ -631,7 +635,7 @@ def FixCommentRegion(ft: string) #{{{2
     #
     # While it should be highlighted as a string.
     #}}}
-    if match(cmds, '^syn\%[tax]\s\+region') == -1
+    if cmds->match('^syn\%[tax]\s\+region') == -1
         return
     endif
     # FIXME: This might break the highlighting of a list item.{{{
@@ -645,7 +649,7 @@ def FixCommentRegion(ft: string) #{{{2
     # group in `~/.vim/after/syntax/x.vim` on a per-filetype basis.
     #}}}
     cmds->map((_, v: string): string => v .. ' keepend')
-    exe 'syn clear ' .. ft .. 'Comment'
+    exe 'syn clear ' .. filetype .. 'Comment'
     cmds->map((_, v: string) => execute(v))
 enddef
 
@@ -674,8 +678,8 @@ def GetCmdsToResetGroup(group: string): list<string> #{{{2
     return cmds
 enddef
 
-def GetCommentgroup(ft: string): string #{{{2
-    if ft == 'c'
+def GetCommentgroup(filetype: string): string #{{{2
+    if filetype == 'c'
         # What's the difference between `cComment` and `cCommentL`?{{{
         #
         # `cComment` = old comment style (`/* */`).
@@ -712,78 +716,78 @@ def GetCommentgroup(ft: string): string #{{{2
         # highlighting is wrong.
         #}}}
         return 'cCommentL'
-    elseif ft == 'html'
+    elseif filetype == 'html'
         # `htmlCommentPart` is required; not sure about `htmlComment`...
         return 'htmlComment,htmlCommentPart'
-    elseif ft == 'vim'
+    elseif filetype == 'vim'
         return 'vimComment,vim9Comment,vimLineComment,vim9LineComment'
-    elseif ft == 'sh'
+    elseif filetype == 'sh'
         return 'shComment,shQuickComment'
     else
-        return ft .. 'Comment'
+        return filetype .. 'Comment'
     endif
 enddef
 
 def GetFiletype(): string #{{{2
-    var ft: string = expand('<amatch>')
-    if ft == 'snippets'
-        ft = 'snip'
-    elseif ft == 'desktop'
-        ft = 'dt'
-    elseif ft == 'systemd'
-        ft = 'dosini'
+    var filetype: string = expand('<amatch>')
+    if filetype == 'snippets'
+        filetype = 'snip'
+    elseif filetype == 'desktop'
+        filetype = 'dt'
+    elseif filetype == 'systemd'
+        filetype = 'dosini'
     endif
-    return ft
+    return filetype
 enddef
 
-def HighlightGroupsLinks(ft: string) #{{{2
-    exe 'hi ' .. ft .. 'FoldMarkers term=bold cterm=bold gui=bold'
+def HighlightGroupsLinks(filetype: string) #{{{2
+    exe 'hi ' .. filetype .. 'FoldMarkers term=bold cterm=bold gui=bold'
 
-    exe 'hi def link ' .. ft .. 'CommentURL CommentUnderlined'
+    exe 'hi def link ' .. filetype .. 'CommentURL CommentUnderlined'
 
-    exe 'hi def link ' .. ft .. 'CommentBold                  CommentBold'
-    exe 'hi def link ' .. ft .. 'CommentBoldItalic            CommentBoldItalic'
-    exe 'hi def link ' .. ft .. 'CommentCodeBlock             CommentCodeSpan'
-    exe 'hi def link ' .. ft .. 'CommentCodeSpan              CommentCodeSpan'
-    exe 'hi def link ' .. ft .. 'CommentItalic                CommentItalic'
+    exe 'hi def link ' .. filetype .. 'CommentBold                  CommentBold'
+    exe 'hi def link ' .. filetype .. 'CommentBoldItalic            CommentBoldItalic'
+    exe 'hi def link ' .. filetype .. 'CommentCodeBlock             CommentCodeSpan'
+    exe 'hi def link ' .. filetype .. 'CommentCodeSpan              CommentCodeSpan'
+    exe 'hi def link ' .. filetype .. 'CommentItalic                CommentItalic'
 
-    exe 'hi def link ' .. ft .. 'CommentBlockquote            markdownBlockquote'
-    exe 'hi def link ' .. ft .. 'CommentBlockquoteBold        markdownBlockquoteBold'
-    exe 'hi def link ' .. ft .. 'CommentBlockquoteBoldItalic  markdownBlockquoteBoldItalic'
-    exe 'hi def link ' .. ft .. 'CommentBlockquoteCodeSpan    markdownBlockquoteCodeSpan'
-    exe 'hi def link ' .. ft .. 'CommentBlockquoteItalic      markdownBlockquoteItalic'
+    exe 'hi def link ' .. filetype .. 'CommentBlockquote            markdownBlockquote'
+    exe 'hi def link ' .. filetype .. 'CommentBlockquoteBold        markdownBlockquoteBold'
+    exe 'hi def link ' .. filetype .. 'CommentBlockquoteBoldItalic  markdownBlockquoteBoldItalic'
+    exe 'hi def link ' .. filetype .. 'CommentBlockquoteCodeSpan    markdownBlockquoteCodeSpan'
+    exe 'hi def link ' .. filetype .. 'CommentBlockquoteItalic      markdownBlockquoteItalic'
 
-    exe 'hi def link ' .. ft .. 'CommentKey                   markdownKey'
-    exe 'hi def link ' .. ft .. 'CommentLeader                Comment'
-    exe 'hi def link ' .. ft .. 'CommentListItem              markdownListItem'
-    exe 'hi def link ' .. ft .. 'CommentListItemBlockquote    markdownListItemBlockquote'
-    exe 'hi def link ' .. ft .. 'CommentListItemBold          markdownListItemBold'
-    exe 'hi def link ' .. ft .. 'CommentListItemBoldItalic    markdownListItemBoldItalic'
-    exe 'hi def link ' .. ft .. 'CommentListItemCodeBlock     CommentCodeSpan'
-    exe 'hi def link ' .. ft .. 'CommentListItemCodeSpan      CommentListItemCodeSpan'
-    exe 'hi def link ' .. ft .. 'CommentListItemItalic        markdownListItemItalic'
-    exe 'hi def link ' .. ft .. 'CommentListItemOutput        CommentPreProc'
-    exe 'hi def link ' .. ft .. 'CommentOption                markdownOption'
-    exe 'hi def link ' .. ft .. 'CommentOutput                CommentPreProc'
-    exe 'hi def link ' .. ft .. 'CommentPointer               markdownPointer'
-    exe 'hi def link ' .. ft .. 'CommentRule                  markdownRule'
-    exe 'hi def link ' .. ft .. 'CommentTable                 markdownTable'
-    exe 'hi def link ' .. ft .. 'CommentTitle                 CommentPreProc'
+    exe 'hi def link ' .. filetype .. 'CommentKey                   markdownKey'
+    exe 'hi def link ' .. filetype .. 'CommentLeader                Comment'
+    exe 'hi def link ' .. filetype .. 'CommentListItem              markdownListItem'
+    exe 'hi def link ' .. filetype .. 'CommentListItemBlockquote    markdownListItemBlockquote'
+    exe 'hi def link ' .. filetype .. 'CommentListItemBold          markdownListItemBold'
+    exe 'hi def link ' .. filetype .. 'CommentListItemBoldItalic    markdownListItemBoldItalic'
+    exe 'hi def link ' .. filetype .. 'CommentListItemCodeBlock     CommentCodeSpan'
+    exe 'hi def link ' .. filetype .. 'CommentListItemCodeSpan      CommentListItemCodeSpan'
+    exe 'hi def link ' .. filetype .. 'CommentListItemItalic        markdownListItemItalic'
+    exe 'hi def link ' .. filetype .. 'CommentListItemOutput        CommentPreProc'
+    exe 'hi def link ' .. filetype .. 'CommentOption                markdownOption'
+    exe 'hi def link ' .. filetype .. 'CommentOutput                CommentPreProc'
+    exe 'hi def link ' .. filetype .. 'CommentPointer               markdownPointer'
+    exe 'hi def link ' .. filetype .. 'CommentRule                  markdownRule'
+    exe 'hi def link ' .. filetype .. 'CommentTable                 markdownTable'
+    exe 'hi def link ' .. filetype .. 'CommentTitle                 CommentPreProc'
 enddef
 
-def SynCommentleader(ft: string, cml: string) #{{{2
+def SynCommentleader(filetype: string, cml: string) #{{{2
     # Why `\%(^\s*\)\@<=`?{{{
     #
     # Without it, if your comment leader appears inside a list item, it would be
     # highlighted as a comment leader, instead of being part of the item.
     #}}}
-    exe 'syn match ' .. ft .. 'CommentLeader'
+    exe 'syn match ' .. filetype .. 'CommentLeader'
         .. ' /\%(^\s*\)\@<=' .. cml .. '/'
         .. ' contained'
 enddef
 
 def SynCommenttitle( #{{{2
-    ft: string,
+    filetype: string,
     cml: string,
     nr: number
 )
@@ -798,11 +802,11 @@ def SynCommenttitle( #{{{2
     # Everything after  `:` is  highlighted according to  `htmlCommentError` (no
     # color), except the two parts of the comment leader.
     #}}}
-    if index(['html', 'vim'], ft) >= 0
+    if index(['html', 'vim'], filetype) >= 0
         return
     endif
 
-    exe 'syn match ' .. ft .. 'CommentTitleLeader'
+    exe 'syn match ' .. filetype .. 'CommentTitleLeader'
         .. ' /' .. cml .. '\s\+/ms=s+' .. nr
         .. ' contained'
     # Don't remove `containedin=`!{{{
@@ -810,26 +814,26 @@ def SynCommenttitle( #{{{2
     # We need  it, for example,  to allow  `awkCommentTitle` to be  contained in
     # `awkComment`.  Same thing for many other filetypes.
     #}}}
-    exe 'syn match ' .. ft .. 'CommentTitle'
+    exe 'syn match ' .. filetype .. 'CommentTitle'
         .. ' /' .. cml .. '\s*\u\w*\%(\s\+\u\w*\)*:/hs=s+' .. nr
         .. ' contained'
-        .. ' containedin=' .. ft .. 'Comment' .. (ft == 'c' ? 'L' : '')
-        .. ' contains=' .. ft .. 'CommentTitleLeader,'
-        .. ft .. 'Todo'
+        .. ' containedin=' .. filetype .. 'Comment' .. (filetype == 'c' ? 'L' : '')
+        .. ' contains=' .. filetype .. 'CommentTitleLeader,'
+        .. filetype .. 'Todo'
 enddef
 
 def SynListItem( #{{{2
-    ft: string,
+    filetype: string,
     cml: string,
     commentGroup: string
 )
-    exe 'syn cluster ' .. ft .. 'CommentListItemElements'
-        .. ' contains=' .. ft .. 'CommentListItemItalic,'
-                        .. ft .. 'CommentListItemBold,'
-                        .. ft .. 'CommentListItemBoldItalic,'
-                        .. ft .. 'CommentListItemCodeSpan,'
-                        .. ft .. 'CommentListItemCodeBlock,'
-                        .. ft .. 'CommentListItemOutput,'
+    exe 'syn cluster ' .. filetype .. 'CommentListItemElements'
+        .. ' contains=' .. filetype .. 'CommentListItemItalic,'
+                        .. filetype .. 'CommentListItemBold,'
+                        .. filetype .. 'CommentListItemBoldItalic,'
+                        .. filetype .. 'CommentListItemCodeSpan,'
+                        .. filetype .. 'CommentListItemCodeBlock,'
+                        .. filetype .. 'CommentListItemOutput,'
                         .. '@Spell'
 
     # - some item 1
@@ -837,7 +841,7 @@ def SynListItem( #{{{2
     #
     # - some item 2
     var list_marker: string = '[-*+]'
-    exe 'syn region ' .. ft .. 'CommentListItem'
+    exe 'syn region ' .. filetype .. 'CommentListItem'
         .. ' start=/\%(^\s*\)\@<=' .. cml .. ' \{,4\}\%(' .. list_marker .. '\|\d\+\.\)\s\+\S/'
         # an empty line (except for the comment leader), followed by a non-empty line
         .. ' end=/' .. cml .. '\ze\s*\n\s*' .. cml .. ' \{,4}\S'
@@ -846,15 +850,15 @@ def SynListItem( #{{{2
         # a non-commented line
         .. '\|^\%(\s*' .. cml .. '\)\@!/'
         .. ' keepend'
-        .. ' contains=' .. ft .. 'FoldMarkers,'
-                        .. ft .. 'CommentLeader,'
-                 .. '@' .. ft .. 'CommentListItemElements'
+        .. ' contains=' .. filetype .. 'FoldMarkers,'
+                        .. filetype .. 'CommentLeader,'
+                 .. '@' .. filetype .. 'CommentListItemElements'
         .. ' contained'
         .. ' containedin=' .. commentGroup
 enddef
 
 def SynCodeBlock( #{{{2
-    ft: string,
+    filetype: string,
     cml: string,
     commentGroup: string
 )
@@ -876,7 +880,7 @@ def SynCodeBlock( #{{{2
     #
     # Without `\@<=`, `^\s*` would break a codeblock in a shell function.
     #}}}
-    exe 'syn region ' .. ft .. 'CommentCodeBlock'
+    exe 'syn region ' .. filetype .. 'CommentCodeBlock'
         .. ' matchgroup=Comment'
         .. ' start=/\%(^\s*\)\@<=' .. cml .. '\\\= \{5,}/'
         .. ' end=/$/'
@@ -890,17 +894,17 @@ def SynCodeBlock( #{{{2
     #         some code block
     #
     # - some item
-    exe 'syn region ' .. ft .. 'CommentListItemCodeBlock'
+    exe 'syn region ' .. filetype .. 'CommentListItemCodeBlock'
         .. ' matchgroup=Comment'
         .. ' start=/\%(^\s*\)\@<=' .. cml .. ' \{9,}/'
         .. ' end=/$/'
         .. ' keepend'
         .. ' contained'
-        .. ' containedin=' .. ft .. 'CommentListItem'
+        .. ' containedin=' .. filetype .. 'CommentListItem'
         .. ' oneline'
 enddef
 
-def SynCodeSpan(ft: string, commentGroup: string) #{{{2
+def SynCodeSpan(filetype: string, commentGroup: string) #{{{2
     # TODO: We sometimes have comments with a different syntax for codespans:{{{
     #
     #     `some text'
@@ -952,7 +956,7 @@ def SynCodeSpan(ft: string, commentGroup: string) #{{{2
     #     $ vim !$
     #}}}
     # some `code span` in a comment
-    exe 'syn region ' .. ft .. 'CommentCodeSpan'
+    exe 'syn region ' .. filetype .. 'CommentCodeSpan'
         .. ' matchgroup=Comment'
         .. ' start=/\z(`\+\)/'
         .. ' end=/\z1/'
@@ -963,7 +967,7 @@ def SynCodeSpan(ft: string, commentGroup: string) #{{{2
         .. ' oneline'
 
     # - some `code span` item
-    exe 'syn region ' .. ft .. 'CommentListItemCodeSpan'
+    exe 'syn region ' .. filetype .. 'CommentListItemCodeSpan'
         .. ' matchgroup=markdownListItem'
         .. ' start=/\z(`\+\)/'
         .. ' end=/\z1/'
@@ -973,28 +977,28 @@ def SynCodeSpan(ft: string, commentGroup: string) #{{{2
         .. ' oneline'
 
     # > some `code span` in a quote
-    exe 'syn region ' .. ft .. 'CommentBlockquoteCodeSpan'
+    exe 'syn region ' .. filetype .. 'CommentBlockquoteCodeSpan'
         .. ' matchgroup=markdownBlockquote'
         .. ' start=/\z(`\+\)/'
         .. ' end=/\z1/'
         .. ' keepend'
         .. ' concealends'
         .. ' contained'
-        .. ' containedin=' .. ft .. 'CommentBlockquote'
+        .. ' containedin=' .. filetype .. 'CommentBlockquote'
         .. ' oneline'
 enddef
 
-def SynItalic(ft: string, commentGroup: string) #{{{2
+def SynItalic(filetype: string, commentGroup: string) #{{{2
     # It's impossible  to reliably  support the  italic style  in a  css buffer,
     # because the comment leader includes a star.
     # See our comments about the pitfall to avoid when trying to add support for
     # `cComment`.
-    if ft == 'css'
+    if filetype == 'css'
         return
     endif
 
     # some *italic* comment
-    exe 'syn region ' .. ft .. 'CommentItalic'
+    exe 'syn region ' .. filetype .. 'CommentItalic'
         .. ' matchgroup=Comment'
         .. ' start=/\*/'
         .. ' end=/\*/'
@@ -1006,7 +1010,7 @@ def SynItalic(ft: string, commentGroup: string) #{{{2
         .. ' oneline'
 
     # - some *italic* item
-    exe 'syn region ' .. ft .. 'CommentListItemItalic'
+    exe 'syn region ' .. filetype .. 'CommentListItemItalic'
         .. ' matchgroup=markdownListItem'
         .. ' start=/\*/'
         .. ' end=/\*/'
@@ -1017,21 +1021,21 @@ def SynItalic(ft: string, commentGroup: string) #{{{2
         .. ' oneline'
 
     # > some *italic* quote
-    exe 'syn region ' .. ft .. 'CommentBlockquoteItalic'
+    exe 'syn region ' .. filetype .. 'CommentBlockquoteItalic'
         .. ' matchgroup=markdownBlockquote'
         .. ' start=/\*/'
         .. ' end=/\*/'
         .. ' keepend'
         .. ' concealends'
         .. ' contained'
-        .. ' containedin=' .. ft .. 'CommentBlockquote'
+        .. ' containedin=' .. filetype .. 'CommentBlockquote'
         .. ' contains=@Spell'
         .. ' oneline'
 enddef
 
-def SynBold(ft: string, commentGroup: string) #{{{2
+def SynBold(filetype: string, commentGroup: string) #{{{2
     # some **bold** comment
-    exe 'syn region ' .. ft .. 'CommentBold'
+    exe 'syn region ' .. filetype .. 'CommentBold'
         .. ' matchgroup=Comment'
         .. ' start=/\*\*/'
         .. ' end=/\*\*/'
@@ -1043,7 +1047,7 @@ def SynBold(ft: string, commentGroup: string) #{{{2
         .. ' oneline'
 
     # - some **bold** item
-    exe 'syn region ' .. ft .. 'CommentListItemBold'
+    exe 'syn region ' .. filetype .. 'CommentListItemBold'
         .. ' matchgroup=markdownListItem'
         .. ' start=/\*\*/'
         .. ' end=/\*\*/'
@@ -1054,21 +1058,21 @@ def SynBold(ft: string, commentGroup: string) #{{{2
         .. ' oneline'
 
     # > some **bold** quote
-    exe 'syn region ' .. ft .. 'CommentBlockquoteBold'
+    exe 'syn region ' .. filetype .. 'CommentBlockquoteBold'
         .. ' matchgroup=markdownBlockquote'
         .. ' start=/\*\*/'
         .. ' end=/\*\*/'
         .. ' keepend'
         .. ' concealends'
         .. ' contained'
-        .. ' containedin=' .. ft .. 'CommentBlockquote'
+        .. ' containedin=' .. filetype .. 'CommentBlockquote'
         .. ' contains=@Spell'
         .. ' oneline'
 enddef
 
-def SynBolditalic(ft: string, commentGroup: string) #{{{2
+def SynBolditalic(filetype: string, commentGroup: string) #{{{2
     # some ***bold and italic*** comment
-    exe 'syn region ' .. ft .. 'CommentBoldItalic'
+    exe 'syn region ' .. filetype .. 'CommentBoldItalic'
         .. ' matchgroup=Comment'
         .. ' start=/\*\*\*/'
         .. ' end=/\*\*\*/'
@@ -1080,7 +1084,7 @@ def SynBolditalic(ft: string, commentGroup: string) #{{{2
         .. ' oneline'
 
     # - some ***bold and italic*** item
-    exe 'syn region ' .. ft .. 'CommentListItemBoldItalic'
+    exe 'syn region ' .. filetype .. 'CommentListItemBoldItalic'
         .. ' matchgroup=markdownListItem'
         .. ' start=/\*\*\*/'
         .. ' end=/\*\*\*/'
@@ -1091,20 +1095,20 @@ def SynBolditalic(ft: string, commentGroup: string) #{{{2
         .. ' oneline'
 
     # > some ***bold and italic*** quote
-    exe 'syn region ' .. ft .. 'CommentBlockquoteBoldItalic'
+    exe 'syn region ' .. filetype .. 'CommentBlockquoteBoldItalic'
         .. ' matchgroup=markdownBlockquote'
         .. ' start=/\*\*\*/'
         .. ' end=/\*\*\*/'
         .. ' keepend'
         .. ' concealends'
         .. ' contained'
-        .. ' containedin=' .. ft .. 'CommentBlockquote'
+        .. ' containedin=' .. filetype .. 'CommentBlockquote'
         .. ' contains=@Spell'
         .. ' oneline'
 enddef
 
 def SynBlockquote( #{{{2
-    ft: string,
+    filetype: string,
     cml: string,
     commentGroup: string
 )
@@ -1117,17 +1121,17 @@ def SynBlockquote( #{{{2
     # To stay  consistent, we should be able  to do the same in  the comments of
     # other filetypes.
     #}}}
-    exe 'syn match ' .. ft .. 'CommentBlockquote'
+    exe 'syn match ' .. filetype .. 'CommentBlockquote'
         .. ' /' .. cml .. '\\\= \{,4}>.*/'
         .. ' contained'
         .. ' containedin=' .. commentGroup
-        .. ' contains=' .. ft .. 'CommentLeader,'
-                        .. ft .. 'CommentBold,'
-                        .. ft .. 'CommentBlockquoteConceal,'
+        .. ' contains=' .. filetype .. 'CommentLeader,'
+                        .. filetype .. 'CommentBold,'
+                        .. filetype .. 'CommentBlockquoteConceal,'
                         .. '@Spell'
         .. ' oneline'
 
-    exe 'syn match ' .. ft .. 'CommentBlockquoteConceal'
+    exe 'syn match ' .. filetype .. 'CommentBlockquoteConceal'
         .. ' /\%(' .. cml .. '\\\= \{,4}\)\@<=>\s\=/'
         .. ' contained'
         .. ' conceal'
@@ -1137,57 +1141,59 @@ def SynBlockquote( #{{{2
     #     > some quote
     #
     # -   some list item
-    exe 'syn match ' .. ft .. 'CommentListItemBlockquote'
+    exe 'syn match ' .. filetype .. 'CommentListItemBlockquote'
         .. ' /' .. cml .. ' \{5}>.*/'
         .. ' contained'
-        .. ' containedin=' .. ft .. 'CommentListItem'
-        .. ' contains=' .. ft .. 'CommentLeader,'
-                        .. ft .. 'CommentBlockquoteBold,'
-                        .. ft .. 'CommentListItemBlockquoteConceal,'
+        .. ' containedin=' .. filetype .. 'CommentListItem'
+        .. ' contains=' .. filetype .. 'CommentLeader,'
+                        .. filetype .. 'CommentBlockquoteBold,'
+                        .. filetype .. 'CommentListItemBlockquoteConceal,'
                         .. '@Spell'
         .. ' oneline'
 
-    exe 'syn match ' .. ft .. 'CommentListItemBlockquoteConceal'
+    exe 'syn match ' .. filetype .. 'CommentListItemBlockquoteConceal'
         .. ' /\%(' .. cml .. ' \{5}\)\@<=>\s\=/'
         .. ' contained'
         .. ' conceal'
 enddef
 
-def SynOutput(ft: string) #{{{2
+def SynOutput(filetype: string) #{{{2
     #     $ shell command
     #     output˜
-    exe 'syn match ' .. ft .. 'CommentOutput'
+    exe 'syn match ' .. filetype .. 'CommentOutput'
         .. ' /.*˜$/'
         .. ' contained'
-        .. ' containedin=' .. ft .. 'CommentCodeBlock'
-        .. ' nextgroup=' .. ft .. 'CommentIgnore'
+        .. ' containedin=' .. filetype .. 'CommentCodeBlock'
+        .. ' nextgroup=' .. filetype .. 'CommentIgnore'
 
-    exe 'syn match ' .. ft .. 'CommentIgnore'
+    exe 'syn match ' .. filetype .. 'CommentIgnore'
         .. ' /.$/'
         .. ' contained'
-        .. ' containedin=' .. ft .. 'CommentOutput,' .. ft .. 'CommentListItemOutput'
+        .. ' containedin=' .. filetype .. 'CommentOutput,'
+                           .. filetype .. 'CommentListItemOutput'
         .. ' conceal'
 
     # - some item
     #         some output˜
-    exe 'syn match ' .. ft .. 'CommentListItemOutput'
+    exe 'syn match ' .. filetype .. 'CommentListItemOutput'
         .. ' /.*˜$/'
         .. ' contained'
-        .. ' containedin=' .. ft .. 'CommentListItemCodeBlock'
-        .. ' nextgroup=' .. ft .. 'CommentIgnore'
+        .. ' containedin=' .. filetype .. 'CommentListItemCodeBlock'
+        .. ' nextgroup=' .. filetype .. 'CommentIgnore'
 enddef
 
-def SynOption(ft: string) #{{{2
+def SynOption(filetype: string) #{{{2
     # some `'option'`
     # - some `'option'`
-    exe 'syn match ' .. ft .. 'CommentOption'
+    exe 'syn match ' .. filetype .. 'CommentOption'
         .. ' /`\@1<=''[a-z]\{2,}''\ze`/'
         .. ' contained'
-        .. ' containedin=' .. ft .. 'CommentCodeSpan,' .. ft .. 'CommentListItemCodeSpan'
+        .. ' containedin=' .. filetype .. 'CommentCodeSpan,'
+                           .. filetype .. 'CommentListItemCodeSpan'
 enddef
 
 def SynPointer( #{{{2
-    ft: string,
+    filetype: string,
     cml: string,
     commentGroup: string
 )
@@ -1197,15 +1203,15 @@ def SynPointer( #{{{2
     # ^---^
     # v---v
     #     "   ^---^
-    exe 'syn match ' .. ft .. 'CommentPointer'
+    exe 'syn match ' .. filetype .. 'CommentPointer'
         .. ' /' .. cml .. '\s*\%(' .. cml .. '\)\=\s*\%([v^✘✔-]\+\s*\)\+$/'
-        .. ' contains=' .. ft .. 'CommentLeader'
+        .. ' contains=' .. filetype .. 'CommentLeader'
         .. ' contained'
         .. ' containedin=' .. commentGroup
 enddef
 
 def SynRule( #{{{2
-    ft: string,
+    filetype: string,
     cml: string,
     commentGroup: string
 )
@@ -1221,15 +1227,15 @@ def SynRule( #{{{2
     # We  just add  ` *`  in front  of it,  because there  could be  some spaces
     # between the comment leader and a horizontal rule.
     #}}}
-    exe 'syn match ' .. ft .. 'CommentRule'
+    exe 'syn match ' .. filetype .. 'CommentRule'
         .. ' /' .. cml .. ' *- *- *-[ -]*$/'
         .. ' contained'
         .. ' containedin=' .. commentGroup
-        .. ' contains=' .. ft .. 'CommentLeader'
+        .. ' contains=' .. filetype .. 'CommentLeader'
 enddef
 
 def SynTable( #{{{2
-    ft: string,
+    filetype: string,
     cml: string,
     commentGroup: string
 )
@@ -1266,7 +1272,7 @@ def SynTable( #{{{2
     # Although, I  guess you could  include a  code span without  concealing the
     # backticks, but you would need to define another code span syntax item.
     #}}}
-    exe 'syn region ' .. ft .. 'CommentTable'
+    exe 'syn region ' .. filetype .. 'CommentTable'
         .. ' matchgroup=Comment'
         .. ' start=/' .. cml .. ' \{4,}\ze\%('
             ..         '┌[─┬┼]\+[┤┐]'
@@ -1283,7 +1289,7 @@ def SynTable( #{{{2
         .. ' contains=@Spell'
 enddef
 
-def SynUrl(ft: string, commentGroup: string) #{{{2
+def SynUrl(filetype: string, commentGroup: string) #{{{2
     # Where does the regex come from?{{{
     #
     # https://github.com/tmux-plugins/vim-tmux/blob/4e77341a2f8b9b7e41e81e9debbcecaea5987c85/syntax/tmux.vim#L161
@@ -1314,14 +1320,14 @@ def SynUrl(ft: string, commentGroup: string) #{{{2
     #                        skipwhite
     #     links to Float
     #}}}
-    exe 'syn match ' .. ft
+    exe 'syn match ' .. filetype
         .. 'CommentURL `\v<(((https=|ftp)://|file:)[^''  <>"]+|(www|web|w3)[a-z0-9_-]*\.[a-z0-9._-]+\.[^''  <>"]+)[a-zA-Z0-9/]`'
         .. ' contained'
         .. ' containedin=' .. commentGroup
 enddef
 
 def SynFoldmarkers( #{{{2
-    ft: string,
+    filetype: string,
     cml_0_1: string,
     commentGroup: string
 )
@@ -1333,7 +1339,7 @@ def SynFoldmarkers( #{{{2
     #
     # Run:
     #
-    #     :setl cole=2
+    #     :setl conceallevel=2
     #
     # Result:
     #
@@ -1361,8 +1367,8 @@ def SynFoldmarkers( #{{{2
     #    ❯❮
     #    ❱❰
     #}}}
-    var cml_left: string = '\V' .. &l:cms->matchstr('\S*\ze\s*%s')->escape('\/') .. '\m'
-    var cml_right: string = '\V' .. &l:cms->matchstr('.*%s\s*\zs.*')->escape('\/') .. '\m'
+    var cml_left: string = '\V' .. &l:commentstring->matchstr('\S*\ze\s*%s')->escape('\/') .. '\m'
+    var cml_right: string = '\V' .. &l:commentstring->matchstr('.*%s\s*\zs.*')->escape('\/') .. '\m'
     var pat: string
     var contained: string
     if cml_right == '\V\m'
@@ -1372,13 +1378,13 @@ def SynFoldmarkers( #{{{2
         pat = '\s*' .. cml_left .. '\s*\%({' .. '{{\|}' .. '}}\)\d*\s*' .. cml_right .. '\s*$'
         contained = ''
     endif
-    exe 'syn match ' .. ft .. 'FoldMarkers'
+    exe 'syn match ' .. filetype .. 'FoldMarkers'
         .. ' /' .. pat .. '/'
         .. ' conceal'
         .. ' cchar=❭'
-        .. ' contains=' .. ft .. 'CommentLeader'
+        .. ' contains=' .. filetype .. 'CommentLeader'
         .. contained
         .. ' containedin=' .. commentGroup
-                    .. ',' .. ft .. 'CommentCodeBlock'
+                    .. ',' .. filetype .. 'CommentCodeBlock'
 enddef
 

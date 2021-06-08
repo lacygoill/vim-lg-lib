@@ -98,12 +98,12 @@ export def WinScratch(lines: list<string>) #{{{1
         Catch()
         return
     endtry
-    setline(1, lines)
+    lines->setline(1)
     sil update
     # in case some line is too long for our vertical split
-    setl wrap
+    &l:wrap = true
     # for vim-window to not maximize the window when we focus it
-    setl pvw
+    &l:previewwindow = true
     nmap <buffer><nowait> q <plug>(my_quit)
     wincmd p
 enddef

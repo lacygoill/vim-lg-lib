@@ -90,20 +90,21 @@ enddef
 
 export def GetSelectionText(): list<string> #{{{1
     if mode() =~ "[vV\<c-v>]"
-        return getreg('*', 1, 1)
+        return getreg('*', true, true)
     endif
     var reg_save: dict<any> = getreginfo('"')
-    var cb_save: string = &cb
-    var sel_save: string = &sel
+    var clipboard_save: string = &clipboard
+    var selection_save: string = &selection
     try
-        set cb= sel=inclusive
+        &clipboard = ''
+        &selection = 'inclusive'
         sil noa norm! gvy
-        return getreg('"', 1, 1)
+        return getreg('"', true, true)
     catch
         echohl ErrorMsg | echom v:exception | echohl NONE
     finally
         setreg('"', reg_save)
-        [&cb, &sel] = [cb_save, sel_save]
+        [&clipboard, &selection] = [clipboard_save, selection_save]
     endtry
     return []
 enddef
@@ -163,11 +164,7 @@ export def IsVim9(): bool #{{{1
         return false
     endif
 
-    var patdef: string = '^\C\s*\%(export\s\+\)\=:\=def\>'
-    #                                            ^
-    # Sometimes, we might want to prepend a  colon in front of "def" to fix some
-    # syntax highlighting issue.  Without a  colon, "def" might be confused with
-    # the 'def' option...
+    var patdef: string = '^\C\s*\%(export\s\+\)\=def\>'
 
     # we're in the Vim9 context if the first command is `:vim9script`
     return getline(1) =~ '^vim9s\%[cript]\>'
@@ -182,7 +179,7 @@ export def IsVim9(): bool #{{{1
 enddef
 
 export def Opfunc(type: string) #{{{1
-    if !exists('g:opfunc') || !g:opfunc->has_key('core')
+    if !exists('g:operatorfunc') || !g:operatorfunc->has_key('core')
         return
     endif
 
@@ -194,12 +191,13 @@ export def Opfunc(type: string) #{{{1
 
     #     It might be necessary to save and restore `"0` if the unnamed register was
     #     originally pointing to some arbitrary register (e.g. `"r`).
-    var cb_save: string = &cb
-    var sel_save: string = &sel
+    var clipboard_save: string = &clipboard
+    var selection_save: string = &selection
     var visual_marks_save: list<list<number>> = [getpos("'<"), getpos("'>")]
     try
-        set cb= sel=inclusive
-        # Yanking may be useless for our opfunc.{{{
+        &clipboard = ''
+        &selection = 'inclusive'
+        # Yanking may be useless for our operator function.{{{
         #
         # Worse, it could have undesirable side effects:
         #
@@ -209,7 +207,7 @@ export def Opfunc(type: string) #{{{1
         #
         # See our `dr` operator for an example.
         #}}}
-        if get(g:opfunc, 'yank', true)
+        if get(g:operatorfunc, 'yank', true)
             # Why do you use visual mode to yank the text?{{{
             #
             #     norm! `[y`]    ✘
@@ -237,14 +235,14 @@ export def Opfunc(type: string) #{{{1
             }
             exe 'sil keepj norm! ' .. get(commands, type, '')
         endif
-        call(g:opfunc.core, [type])
-        # Do *not* remove `g:opfunc.core`.  It would break the dot command.
+        call(g:operatorfunc.core, [type])
+        # Do *not* remove `g:operatorfunc.core`.  It would break the dot command.
     catch
         Catch()
         return
     finally
         keys(reg_save)->mapnew((_, v: string) => setreg(v, reg_save[v]))
-        [&cb, &sel] = [cb_save, sel_save]
+        [&clipboard, &selection] = [clipboard_save, selection_save]
         # Shouldn't we check the validity of the saved positions?{{{
         #
         # Indeed, the operator may have  removed the characters where the visual
@@ -287,7 +285,7 @@ enddef
 export def Win_getid(arg: string): number #{{{1
     if arg == 'P'
         var winnr: number = range(1, winnr('$'))
-            ->mapnew((_, v: number): bool => getwinvar(v, '&pvw'))
+            ->mapnew((_, v: number): bool => getwinvar(v, '&previewwindow'))
             ->index(true) + 1
         if winnr == 0
             return 0

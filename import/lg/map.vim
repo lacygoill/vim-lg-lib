@@ -412,7 +412,7 @@ export def MapRestore(save: list<dict<any>>) #{{{2
         # unloaded?".
         #
         # And for  some reason,  some options  may be  reset in  the current
-        # buffer (like `'cole'`).
+        # buffer (like `'conceallevel'`).
         #
         # ---
         #
@@ -420,7 +420,7 @@ export def MapRestore(save: list<dict<any>>) #{{{2
         #
         #     var curbuf: number = bufnr('%')
         #     var origbuf: number = get(maparg, 'bufnr', 0)
-        #     if get(maparg, 'buffer', 0) && curbuf != origbuf
+        #     if get(maparg, 'buffer', false) && curbuf != origbuf
         #         if bufexists(origbuf)
         #             var altbuf: string = @#
         #             exe 'noa b ' .. origbuf
@@ -452,7 +452,7 @@ export def MapRestore(save: list<dict<any>>) #{{{2
             #
             #     noremap <c-q> <esc>
             #     nunmap <c-q>
-            #     echo maparg('<c-q>', '', 0, 1).mode
+            #     echo maparg('<c-q>', '', false, true).mode
             #     ov˜
             #     ^^
             #     2 modes
@@ -591,7 +591,7 @@ def MapArguments(flags: string): string #{{{2
 enddef
 
 def Islocal(maparg: dict<any>): bool #{{{2
-    return get(maparg, 'buffer', 0)
+    return get(maparg, 'buffer', false)
 enddef
 
 def NotInRightBuffer(maparg: dict<any>): bool #{{{2

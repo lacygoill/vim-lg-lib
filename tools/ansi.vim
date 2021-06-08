@@ -12,7 +12,7 @@ var loaded = true
 #}}}
 # Why do you set the `gui`/`guifg` attributes?  We can only pipe the output of a shell command to Vim in the terminal...{{{
 #
-# Yes, but if `'tgc'` is set, Vim uses `guifg` instead of `ctermfg`.
+# Yes, but if `'termguicolors'` is set, Vim uses `guifg` instead of `ctermfg`.
 #}}}
 
 # TODO: Get those sequences programmatically via `tput(1)`.{{{
@@ -88,7 +88,8 @@ def Ansi() #{{{1
     #
     #     syn region ansiBold matchgroup=Normal start=/\e\[1m/ end=/\e\[22m/ concealends oneline
     #     syn region ansiBoldUnderlined matchgroup=Normal start=/\e\[4m\e\[1m/ end=/\e\[22m\e\[24m/ concealends oneline
-    #     setl cole=3 cocu=nc
+    #     &l:conceallevel = 3
+    #     &l:concealcursor = 'nc'
     #
     # Do not remove `oneline`.
     #
@@ -139,7 +140,7 @@ def Ansi() #{{{1
     # It's useful to keep the file as it is, in case we want to send it to a Vim
     # server, and re-highlight the ansi escape codes in this other Vim instance.
     #}}}
-    setl nomod
+    &l:modified = false
     winrestview(view)
 enddef
 
