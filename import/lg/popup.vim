@@ -232,7 +232,7 @@ def GetNotificationOpts(lines: list<string>): dict<any> #{{{2
         highlight: 'WarningMsg',
         focusable: false,
         pos: 'topright',
-        time: 3000,
+        time: 3'000,
         tabpage: -1,
         zindex: 300,
     }
