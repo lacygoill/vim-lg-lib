@@ -1,7 +1,4 @@
-vim9script noclear
-
-if exists('loaded') | finish | endif
-var loaded = true
+vim9script
 
 export def Catch(): string #{{{1
     if get(g:, 'my_verbose_errors', false)

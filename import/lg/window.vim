@@ -1,7 +1,4 @@
-vim9script noclear
-
-if exists('loaded') | finish | endif
-var loaded = true
+vim9script
 
 import Catch from 'lg.vim'
 

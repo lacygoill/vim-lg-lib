@@ -1,7 +1,4 @@
-vim9script noclear
-
-if exists('loaded') | finish | endif
-var loaded = true
+vim9script
 
 # If you have an issue, have a look at `GetCommentgroup()`.{{{
 #
@@ -720,7 +717,7 @@ def GetCommentgroup(filetype: string): string #{{{2
         # `htmlCommentPart` is required; not sure about `htmlComment`...
         return 'htmlComment,htmlCommentPart'
     elseif filetype == 'vim'
-        return 'vimComment,vim9Comment,vimLineComment,vim9LineComment'
+        return 'vim9Comment,vim9LineComment,vimComment,vimCommentListItem,vimLineComment'
     elseif filetype == 'sh'
         return 'shComment,shQuickComment'
     else

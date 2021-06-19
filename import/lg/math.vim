@@ -1,7 +1,4 @@
-vim9script noclear
-
-if exists('loaded') | finish | endif
-var loaded = true
+vim9script
 
 export def Max(numbers: any): any #{{{1
 # TODO(Vim9):
