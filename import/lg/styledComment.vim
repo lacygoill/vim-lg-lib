@@ -493,7 +493,7 @@ def FixAllbut(filetype: string) #{{{2
         #}}}
         allbut_groups[filetype] = execute('syn list')
             ->split('\n')
-            ->filter((_, v: string): bool => v =~ '\CALLBUT' && v !~ '^\s')
+            ->filter((_, v: string): bool => v =~ '\CALLBUT,' && v !~ '^\s')
             ->map((_, v: string): string => v->matchstr('\S\+'))
             # Ignore groups defined for embedding another language.{{{
             #
