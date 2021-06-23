@@ -569,6 +569,10 @@ def FixAllbut(filetype: string) #{{{2
 enddef
 
 def FixCommentRegion(filetype: string) #{{{2
+    # No need in Vim9.  On the contrary, it would cause issues.
+    if filetype == 'vim9'
+        return
+    endif
     # Sometimes, a line is wrongly highlighted as a comment. {{{
     #
     # For  some filetypes,  if a  commented code  block precedes  an uncommented
@@ -645,6 +649,16 @@ def FixCommentRegion(filetype: string) #{{{2
     # If it gets too complex, get rid of this function, and redefine the comment
     # group in `~/.vim/after/syntax/x.vim` on a per-filetype basis.
     #}}}
+    # FIXME: This might give higher priority to comment rules.{{{
+    #
+    # Because, in effect,  re-installing the rules now moves them  after all the
+    # other ones.
+    #
+    # This can cause  other issues.  In particular, make sure  you don't have an
+    # inline comment where there shouldn't be.
+    #
+    # I guess the right solution would be to send patches to the syntax authors.
+    #}}}
     cmds->map((_, v: string): string => v .. ' keepend')
     exe 'syn clear ' .. filetype .. 'Comment'
     cmds->map((_, v: string) => execute(v))
@@ -659,7 +673,7 @@ def GetCmdsToResetGroup(group: string): list<string> #{{{2
     if empty(definition)
         return []
     endif
-    definition[0] = definition[0]->substitute('^\a\+\s\+xxx', '', '')
+    definition[0] = definition[0]->substitute('^\w\+\s\+xxx', '', '')
 
     # add  `:syn [keyword|match|region]` to  build new commands  to redefine
     # the items in the group
@@ -716,8 +730,17 @@ def GetCommentgroup(filetype: string): string #{{{2
     elseif filetype == 'html'
         # `htmlCommentPart` is required; not sure about `htmlComment`...
         return 'htmlComment,htmlCommentPart'
-    elseif filetype == 'vim'
-        return 'vim9Comment,vim9LineComment,vimComment,vimCommentListItem,vimLineComment'
+    elseif filetype == 'vim9'
+        # Warning: Do not use a pattern!{{{
+        #
+        #     return 'vim9Comment.*'
+        #                        ^^
+        #                        ✘
+        #
+        # It would break the highlighting of pointers inside codeblock.
+        # Because `vim9CommentPointer` would be contained in way too many groups.
+        #}}}
+        return 'vim9Comment,vim9CommentLine'
     elseif filetype == 'sh'
         return 'shComment,shQuickComment'
     else
@@ -727,7 +750,9 @@ enddef
 
 def GetFiletype(): string #{{{2
     var filetype: string = expand('<amatch>')
-    if filetype == 'snippets'
+    if filetype == 'vim' && b:current_syntax == 'vim9'
+        filetype = 'vim9'
+    elseif filetype == 'snippets'
         filetype = 'snip'
     elseif filetype == 'desktop'
         filetype = 'dt'
