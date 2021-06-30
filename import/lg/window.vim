@@ -7,7 +7,7 @@ export def GetWinMod(OpenLoc = false): string #{{{1
 
     var mod: string
     if OpenLoc
-        mod = 'vert leftabove'
+        mod = 'vertical leftabove'
 
     # there's nothing above or below us
     elseif winnr('j') == winnr && winnr('k') == winnr
@@ -26,8 +26,8 @@ export def GetWinMod(OpenLoc = false): string #{{{1
         # This will cause a vertical split to be opened on the left.
         # If you would prefer on the right, write this instead:
         #
-        #     mod = 'vert rightbelow'
-        mod = 'vert leftabove'
+        #     mod = 'vertical rightbelow'
+        mod = 'vertical leftabove'
     endif
 
     return mod
@@ -49,26 +49,26 @@ export def QfOpenOrFocus(qftype: string) #{{{1
             #
             # However,  we  use   these  names  in  the   autocmd  listening  to
             # `QuickFixCmdPost` in `vim-qf`,  to decide whether we  want to open
-            # the  qf window  unconditionally (:[cl]open),  or on  the condition
+            # the qf  window unconditionally (`:[cl]open`), or  on the condition
             # that the qfl contains at least 1 valid entry (`:[cl]window`).
             #
             # It lets us do this in any plugin populating the qfl:
             #
-            #     do <nomodeline> QuickFixCmdPost cwindow
+            #     doautocmd <nomodeline> QuickFixCmdPost cwindow
             #     open  the qf window  on the condition  it contains at  least 1 valid entry˜
             #
-            #     do <nomodeline> QuickFixCmdPost copen
+            #     doautocmd <nomodeline> QuickFixCmdPost copen
             #     open the qf window unconditionally˜
             #}}}
             # Could we write sth simpler?{{{
             #
             # Yes:
             #
-            #     exe (qftype == 'loc' ? 'l' : 'c') .. 'open'
+            #     execute (qftype == 'loc' ? 'l' : 'c') .. 'open'
             #
             # But, it wouldn't open the qf window like our autocmd in `vim-qf` does.
             #}}}
-            exe 'do <nomodeline> QuickFixCmdPost ' .. (qftype == 'loc' ? 'l' : 'c') .. 'open'
+            execute 'doautocmd <nomodeline> QuickFixCmdPost ' .. (qftype == 'loc' ? 'l' : 'c') .. 'open'
         else
             win_gotoid(winid)
         endif
@@ -89,19 +89,19 @@ export def WinScratch(lines: list<string>) #{{{1
 # TODO: Improve the whole function after reading `~/wiki/vim/todo/scratch.md`.
     var tempfile: string = tempname()
     try
-        exe 'sp ' .. tempfile
+        execute 'split ' .. tempfile
     # `:pedit` is forbidden from a Vim popup terminal window
     catch /^Vim\%((\a\+)\)\=:E994:/
         Catch()
         return
     endtry
     lines->setline(1)
-    sil update
+    silent update
     # in case some line is too long for our vertical split
     &l:wrap = true
     # for vim-window to not maximize the window when we focus it
     &l:previewwindow = true
-    nmap <buffer><nowait> q <plug>(my_quit)
+    nmap <buffer><nowait> q <Plug>(my_quit)
     wincmd p
 enddef
 

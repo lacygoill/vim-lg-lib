@@ -100,7 +100,7 @@ export def MatrixTransposition(lists: list<list<number>>): any #{{{1
     #
     # With these nested for loops, we can reach all cells in the table:
     #
-    #     lists[i][j]    is the cell of coords [i,j]
+    #     lists[i][j]    is the cell of coords [i, j]
     #
     # Imagine the upper-left corner is the origin of a coordinate system,
     #

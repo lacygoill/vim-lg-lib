@@ -7,8 +7,8 @@ vim9script
 &t_TI = ''
 &t_TE = ''
 
-const IS_MODIFYOTHERKEYS_ENABLED: bool = &t_TI =~ "\e\\[>4;[12]m"
-# We need to run `:exe "set <f13>=\eb"` instead of `:exe "set <m-b>=\eb"` because:{{{
+const IS_MODIFYOTHERKEYS_ENABLED: bool = &t_TI =~ "\<Esc>\\[>4;[12]m"
+# We need to run `:execute "set <F13>=\<Esc>b"` instead of `:execute "set <M-B>=\<Esc>b"` because:{{{
 #
 #    - we want to be able to insert some accented characters
 #    - if we hit one of them by accident, we don't want to trigger some custom meta mapping
@@ -21,58 +21,58 @@ var KEY2FUNC: dict<string>
 
 if USE_FUNCTION_KEYS
     KEY2FUNC = {
-        a: '<f12>',
-        b: '<f13>',
-        c: '<f14>',
-        d: '<f15>',
-        e: '<f16>',
-        f: '<f17>',
-        g: '<f18>',
-        h: '<f19>',
-        i: '<f20>',
-        j: '<f21>',
-        k: '<f22>',
-        l: '<f23>',
-        m: '<f24>',
-        n: '<f25>',
-        o: '<f26>',
-        p: '<f27>',
-        q: '<f28>',
-        r: '<f29>',
-        s: '<f30>',
-        t: '<f31>',
-        u: '<f32>',
-        v: '<f33>',
-        w: '<f34>',
-        x: '<f35>',
-        y: '<f36>',
-        z: '<f37>',
-        A: '<s-f12>',
-        B: '<s-f13>',
-        C: '<s-f14>',
-        D: '<s-f15>',
-        E: '<s-f16>',
-        F: '<s-f17>',
-        G: '<s-f18>',
-        H: '<s-f19>',
-        I: '<s-f20>',
-        J: '<s-f21>',
-        K: '<s-f22>',
-        L: '<s-f23>',
-        M: '<s-f24>',
-        N: '<s-f25>',
+        a: '<F12>',
+        b: '<F13>',
+        c: '<F14>',
+        d: '<F15>',
+        e: '<F16>',
+        f: '<F17>',
+        g: '<F18>',
+        h: '<F19>',
+        i: '<F20>',
+        j: '<F21>',
+        k: '<F22>',
+        l: '<F23>',
+        m: '<F24>',
+        n: '<F25>',
+        o: '<F26>',
+        p: '<F27>',
+        q: '<F28>',
+        r: '<F29>',
+        s: '<F30>',
+        t: '<F31>',
+        u: '<F32>',
+        v: '<F33>',
+        w: '<F34>',
+        x: '<F35>',
+        y: '<F36>',
+        z: '<F37>',
+        A: '<S-F12>',
+        B: '<S-F13>',
+        C: '<S-F14>',
+        D: '<S-F15>',
+        E: '<S-F16>',
+        F: '<S-F17>',
+        G: '<S-F18>',
+        H: '<S-F19>',
+        I: '<S-F20>',
+        J: '<S-F21>',
+        K: '<S-F22>',
+        L: '<S-F23>',
+        M: '<S-F24>',
+        N: '<S-F25>',
         # Do *not* add 'O', nor 'P'.{{{
         #
-        #     'O': '<s-f26>',
+        #     'O': '<S-F26>',
         #
         # It would cause a bug in xterm:
         #
         #     # start an xterm terminal
         #     $ vim -Nu NONE -S <(cat <<'EOF'
         #         set t_RV= t_TE= t_TI=
-        #         exe "set <s-f26>=\eO"
-        #         cno <s-f26> <nop>
-        #         cno <f3> abc
+        #         execute "set <S-F26>=\<Esc>O"
+        #         cnoremap <S-F26> <Nop>
+        #         cnoremap <F3> abc
         #     EOF
         #     )
         #
@@ -89,28 +89,28 @@ if USE_FUNCTION_KEYS
         #
         # Similar issue with the `P` character:
         #
-        #     vim -Nu NONE --cmd 'exe "set <s-f27>=\eP"' \
+        #     vim -Nu NONE --cmd 'execute "set <S-F27>=\<Esc>P"' \
         #                  --cmd 'let [&t_TI, &t_TE] = ["", ""]' \
-        #                  --cmd 'nno <space>q :qa!<cr>'
+        #                  --cmd 'nnoremap <Space>q :quitall!<CR>'
         #
         # Here, *sometimes*, the mapping  is unexpectedly triggered, causing Vim
         # to quit right after starting up, which is very confusing.
         #}}}
-        Q: '<s-f28>',
-        R: '<s-f29>',
-        S: '<s-f30>',
-        T: '<s-f31>',
-        U: '<s-f32>',
-        V: '<s-f33>',
-        W: '<s-f34>',
-        X: '<s-f35>',
-        Y: '<s-f36>',
-        Z: '<s-f37>',
+        Q: '<S-F28>',
+        R: '<S-F29>',
+        S: '<S-F30>',
+        T: '<S-F31>',
+        U: '<S-F32>',
+        V: '<S-F33>',
+        W: '<S-F34>',
+        X: '<S-F35>',
+        Y: '<S-F36>',
+        Z: '<S-F37>',
     }
 
     def SetKeysyms()
         for [key, funckey] in items(KEY2FUNC)
-            exe 'set ' .. funckey .. "=\e" .. key
+            execute 'set ' .. funckey .. "=\<Esc>" .. key
         endfor
     enddef
     # We don't really need to delay until `VimEnter` for the moment.{{{
@@ -119,13 +119,13 @@ if USE_FUNCTION_KEYS
     # Indeed, in  the GUI, if  you set the  keysyms during the  startup process,
     # they are somehow cleared at the end.
     #}}}
-    au VimEnter * SetKeysyms()
+    autocmd VimEnter * SetKeysyms()
 
     # Fix readline commands in a terminal buffer.{{{
     #
     # When you press `M-b`, the terminal writes `Esc` + `b` in the typeahead buffer.
-    # And  since  we're going  to  run  `:set  <f13>=^[b`, Vim  translates  this
-    # sequence into `<f13>` which – internally – is encoded as `<80>F3` (`:echo "\<f13>"`).
+    # And  since  we're going  to  run  `:set  <F13>=^[b`, Vim  translates  this
+    # sequence into `<F13>` which – internally – is encoded as `<80>F3` (`:echo "\<F13>"`).
     #
     # So, Vim sends `<80>F3` to the shell running in the terminal buffer instead
     # of `Esc` + `b`.
@@ -140,31 +140,31 @@ if USE_FUNCTION_KEYS
     # The issue affects the GUI.
     # The issue affects Vim iff one of these statements is true:
     #
-    #    - you run `:set <xxx>=^[b` (`xxx` being anything: `<M-b>`, `<f13>`, ...)
-    #    - you use `:h modifyOtherKeys`
+    #    - you run `:set <xxx>=^[b` (`xxx` being anything: `<M-B>`, `<F13>`, ...)
+    #    - you use `:help modifyOtherKeys`
     #}}}
     def FixMetaReadline()
         for [key, funckey] in items(KEY2FUNC)
-            exe 'tno ' .. funckey .. ' <esc>' .. key
+            execute 'tnoremap ' .. funckey .. ' <Esc>' .. key
         endfor
     enddef
     FixMetaReadline()
 
     def NopUnusedMetaChords()
         for funckey in values(KEY2FUNC)
-            # we don't  want `<f37>` to  be inserted into  the buffer or  on the
-            # command-line, if we press `<M-z>` and nothing is bound to it
+            # we don't  want `<F37>` to  be inserted into  the buffer or  on the
+            # command-line, if we press `<M-Z>` and nothing is bound to it
             if maparg(funckey, 'i')->empty()
-                exe 'ino ' .. funckey .. ' <nop>'
+                execute 'inoremap ' .. funckey .. ' <Nop>'
             endif
             if maparg(funckey, 'c')->empty()
-                exe 'cno ' .. funckey .. ' <nop>'
+                execute 'cnoremap ' .. funckey .. ' <Nop>'
             endif
         endfor
     enddef
     # delay until `VimEnter` so that we can  check which meta keys have not been
     # mapped to anything in the end
-    au VimEnter * NopUnusedMetaChords()
+    autocmd VimEnter * NopUnusedMetaChords()
 
 elseif IS_MODIFYOTHERKEYS_ENABLED || has('gui_running')
     # Same issue as previously.{{{
@@ -182,7 +182,7 @@ elseif IS_MODIFYOTHERKEYS_ENABLED || has('gui_running')
             range(char2nr('a'), char2nr('z'))
           + range(char2nr('A'), char2nr('Z'))
         )->mapnew((_, v: number): string => nr2char(v))
-            exe 'tno <m-' .. key .. '> <esc>' .. key
+            execute 'tnoremap <M-' .. key .. '> <Esc>' .. key
         endfor
     enddef
     FixMetaReadline()
@@ -201,14 +201,14 @@ elseif IS_MODIFYOTHERKEYS_ENABLED || has('gui_running')
             # we don't want  `ú` (!= `ù`) to  be inserted into the  buffer or on
             # the command-line, if we press `<M-z>` and nothing is bound to it
             if maparg(lhs, 'i')->empty()
-                exe 'ino ' .. lhs .. ' <nop>'
+                execute 'inoremap ' .. lhs .. ' <Nop>'
             endif
             if maparg(lhs, 'c')->empty()
-                exe 'cno ' .. lhs .. ' <nop>'
+                execute 'cnoremap ' .. lhs .. ' <Nop>'
             endif
         endfor
     enddef
-    au VimEnter * NopUnusedMetaChords()
+    autocmd VimEnter * NopUnusedMetaChords()
 endif
 
 const FLAG2ARG: dict<string> = {
@@ -228,19 +228,19 @@ export def MapMeta( #{{{2
     flags: string
 )
     try
-        exe (mode != '!' ? mode : '') .. (flags =~ 'r' ? 'map' : 'noremap') .. (mode == '!' ? '!' : '')
+        execute (mode != '!' ? mode : '') .. (flags =~ 'r' ? 'map' : 'noremap') .. (mode == '!' ? '!' : '')
             .. ' ' .. MapArguments(flags)
-            .. ' ' .. (USE_FUNCTION_KEYS ? KEY2FUNC[key] : '<m-' .. key .. '>')
+            .. ' ' .. (USE_FUNCTION_KEYS ? KEY2FUNC[key] : '<M-' .. key .. '>')
             .. ' ' .. rhs
     catch /^Vim\%((\a\+)\)\=:E227:/
         echohl ErrorMsg
-        unsilent echom v:exception
+        unsilent echomsg v:exception
         echohl NONE
     endtry
 enddef
 
 export def MapMetaChord(key: string, symbolic = false): string #{{{2
-    # give us a symbolic notation (e.g. `<m-a>`)
+    # give us a symbolic notation (e.g. `<M-A>`)
     if symbolic
         # terminal *not* supporting modifyOtherKeys
         if USE_FUNCTION_KEYS
@@ -248,9 +248,9 @@ export def MapMetaChord(key: string, symbolic = false): string #{{{2
         # GUI or terminal supporting modifyOtherKeys
         else
             if key == tolower(key)
-                return '<m-' .. key .. '>'
+                return '<M-' .. key .. '>'
             else
-                return '<m-s-' .. key .. '>'
+                return '<M-S-' .. key .. '>'
             endif
         endif
 
@@ -260,9 +260,9 @@ export def MapMetaChord(key: string, symbolic = false): string #{{{2
             return eval('"\' .. KEY2FUNC[key] .. '"')
         else
             if key == tolower(key)
-                return eval('"\<m-' .. key .. '>"')
+                return eval('"\<M-' .. key .. '>"')
             else
-                return eval('"\<m-s-' .. key .. '>"')
+                return eval('"\<M-S-' .. key .. '>"')
             endif
         endif
     endif
@@ -296,11 +296,11 @@ export def MapSave( #{{{2
     # "restore" the mappings in the other modes (i.e. it won't remove the mappings
     # you've installed in the other modes).
     #
-    #     nno <c-q> <esc>
-    #     var save: list<dict<any>> = MapSave('<c-q>', '')
-    #     noremap <c-q> <esc><esc>
+    #     nnoremap <C-Q> <Esc>
+    #     var save: list<dict<any>> = MapSave('<C-Q>', '')
+    #     noremap <C-Q> <Esc><Esc>
     #     MapRestore(save)
-    #     map <c-q>
+    #     map <C-Q>
     #     n  <C-Q>       * <Esc>˜
     #     ov <C-Q>       * <Esc><Esc>˜
     #     ^^
@@ -309,7 +309,7 @@ export def MapSave( #{{{2
     # We don't deal with  this pitfall here because it would  make the code more
     # complex, and it can be easily fixed in your code:
     #
-    #     nnoremap <c-q> <esc><esc>
+    #     nnoremap <C-Q> <Esc><Esc>
     #     ^
     #     be more specific
     #
@@ -330,14 +330,14 @@ export def MapSave( #{{{2
     # and `:map`, *before* you had 1 mapping  in `no` mode, but *now* you have 2
     # mappings, one in `n` mode, and another in `o` mode.
     #
-    #     noremap <c-q> <esc>
-    #     vunmap <c-q>
-    #     map <c-q>
+    #     noremap <C-Q> <Esc>
+    #     vunmap <C-Q>
+    #     map <C-Q>
     #     no <C-Q>       * <Esc>˜
     #
-    #     var save: list<dict<any>> = MapSave('<c-q>', 'n')
+    #     var save: list<dict<any>> = MapSave('<C-Q>', 'n')
     #     MapRestore(save)
-    #     map <c-q>
+    #     map <C-Q>
     #     n  <C-Q>       * <Esc>˜
     #     o  <C-Q>       * <Esc>˜
     #
@@ -355,7 +355,7 @@ export def MapSave( #{{{2
     for key in keys
         # This `for` loop is only necessary if you intend `#save()` to support multiple modes:{{{
         #
-        #     var save: list<dict<any>> = MapSave('<c-q>', 'nxo')
+        #     var save: list<dict<any>> = MapSave('<C-Q>', 'nxo')
         #                                                   ^^^
         #}}}
         for m in mode == '' ? [''] : mode
@@ -395,9 +395,9 @@ export def MapRestore(save: list<dict<any>>) #{{{2
         #
         # Too many side-effects.
         #
-        # You  need `:noa`  to suppress  autocmds, but  it doesn't  suppress
+        # You need  `:noautocmd` to suppress  autocmds, but it  doesn't suppress
         # `CursorMoved`, probably because the latter is fired too late.
-        # From `:h :noa`:
+        # From `:help :noautocmd`:
         #
         #    > Note that some autocommands are not triggered right away, but only later.
         #    > This specifically applies to |CursorMoved| and |TextChanged|.
@@ -420,14 +420,14 @@ export def MapRestore(save: list<dict<any>>) #{{{2
         #     if get(maparg, 'buffer', false) && curbuf != origbuf
         #         if bufexists(origbuf)
         #             var altbuf: string = @#
-        #             exe 'noa b ' .. origbuf
+        #             execute 'noautocmd buffer ' .. origbuf
         #         endif
         #     endif
         #     # ...
         #     # restore local mapping
         #     # ...
         #     if exists('altbuf')
-        #         exe 'noa b ' .. origbuf
+        #         execute 'noautocmd buffer ' .. origbuf
         #         @# = altbuf
         #     endif
         #}}}
@@ -439,17 +439,17 @@ export def MapRestore(save: list<dict<any>>) #{{{2
         # mapping after `#restore()` is invoked
         if maparg->has_key('unmapped')
             var cmd: string = GetMappingCmd(maparg)
-            # `sil!` because there's no guarantee that the unmapped key has been
-            # mapped  to sth  after  being  saved.  We  move  `sil!` inside  the
-            # string, otherwise  it doesn't work  in Vim9 script  (modifiers are
-            # not all properly implemented yet).
-            exe 'sil! ' .. cmd .. ' ' .. (maparg.buffer ? ' <buffer> ' : '') .. maparg.lhs
+            # `silent!` because there's  no guarantee that the  unmapped key has
+            # been mapped  to sth after  being saved.  We move  `silent!` inside
+            # the string,  otherwise it doesn't  work in Vim9  script (modifiers
+            # are not all properly implemented yet).
+            execute 'silent! ' .. cmd .. ' ' .. (maparg.buffer ? ' <buffer> ' : '') .. maparg.lhs
         else
             # Even if you refactor `#save()` so that it only supports 1 mode, `#restore()` can still receive several.{{{
             #
-            #     noremap <c-q> <esc>
-            #     nunmap <c-q>
-            #     echo maparg('<c-q>', '', false, true).mode
+            #     noremap <C-Q> <Esc>
+            #     nunmap <C-Q>
+            #     echo maparg('<C-Q>', '', false, true).mode
             #     ov˜
             #     ^^
             #     2 modes
@@ -542,7 +542,7 @@ def Maparg( #{{{2
     # so we don't know whether there's a relevant mapping
     elseif !wantlocal && Islocal(maparg)
         # remove the shadowing local mapping
-        exe mode .. 'unmap <buffer> ' .. name
+        execute mode .. 'unmap <buffer> ' .. name
         var local_maparg: dict<any> = deepcopy(maparg)->extend({bufnr: bufnr('%')})
         maparg = Maparg(name, mode, false)
         # restore the shadowing local mapping
@@ -553,7 +553,7 @@ def Maparg( #{{{2
         extend(maparg, {
             # we don't want Vim to translate meta keys (e.g. `<M-b> → â`)
             lhs: name,
-            # we want Vim to translate `<sid>`
+            # we want Vim to translate `<SID>`
             rhs: maparg(name, mode)->escape('|'),
         })
     endif
@@ -568,7 +568,7 @@ def Maparg( #{{{2
 enddef
 
 def Reinstall(maparg: dict<any>) #{{{2
-    exe GetMappingCmd(maparg)
+    execute GetMappingCmd(maparg)
         .. ' '
         .. (maparg.buffer  ? ' <buffer> ' : '')
         .. (maparg.expr    ? ' <expr>   ' : '')

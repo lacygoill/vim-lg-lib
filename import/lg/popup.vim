@@ -116,7 +116,7 @@ def Basic(arg_what: any, opts: dict<any>): list<number> #{{{2
     # Useful when you've installed key bindings to scroll in the popup and don't
     # want Vim to cancel your scrolling on the next redraw.
     #
-    # The value `0` is documented at `:h popup_create-arguments /firstline`:
+    # The value `0` is documented at `:help popup_create-arguments /firstline`:
     #
     #    > firstline       ...
     #    >                 Set to zero to leave the position as set by commands.
@@ -190,8 +190,8 @@ def FireTerminalEvents() #{{{2
     # Useful, for example,  to get our `Esc Esc` key  binding, and for `M-p`
     # to work (i.e. recall latest command starting with current prefix).
     #}}}
-    if exists('#TerminalWinOpen') | do <nomodeline> TerminalWinOpen | endif
-    if exists('#User#TermEnter') | do <nomodeline> User TermEnter | endif
+    if exists('#TerminalWinOpen') | doautocmd <nomodeline> TerminalWinOpen | endif
+    if exists('#User#TermEnter') | doautocmd <nomodeline> User TermEnter | endif
 enddef
 
 def GetBorderchars(): list<string> #{{{2
@@ -255,7 +255,7 @@ def Log( #{{{2
         return
     endif
     var time: string = '" ' .. strftime('%H:%M:%S')
-    var sourcefile: string = execute('verb fu ' .. funcname)->split('\n')[1]
+    var sourcefile: string = execute('verbose function ' .. funcname)->split('\n')[1]
     var matchlist: list<string> = matchlist(sourcefile,
         '^\s*Last set from \(.*\)\s\+line \(\d\+\)')
     sourcefile = matchlist[1]

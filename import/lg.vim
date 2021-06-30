@@ -7,13 +7,13 @@ export def Catch(): string #{{{1
 
         echohl ErrorMsg
         if !empty(funcname)
-            unsilent echom 'Error detected while processing function ' .. funcname .. ':'
+            unsilent echomsg 'Error detected while processing function ' .. funcname .. ':'
         else
             # the error comes from a (temporary?) file
-            unsilent echom 'Error detected while processing ' .. v:throwpoint->matchstr('.\{-}\ze,') .. ':'
+            unsilent echomsg 'Error detected while processing ' .. v:throwpoint->matchstr('.\{-}\ze,') .. ':'
         endif
         echohl LineNr
-        unsilent echom line .. ':'
+        unsilent echomsg line .. ':'
     endif
 
     echohl ErrorMsg
@@ -22,7 +22,7 @@ export def Catch(): string #{{{1
     # will be visible (i.e. `v:exception`).
     # But it doesn't  matter.  All the messages have been  written in Vim's log.
     # So, `:WTF` will be able to show us where the error comes from.
-    unsilent echom v:exception
+    unsilent echomsg v:exception
     echohl NONE
 
     # It's  important   to  return   an  empty   string.   Because   often,  the
@@ -45,8 +45,8 @@ export def FuncComplete( #{{{1
     # Example:
     #
     #     import FuncComplete from 'lg.vim'
-    #     com -bar -complete=customlist,FuncComplete -nargs=? Def Def(<q-args>)
-    #              ^-------------------------------^
+    #     command -bar -complete=customlist,FuncComplete -nargs=? Def Def(<q-args>)
+    #                  ^-------------------------------^
     #}}}
 
     # We really need to return a list, and not a newline-separated list wrapped inside a string.{{{
@@ -59,18 +59,18 @@ export def FuncComplete( #{{{1
     # We  must use  `-complete=customlist` to  disable the  filtering, and  that
     # means that this function must return a list, not a string.
     #
-    #     com -bar -complete=custom,FuncComplete -nargs=? Def Def(<q-args>)
-    #                        ^----^
-    #                          ✘
+    #     command -bar -complete=custom,FuncComplete -nargs=? Def Def(<q-args>)
+    #                            ^----^
+    #                              ✘
     #
-    #     com -bar -complete=customlist,FuncComplete -nargs=? Def Def(<q-args>)
-    #                        ^--------^
-    #                            ✔
+    #     command -bar -complete=customlist,FuncComplete -nargs=? Def Def(<q-args>)
+    #                            ^--------^
+    #                                ✔
     #
     #}}}
     # Wait.  Why 6 backslashes in the replacement?{{{
     #
-    # To emulate the `+` quantifier.  From `:h file-pattern`:
+    # To emulate the `+` quantifier.  From `:help file-pattern`:
     #
     #    > \\\{n,m\}  like \{n,m} in a |pattern|
     #
@@ -86,7 +86,7 @@ export def FuncComplete( #{{{1
 enddef
 
 export def GetSelectionText(): list<string> #{{{1
-    if mode() =~ "[vV\<c-v>]"
+    if mode() =~ "[vV\<C-V>]"
         return getreg('*', true, true)
     endif
     var reg_save: dict<any> = getreginfo('"')
@@ -95,10 +95,10 @@ export def GetSelectionText(): list<string> #{{{1
     try
         &clipboard = ''
         &selection = 'inclusive'
-        sil noa norm! gvy
+        silent noautocmd normal! gvy
         return getreg('"', true, true)
     catch
-        echohl ErrorMsg | echom v:exception | echohl NONE
+        echohl ErrorMsg | echomsg v:exception | echohl NONE
     finally
         setreg('"', reg_save)
         [&clipboard, &selection] = [clipboard_save, selection_save]
@@ -109,7 +109,7 @@ enddef
 export def GetSelectionCoords(): dict<list<number>> #{{{1
 # Get the coordinates of the current visual selection without quitting visual mode.
     var mode: string = mode()
-    if mode !~ "^[vV\<c-v>]$"
+    if mode !~ "^[vV\<C-V>]$"
         return {}
     endif
     var curpos: list<number>
@@ -130,7 +130,7 @@ export def GetSelectionCoords(): dict<list<number>> #{{{1
         start[1] = 1
         # Why `getline(end[0])->...`?{{{
         #
-        # From `:h col()`:
+        # From `:help col()`:
         #
         #    > $       the end of the cursor line (the result is the
         #    >         number of bytes in the cursor line **plus one**)
@@ -144,7 +144,7 @@ export def GetSelectionCoords(): dict<list<number>> #{{{1
     # This would undoubtedly introduce some confusion in our plugins.
     # Let's make sure the function always return what we have in mind.
     #}}}
-    elseif mode == "\<c-v>" && start[1] > end[1]
+    elseif mode == "\<C-V>" && start[1] > end[1]
         [start[1], end[1]] = [end[1], start[1]]
     endif
     return {start: start, end: end}
@@ -207,8 +207,8 @@ export def Opfunc(type: string) #{{{1
         if get(g:operatorfunc, 'yank', true)
             # Why do you use visual mode to yank the text?{{{
             #
-            #     norm! `[y`]    ✘
-            #     norm! `[v`]y   ✔
+            #     normal! `[y`]    ✘
+            #     normal! `[v`]y   ✔
             #
             # Because  a  motion towards  a  mark  is  exclusive, thus  the  `y`
             # operator won't  yank the character  which is the nearest  from the
@@ -218,7 +218,7 @@ export def Opfunc(type: string) #{{{1
             # correctly yank all the characters in the text-object.
             # On the condition that `'selection'` includes `inclusive`.
             #}}}
-            # Why `:noa`?{{{
+            # Why `:noautocmd`?{{{
             #
             # To minimize unexpected side effects.
             # E.g.,  it  prevents  our  visual   ring  from  saving  a  possible
@@ -228,9 +228,9 @@ export def Opfunc(type: string) #{{{1
             var commands: dict<string> = {
                 char: '`[v`]y',
                 line: "'[V']y",
-                block: "`[\<c-v>`]y"
+                block: "`[\<C-V>`]y"
             }
-            exe 'sil keepj norm! ' .. get(commands, type, '')
+            execute 'silent keepjumps normal! ' .. get(commands, type, '')
         endif
         call(g:operatorfunc.core, [type])
         # Do *not* remove `g:operatorfunc.core`.  It would break the dot command.
@@ -246,7 +246,7 @@ export def Opfunc(type: string) #{{{1
         # marks were originally set, and the positions of the saved marks may be
         # invalid.  But in practice, it doesn't seem to raise any error:
         #
-        #     $ vim -Nu NONE -i NONE +'echom setpos("'\''<", [0, 999, 999, 0])'
+        #     $ vim -Nu NONE -i NONE +'echomsg setpos("'\''<", [0, 999, 999, 0])'
         #     0˜
         #}}}
         setpos("'<", visual_marks_save[0])

@@ -41,38 +41,38 @@ var loaded = true
 
 const ATTR: dict<dict<string>> = {
     trans_bold: {
-        start: '\e\[1m',
-        end: '\e\[22m',
-        hi: 'term=bold cterm=bold gui=bold',
+        start: "\<Esc>\[1m",
+        end: "\<Esc>\[22m",
+        highlight: 'term=bold cterm=bold gui=bold',
     },
 
     trans_boldunderlined: {
-        start: '\e\[4m\e\[1m',
-        end: '\e\[22m\e\[24m',
-        hi: 'term=bold,underline cterm=bold,underline gui=bold,underline',
+        start: "\<Esc>\[4m\<Esc>\[1m",
+        end: "\<Esc>\[22m\<Esc>\[24m",
+        highlight: 'term=bold,underline cterm=bold,underline gui=bold,underline',
     },
 
     tldr_boldgreen: {
-        start: '\e\[32m\e\[1m',
-        end: '\e\[m\%x0f',
-        hi: 'term=bold cterm=bold gui=bold ctermfg=green guifg=#198844',
+        start: "\<Esc>\[32m\<Esc>\[1m",
+        end: "\<Esc>\[m\%x0f",
+        highlight: 'term=bold cterm=bold gui=bold ctermfg=green guifg=#198844',
     },
 
     tldr_italic: {
-        start: '\e\[3m',
-        end: '\e\[m\%x0f',
-        hi: 'term=italic cterm=italic gui=italic',
+        start: "\<Esc>\[3m",
+        end: "\<Esc>\[m\%x0f",
+        highlight: 'term=italic cterm=italic gui=italic',
     },
 
     tldr_bold: {
-        start: '\e\[1m',
-        end: '\e\[m\%x0f',
-        hi: 'term=bold cterm=bold gui=bold',
+        start: "\<Esc>\[1m",
+        end: "\<Esc>\[m\%x0f",
+        highlight: 'term=bold cterm=bold gui=bold',
     },
 }
 
 def Ansi() #{{{1
-    if search('\e', 'cn') == 0
+    if search("\<Esc>", 'cn') == 0
         return
     endif
     var view: dict<number> = winsaveview()
@@ -86,8 +86,8 @@ def Ansi() #{{{1
     #
     # For the bold and bold+underlined attributes:
     #
-    #     syn region ansiBold matchgroup=Normal start=/\e\[1m/ end=/\e\[22m/ concealends oneline
-    #     syn region ansiBoldUnderlined matchgroup=Normal start=/\e\[4m\e\[1m/ end=/\e\[22m\e\[24m/ concealends oneline
+    #     syntax region ansiBold matchgroup=Normal start=/\e\[1m/ end=/\e\[22m/ concealends oneline
+    #     syntax region ansiBoldUnderlined matchgroup=Normal start=/\e\[4m\e\[1m/ end=/\e\[22m\e\[24m/ concealends oneline
     #     &l:conceallevel = 3
     #     &l:concealcursor = 'nc'
     #
@@ -109,7 +109,7 @@ def Ansi() #{{{1
     var props: dict<string>
     for item in items(ATTR)
         [attr, props] = item
-        exe 'hi ansi_' .. attr .. ' ' .. props.hi
+        execute 'highlight ansi_' .. attr .. ' ' .. props.highlight
         cursor(1, 1)
         var flags: string = 'cW'
         prop_type_add('ansi_' .. attr, {highlight: 'ansi_' .. attr, bufnr: bufnr, combine: false})
@@ -123,18 +123,7 @@ def Ansi() #{{{1
     endfor
 
     var clean_this: string = '\C\e\[\d*m\|[[:cntrl:]]'
-    # TODO: Prefix `:%s` with `keepj keepp lockm` once this issue is fixed:  https://github.com/vim/vim/issues/6530{{{
-    #
-    #     exe 'sil keepj keepp lockm :% s/' .. clean_this .. '//ge'
-    #
-    # If you still can't use these modifiers after #6530 has been fixed, open a new issue.
-    #
-    # ---
-    #
-    # Also,  right now,  `:silent` doesn't  work.  Again,  once #6530  is fixed,
-    # check that the substitution is silent.
-    #}}}
-    exe 'sil :% s/' .. clean_this .. '//ge'
+    execute 'silent keepjumps keeppatterns lockmarks :% substitute/' .. clean_this .. '//ge'
     # Don't save the buffer.{{{
     #
     # It's useful to keep the file as it is, in case we want to send it to a Vim
