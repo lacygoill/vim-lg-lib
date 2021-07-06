@@ -17,7 +17,7 @@ const IS_MODIFYOTHERKEYS_ENABLED: bool = &t_TI =~ "\<Esc>\\[>4;[12]m"
 # No need to, everything works fine there.
 const USE_FUNCTION_KEYS: bool = !has('gui_running') && !IS_MODIFYOTHERKEYS_ENABLED
 
-var KEY2FUNC: dict<string>
+export var KEY2FUNC: dict<string>
 
 if USE_FUNCTION_KEYS
     KEY2FUNC = {
@@ -211,27 +211,16 @@ elseif IS_MODIFYOTHERKEYS_ENABLED || has('gui_running')
     autocmd VimEnter * NopUnusedMetaChords()
 endif
 
-const FLAG2ARG: dict<string> = {
-    S: '<script>',
-    b: '<buffer>',
-    e: '<expr>',
-    n: '<nowait>',
-    s: '<silent>',
-    u: '<unique>',
-}
-
 # Interface {{{1
-export def MapMeta( #{{{2
-    key: string,
-    rhs: string,
-    mode: string,
-    flags: string
-)
+export def MapMeta(mapping: string) #{{{2
     try
-        execute (mode != '!' ? mode : '') .. (flags =~ 'r' ? 'map' : 'noremap') .. (mode == '!' ? '!' : '')
-            .. ' ' .. MapArguments(flags)
-            .. ' ' .. (USE_FUNCTION_KEYS ? KEY2FUNC[key] : '<M-' .. key .. '>')
-            .. ' ' .. rhs
+        var fixed_mapping: string = mapping
+        if USE_FUNCTION_KEYS
+            fixed_mapping = mapping
+                ->substitute('\c<M-\(\a\)>', ((m) => KEY2FUNC[m[1]->tolower()]), 'g')
+                ->substitute('\c<M-S-\(\a\)>', ((m) => KEY2FUNC[m[1]->toupper()]), 'g')
+        endif
+        execute fixed_mapping
     catch /^Vim\%((\a\+)\)\=:E227:/
         echohl ErrorMsg
         unsilent echomsg v:exception
@@ -580,12 +569,6 @@ def Reinstall(maparg: dict<any>) #{{{2
 enddef
 #}}}1
 # Util {{{1
-def MapArguments(flags: string): string #{{{2
-    return split(flags, '\zs')
-        ->map((_, v: string) => get(FLAG2ARG, v, ''))
-        ->join()
-enddef
-
 def Islocal(maparg: dict<any>): bool #{{{2
     return get(maparg, 'buffer', false)
 enddef
