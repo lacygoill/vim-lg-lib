@@ -42,8 +42,7 @@ const LOGFILE: string = '/tmp/.vim-popup-window.log.vim'
 const MAX_ZINDEX: number = 32'000
 
 # Interface {{{1
-export def Popup_create(what: any, opts: dict<any>): list<number> #{{{2
-# TODO(Vim9): `what: any` → `what: number|string|list<string>`
+export def Popup_create(what: any, opts: dict<any>): dict<number> #{{{2
     var has_border: bool = opts->has_key('border')
     var is_term: bool = opts->has_key('term') ? remove(opts, 'term') : false
     if !has_border && !is_term
@@ -53,14 +52,13 @@ export def Popup_create(what: any, opts: dict<any>): list<number> #{{{2
     elseif is_term
         return Terminal(what, opts)
     endif
-    return []
+    return {}
 enddef
 
 export def Popup_notification( #{{{2
-    # TODO(Vim9): `what: any` → `what: number|string|list<string>`
     what: any,
     arg_opts: dict<any> = {}
-): list<number>
+): dict<number>
 
     var lines: list<string> = GetLines(what)
     var n_opts: dict<any> = GetNotificationOpts(lines)
@@ -69,8 +67,7 @@ export def Popup_notification( #{{{2
 enddef
 #}}}1
 # Core {{{1
-def Basic(arg_what: any, opts: dict<any>): list<number> #{{{2
-# TODO(Vim9): `arg_what: any` → `arg_what: number|string|list<string>`
+def Basic(arg_what: any, opts: dict<any>): dict<number> #{{{2
     var funcname: string = expand('<stack>')->matchstr('.*\.\.\zs<SNR>\w\+')
     # This serves 2 purposes:{{{
     #
@@ -78,7 +75,7 @@ def Basic(arg_what: any, opts: dict<any>): list<number> #{{{2
     #    - it prevents an error later:
     #
     #         var cmd: string = printf('var winid = popup_create(%s, %s)', what, opts)
-    #         " if `what` is the string 'TEST', the surrounding quotes will be removed by `printf()`:
+    #         # if `what` is the string 'TEST', the surrounding quotes will be removed by `printf()`:
     #         E121: Undefined variable: TEST˜
     #}}}
     var what: any = arg_what
@@ -124,11 +121,10 @@ def Basic(arg_what: any, opts: dict<any>): list<number> #{{{2
     cmd = printf('popup_setoptions(%d, {firstline: 0})', winid)
     Log(cmd, funcname, expand('<slnum>')->str2nr())
     popup_setoptions(winid, {firstline: 0})
-    return [winbufnr(winid), winid]
+    return {bufnr: winbufnr(winid), winid: winid}
 enddef
 
-def Border(what: any, opts: dict<any>): list<number> #{{{2
-# TODO(Vim9): `what: any` → `what: number|string|list<string>`
+def Border(what: any, opts: dict<any>): dict<number> #{{{2
     # reset geometry so that the inner text fits inside the border
     # Why these particular numbers in the padding list?{{{
     #
@@ -153,8 +149,7 @@ def Border(what: any, opts: dict<any>): list<number> #{{{2
     return Basic(what, opts)
 enddef
 
-def Terminal(what: any, opts: dict<any>): list<number> #{{{2
-# TODO(Vim9): `what: any` → `what: number|string|list<string>`
+def Terminal(what: any, opts: dict<any>): dict<number> #{{{2
     var funcname: string = expand('<stack>')
         ->matchstr('\.\.\zs.*\ze\[\d\+\]\.\.$')
     var bufnr: number
@@ -178,7 +173,7 @@ def Terminal(what: any, opts: dict<any>): list<number> #{{{2
     opts.highlight = 'Normal'
     # make sure a border is drawn even if the `border` key was not set
     opts.border = get(opts, 'border', [])
-    var info: list<number> = Border(bufnr, opts)
+    var info: dict<number> = Border(bufnr, opts)
     FireTerminalEvents()
     return info
 enddef
@@ -203,7 +198,6 @@ def SetBorderchars(opts: dict<any>) #{{{2
 enddef
 
 def GetLines(what: any): list<string> #{{{2
-# TODO(Vim9): `what: any` → `what: number|string|list<string>`
     var lines: list<string>
     if typename(what) =~ '^list'
         lines = what

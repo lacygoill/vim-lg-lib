@@ -82,7 +82,7 @@ export def FuncComplete( #{{{1
     return arglead
         ->substitute('^\Cs:', '<SNR>[0-9]\\\\\\{1,}_', '')
         ->getcompletion('function')
-        ->map((_, v: string): string => v->substitute('($\|()$', '', ''))
+        ->map((_, v: string) => v->substitute('($\|()$', '', ''))
 enddef
 
 export def GetSelectionText(): list<string> #{{{1
@@ -156,25 +156,6 @@ export def InTerminalBuffer(): bool #{{{1
         || (&filetype == '' && expand('%:p') =~ '^$\|^\%(/proc/\|/tmp/\)' && search('^٪', 'n') > 0)
 enddef
 
-export def IsVim9(): bool #{{{1
-    if &filetype != 'vim'
-        return false
-    endif
-
-    var patdef: string = '^\C\s*\%(export\s\+\)\=def\>'
-
-    # we're in the Vim9 context if the first command is `:vim9script`
-    return getline(1) =~ '^vim9s\%[cript]\>'
-        # ... unless we're in a legacy function
-        && searchpair('^\C\s*fu\%[nction]\>', '', '^\C\s*\<endf\%[unction]\>$', 'nW') <= 0
-        # in a legacy script, we're in the Vim9 context in a `:def` function
-        || searchpair(patdef, '', '^\C\s*\<enddef\>$', 'nW') > 0
-        # ... unless we're on its header line
-        && getline('.') !~ patdef
-        # FIXME: Being on the header doesn't necessarily mean that we're at the script level.
-        # We could be on the header of a `:def` function nested in another `:def` function.
-enddef
-
 export def Opfunc(type: string) #{{{1
     if !exists('g:operatorfunc') || !g:operatorfunc->has_key('core')
         return
@@ -238,7 +219,9 @@ export def Opfunc(type: string) #{{{1
         Catch()
         return
     finally
-        keys(reg_save)->mapnew((_, v: string) => setreg(v, reg_save[v]))
+        for [regname: string, value: dict<any>] in reg_save->items()
+            setreg(regname, value)
+        endfor
         [&clipboard, &selection] = [clipboard_save, selection_save]
         # Shouldn't we check the validity of the saved positions?{{{
         #
@@ -253,6 +236,7 @@ export def Opfunc(type: string) #{{{1
         setpos("'>", visual_marks_save[1])
     endtry
 enddef
+defcompile
 
 export def VimParent(): string #{{{1
 #    ┌────────────────────────────┬─────────────────────────────────────┐

@@ -76,9 +76,9 @@ if USE_FUNCTION_KEYS
         #     EOF
         #     )
         #
-        #     " press:     : <F3>
-        #     " expected:  'abc' is written on the command-line
-        #     " actual:    'R' is written on the command-line
+        #     # press:     : <F3>
+        #     # expected:  'abc' is written on the command-line
+        #     # actual:    'R' is written on the command-line
         #
         # ---
         #
@@ -269,7 +269,6 @@ export def MapMetaChord(key: string, symbolic = false): string #{{{2
 enddef
 
 export def MapSave( #{{{2
-    # TODO(Vim9): `arg_keys: any` → `arg_keys: list<string>|string`
     arg_keys: any,
     mode = '',
     wantlocal = false
@@ -583,7 +582,7 @@ enddef
 # Util {{{1
 def MapArguments(flags: string): string #{{{2
     return split(flags, '\zs')
-        ->map((_, v: string): string => get(FLAG2ARG, v, ''))
+        ->map((_, v: string) => get(FLAG2ARG, v, ''))
         ->join()
 enddef
 

@@ -167,18 +167,14 @@ def FoldSettings()
     #
     # MWE:
     #
-    #     $ vim -Nu NONE -i NONE -es -S <(cat <<'EOF'
-    #         vim9script
-    #         autocmd QuickFixCmdPost * autocmd BufWinEnter * ++once lwindow
-    #         autocmd FileType help autocmd BufWinEnter <buffer> &l:foldmethod = 'marker'
-    #         lhelpgrep foobar
-    #         getloclist(0, {winid: 0}).winid->win_gotoid()
-    #         &verbose = 1 | echo &l:foldmethod
-    #         quitall!
-    #     EOF
-    #     )
-    #     marker˜
-    #     " it should be "manual"
+    #     autocmd QuickFixCmdPost * autocmd BufWinEnter * ++once lwindow
+    #     autocmd FileType help autocmd BufWinEnter <buffer> &l:foldmethod = 'marker'
+    #     silent lhelpgrep foobar
+    #     getloclist(0, {winid: 0}).winid->win_gotoid()
+    #     &verbose = 1
+    #     echomsg &l:foldmethod
+    #     # expected: manual
+    #     # actual:   marker
     #
     # Obviously,  if `'foldmethod'`  is wrongly  set to  "marker", and  the text
     # field of some entry contains a fold marker, the qf buffer gets folded.
@@ -476,7 +472,8 @@ def FixAllbut(filetype: string) #{{{2
     # current plugin defines.
     #}}}
     var groups: string = CUSTOM_GROUPS
-        ->mapnew((_, v: string): string =>
+        ->copy()
+        ->map((_, v: string) =>
                       v[0] == '@'
                     ?     '@' .. filetype .. v->trim('@')
                     :     filetype .. v
@@ -494,7 +491,7 @@ def FixAllbut(filetype: string) #{{{2
         allbut_groups[filetype] = execute('syntax list')
             ->split('\n')
             ->filter((_, v: string): bool => v =~ '\CALLBUT,' && v !~ '^\s')
-            ->map((_, v: string): string => v->matchstr('\S\+'))
+            ->map((_, v: string) => v->matchstr('\S\+'))
             # Ignore groups defined for embedding another language.{{{
             #
             # Otherwise, this  function breaks  the syntax highlighting  in some
@@ -510,11 +507,11 @@ def FixAllbut(filetype: string) #{{{2
             # If you duplicate the ruby syntax plugin in `~/.vim/syntax/ruby.vim`,
             # and if you edit `$VIMRUNTIME/syntax/vim.vim:689`:
             #
-            #     " this line makes Vim source the default ruby syntax plugin
-            #     " when defining the cluster/region used to embed ruby inside Vim
+            #     # this line makes Vim source the default ruby syntax plugin
+            #     # when defining the cluster/region used to embed ruby inside Vim
             #     s:rubypath= fnameescape(expand("<sfile>:p:h")."/ruby.vim")
             #
-            #     " this new line makes Vim source our custom ruby syntax plugin instead
+            #     # this new line makes Vim source our custom ruby syntax plugin instead
             #     s:rubypath= split(globpath(&rtp,"syntax/ruby.vim"),"\n")[0]
             #
             # Then, if you  edit all the items using `ALLBUT`  so that they also
@@ -559,12 +556,14 @@ def FixAllbut(filetype: string) #{{{2
     for group in allbut_groups[filetype]
         var cmds: list<string> = GetCmdsToResetGroup(group)
             # add `@xMyCustomGroups` after `ALLBUT`
-            ->map((_, v: string): string =>
+            ->map((_, v: string) =>
                     v->substitute('\CALLBUT,', 'ALLBUT,@' .. filetype .. 'MyCustomGroups,', ''))
 
         # clear and redefine all the items in the group
         execute 'syntax clear ' .. group
-        cmds->map((_, v: string) => execute(v))
+        for cmd in cmds
+            execute cmd
+        endfor
     endfor
 enddef
 
@@ -624,17 +623,6 @@ def FixCommentRegion(filetype: string) #{{{2
     # Otherwise, you will break the highlighting  of a list item; only the first
     # line will be correctly highlighted, the next ones will be highlighted as a
     # codeblock.
-    #
-    # ---
-    #
-    # In  a Vim  file, it  would also cause  `"string"` to  be highlighted  as a
-    # comment in:
-    #
-    #     function Func() abort
-    #         return "string"
-    #     endfunction
-    #
-    # While it should be highlighted as a string.
     #}}}
     if cmds->match('^syn\%[tax]\s\+region') == -1
         return
@@ -659,9 +647,11 @@ def FixCommentRegion(filetype: string) #{{{2
     #
     # I guess the right solution would be to send patches to the syntax authors.
     #}}}
-    cmds->map((_, v: string): string => v .. ' keepend')
+    cmds->map((_, v: string) => v .. ' keepend')
     execute 'syntax clear ' .. filetype .. 'Comment'
-    cmds->map((_, v: string) => execute(v))
+    for cmd in cmds
+        execute cmd
+    endfor
 enddef
 
 def GetCmdsToResetGroup(group: string): list<string> #{{{2
@@ -678,7 +668,7 @@ def GetCmdsToResetGroup(group: string): list<string> #{{{2
     # add `:syntax [keyword|match|region]` to build new commands to redefine the
     # items in the group
     var cmds: list<string> = definition
-        ->map((_, v: string): string =>
+        ->map((_, v: string) =>
                   match(v, '\C\<start=') >= 0
                 ?     'syntax region ' .. group .. ' ' .. v
                 : match(v, '\C\<match\>') >= 0
@@ -1224,7 +1214,7 @@ def SynPointer( #{{{2
     #       ^
     # ^---^
     # v---v
-    #     "   ^---^
+    #     #   ^---^
     execute 'syntax match ' .. filetype .. 'CommentPointer'
         .. ' /' .. cml .. '\s*\%(' .. cml .. '\)\=\s*\%([v^✘✔-]\+\s*\)\+$/'
         .. ' contains=' .. filetype .. 'CommentLeader'
@@ -1363,7 +1353,7 @@ def SynFoldmarkers( #{{{2
     #
     #     :setlocal conceallevel=2
     #
-    # Result:
+    # Actual:
     #
     # If your fold  markers are prefixed by `n` whitespaces,  you will see `n+1`
     # conceal characters instead of just 1.

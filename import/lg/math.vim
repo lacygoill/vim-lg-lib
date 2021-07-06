@@ -1,11 +1,8 @@
 vim9script
 
-export def Max(numbers: any): any #{{{1
-# TODO(Vim9):
-# `numbers: any` → `numbers: list<number|float>`
-# `): any`       → `): number|float`
-
-# we reimplement `max()` and `min()` because the builtins don't handle floats
+export def Max(numbers: list<any>): any #{{{1
+# NOTE: We reimplement `max()` and `min()` because the builtins don't handle floats.
+# NOTE: `numbers` can be a list of numbers or floats.
 
     if empty(numbers)
         return 0
@@ -23,10 +20,7 @@ export def Max(numbers: any): any #{{{1
     return max
 enddef
 
-export def Min(numbers: any): any #{{{1
-# TODO(Vim9):
-# `numbers: any` → `numbers: list<number|float>`
-# `): any`       → `): number|float`
+export def Min(numbers: list<any>): any #{{{1
     if empty(numbers)
         return 0
     elseif numbers
@@ -44,22 +38,21 @@ export def Min(numbers: any): any #{{{1
 enddef
 
 export def MatrixTransposition(lists: list<list<number>>): any #{{{1
-# TODO(Vim9): `): any` → `): list<list<number>>|number`
-    # This function expects a list of lists; each list with with the same size.{{{
-    #
-    # You could imagine the lists piled up, forming a matrix.
-    #
-    # The function  should return  another list  of lists,  whose items  are the
-    # columns of  this table.   This is similar  to what is  called, in  math, a
-    # transposition: https://en.wikipedia.org/wiki/Transpose
-    # That is, reading the  lines in a transposed matrix is  the same as reading
-    # the columns in the original one.
-    #}}}
-    # Usage example:{{{
-    #
-    #     :echo Matrix_transposition([[1, 2], [3, 4], [5, 6]])
-    #     [[1, 3, 5], [2, 4, 6]]˜
-    #}}}
+# This function expects a list of lists; each list with with the same size.{{{
+#
+# You could imagine the lists piled up, forming a matrix.
+#
+# The function should return another list  of lists, whose items are the columns
+# of this table.  This  is similar to what is called,  in math, a transposition:
+# https://en.wikipedia.org/wiki/Transpose
+# That is, reading the  lines in a transposed matrix is the  same as reading the
+# columns in the original one.
+#}}}
+# Usage example:{{{
+#
+#     :echo Matrix_transposition([[1, 2], [3, 4], [5, 6]])
+#     [[1, 3, 5], [2, 4, 6]]˜
+#}}}
 
     var n_lines: number = len(lists)
     if typename(lists) !~ '^list' || n_lines == 0
