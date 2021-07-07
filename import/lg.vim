@@ -162,7 +162,7 @@ export def Opfunc(type: string) #{{{1
     endif
 
     var reg_save: dict<dict<any>>
-    for regname in ['"', '-']
+    for regname: string in ['"', '-']
                  + range(10)->mapnew((_, v: number): string => string(v))
         reg_save[regname] = getreginfo(regname)
     endfor

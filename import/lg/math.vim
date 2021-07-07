@@ -55,7 +55,7 @@ export def MatrixTransposition(lists: list<list<number>>): any #{{{1
 #}}}
 
     var n_lines: number = len(lists)
-    if typename(lists) !~ '^list' || n_lines == 0
+    if n_lines == 0
         return -1
     endif
 
@@ -70,7 +70,7 @@ export def MatrixTransposition(lists: list<list<number>>): any #{{{1
 
     # Check that all the arguments are lists and have the same length
     var n_columns: number = len(firstlist)
-    for list in lists
+    for list: list<number> in lists
         if typename(list) !~ '^list' || len(list) != n_columns
             return -1
         endif
@@ -103,8 +103,8 @@ export def MatrixTransposition(lists: list<list<number>>): any #{{{1
     # A cell must be added to a list of `transposed`.  Which one?
     # A cell is in the `j`-th column / list of columns, so: `j`.
     #}}}
-    for i in range(n_lines)
-        for j in range(n_columns)
+    for i: number in range(n_lines)
+        for j: number in range(n_columns)
             transposed[j]->add(lists[i][j])
         endfor
     endfor

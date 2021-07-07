@@ -107,7 +107,7 @@ def Ansi() #{{{1
     var bufnr: number = bufnr('%')
     var attr: string
     var props: dict<string>
-    for item in items(ATTR)
+    for item: list<any> in items(ATTR)
         [attr, props] = item
         execute 'highlight ansi_' .. attr .. ' ' .. props.highlight
         cursor(1, 1)

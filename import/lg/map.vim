@@ -109,7 +109,7 @@ if USE_FUNCTION_KEYS
     }
 
     def SetKeysyms()
-        for [key, funckey] in items(KEY2FUNC)
+        for [key: string, funckey: string] in items(KEY2FUNC)
             execute 'set ' .. funckey .. "=\<Esc>" .. key
         endfor
     enddef
@@ -144,14 +144,14 @@ if USE_FUNCTION_KEYS
     #    - you use `:help modifyOtherKeys`
     #}}}
     def FixMetaReadline()
-        for [key, funckey] in items(KEY2FUNC)
+        for [key: string, funckey: string] in items(KEY2FUNC)
             execute 'tnoremap ' .. funckey .. ' <Esc>' .. key
         endfor
     enddef
     FixMetaReadline()
 
     def NopUnusedMetaChords()
-        for funckey in values(KEY2FUNC)
+        for funckey: string in values(KEY2FUNC)
             # we don't  want `<F37>` to  be inserted into  the buffer or  on the
             # command-line, if we press `<M-Z>` and nothing is bound to it
             if maparg(funckey, 'i')->empty()
@@ -178,7 +178,7 @@ elseif IS_MODIFYOTHERKEYS_ENABLED || has('gui_running')
     # right sequences to the shell.
     #}}}
     def FixMetaReadline()
-        for key in (
+        for key: string in (
             range(char2nr('a'), char2nr('z'))
           + range(char2nr('A'), char2nr('Z'))
         )->mapnew((_, v: number): string => nr2char(v))
@@ -189,7 +189,7 @@ elseif IS_MODIFYOTHERKEYS_ENABLED || has('gui_running')
 
     def NopUnusedMetaChords()
         var lhs: string
-        for key in (
+        for key: string in (
             range(char2nr('a'), char2nr('z'))
           + range(char2nr('A'), char2nr('Z'))
         )->mapnew((_, v: number): string => nr2char(v))
@@ -340,13 +340,13 @@ export def MapSave( #{{{2
     var keys: list<string> = typename(arg_keys) =~ '^list' ? arg_keys : [arg_keys]
 
     var save: list<dict<any>>
-    for key in keys
+    for key: string in keys
         # This `for` loop is only necessary if you intend `#save()` to support multiple modes:{{{
         #
         #     var save: list<dict<any>> = MapSave('<C-Q>', 'nxo')
         #                                                   ^^^
         #}}}
-        for m in mode == '' ? [''] : mode
+        for m: string in mode == '' ? [''] : mode
             var maparg: dict<any> = Maparg(key, m, wantlocal)
             save += [maparg]
         endfor
@@ -377,7 +377,7 @@ export def MapRestore(save: list<dict<any>>) #{{{2
         return
     endif
 
-    for maparg in save
+    for maparg: dict<any> in save
         # if the mapping was local to a buffer, check we're in the right one
         # If we are in the wrong buffer, why don't you temporarily load it?{{{
         #
@@ -442,7 +442,7 @@ export def MapRestore(save: list<dict<any>>) #{{{2
             #     ^^
             #     2 modes
             #}}}
-            for mode in maparg.mode
+            for mode: string in maparg.mode
                 # reinstall a saved mapping
                 maparg->deepcopy()->extend({mode: mode})->Reinstall()
             endfor

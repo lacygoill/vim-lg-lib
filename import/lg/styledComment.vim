@@ -553,7 +553,7 @@ def FixAllbut(filetype: string) #{{{2
             ->filter((_, v: string): bool => v =~ '^' .. filetype)
     endif
 
-    for group in allbut_groups[filetype]
+    for group: string in allbut_groups[filetype]
         var cmds: list<string> = GetCmdsToResetGroup(group)
             # add `@xMyCustomGroups` after `ALLBUT`
             ->map((_, v: string) =>
@@ -561,7 +561,7 @@ def FixAllbut(filetype: string) #{{{2
 
         # clear and redefine all the items in the group
         execute 'syntax clear ' .. group
-        for cmd in cmds
+        for cmd: string in cmds
             execute cmd
         endfor
     endfor
@@ -649,7 +649,7 @@ def FixCommentRegion(filetype: string) #{{{2
     #}}}
     cmds->map((_, v: string) => v .. ' keepend')
     execute 'syntax clear ' .. filetype .. 'Comment'
-    for cmd in cmds
+    for cmd: string in cmds
         execute cmd
     endfor
 enddef
