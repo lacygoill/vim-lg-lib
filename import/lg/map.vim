@@ -219,6 +219,19 @@ export def MapMeta(mapping: string) #{{{2
             fixed_mapping = mapping
                 ->substitute('\c<M-\(\a\)>', ((m) => KEY2FUNC[m[1]->tolower()]), 'g')
                 ->substitute('\c<M-S-\(\a\)>', ((m) => KEY2FUNC[m[1]->toupper()]), 'g')
+        elseif has('gui_running')
+            # For some reason, in GUI, Vim conflates `<M-X>` with `<M-S-X>`.{{{
+            #
+            # In conjunction with `<unique>`, this can lead to unexpected errors:
+            #
+            #     $ vim -Nu NONE -g +'nnoremap <unique> <M-G> <cmd>echo "M-G"<CR>' \
+            #                       +'nnoremap <unique> <M-S-G> <cmd>echo "M-S-G"<cr>'
+            #     E227: mapping already exists for Ç˜
+            #
+            # To avoid this, let's make sure that in `<M-x>`, the `x` is lowercase.
+            #}}}
+            fixed_mapping = mapping
+                ->substitute('\c<M-\zs\u\ze>', ((m) => m[0]->tolower()), 'g')
         endif
         execute fixed_mapping
     catch /^Vim\%((\a\+)\)\=:E227:/
