@@ -212,7 +212,7 @@ elseif IS_MODIFYOTHERKEYS_ENABLED || has('gui_running')
 endif
 
 # Interface {{{1
-export def MapMeta(mapping: string) #{{{2
+export def MapMeta(mapping: string): string #{{{2
     try
         var fixed_mapping: string = mapping
         if USE_FUNCTION_KEYS
@@ -233,12 +233,15 @@ export def MapMeta(mapping: string) #{{{2
             fixed_mapping = mapping
                 ->substitute('\c<M-\zs\u\ze>', ((m) => m[0]->tolower()), 'g')
         endif
-        execute fixed_mapping
+        # We don't install the mapping from here, because if it has an issue, we
+        # want `:verbose` to tell us where it's really defined.
+        return fixed_mapping
     catch /^Vim\%((\a\+)\)\=:E227:/
         echohl ErrorMsg
         unsilent echomsg v:exception
         echohl NONE
     endtry
+    return ''
 enddef
 
 export def MapMetaChord(key: string, symbolic = false): string #{{{2
